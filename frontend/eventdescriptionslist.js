@@ -6,7 +6,9 @@ function setupEventDescriptionsList(container, globalQuery) {
 	}
 	function addToList(descriptions) {
 		$.each(descriptions, function (i, event) {
-			$("<dt>" + event.year + "</dt>" + "<dd>" + event.descriptionHtml + "</dd>").appendTo(listElt);
+			var yearText = event.year > 0 ? event.year + " CE" : -event.year + " BCE";
+			var yearUrl = baseWikipediaUrl + "/wiki/" + (event.year > 0 ? event.year : -event.year + "BC");
+			$("<dt><a href=\"" + yearUrl + "\">" + yearText + "</a></dt>" + "<dd>" + event.descriptionHtml + "</dd>").appendTo(listElt);
 		});
 	}
 
