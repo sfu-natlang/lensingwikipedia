@@ -1,0 +1,102 @@
+#!/usr/bin/env python2
+
+"""
+Usage: %s [opts] DATA-DOMAIN [DATA-FILE]
+
+Arguments:
+DATA-DOMAIN   SimpleDB domain to save clustering to, and optionally to read
+  events from.
+DATA-FILE     Local file to read data from. Ignored if -d is given. Standard
+  input is used if neither are given.
+
+Options:
+  -d        Use database instead of local input.
+  -i INT    Event ID offset.
+  -c STRING Name of clustering to set (will be used as part of database field
+    names).
+  -t FLOATS List of thresholds for each detail level in increasing order of
+    detail. Comma separated.
+  -p INT    Number of digits after the decimal place to use for points when
+    clustering. The database may store coordinates at lower precision than the
+    input file, so set this at or below the database precision for consistency
+    if planning to cluster from the input data and the database.
+
+Clusters events and assigns the events to the clusters in the database. Each
+clustering (assignment of events to clusters) has a name which is used as part
+of the database field names. Each clustering has one or more detail levels, for
+which different distance thresholds can be set here.
+
+By default events are read from standard input or a file. When using this
+method, make sure that the input data is exactly the same that was uploaded
+(including order). Otherwise the wrong events may be assigned in the database.
+
+Alternatively, events can be read from database. This method doesn't require
+local data and removes the possibility of assigning to the wrong events, but it
+requires much more overhead in bandwidth and database activity.
+
+Note that since the clustering algorithm is greedy and the database does not
+return events in any specific order, you may get different clustering results
+depending on which method you use. Additionally the database may have lower
+precision on the coordinates than local data, but this can be corrected by
+using the -p option.
+"""
+
+import sys
+import ioutils
+import boto
+import clustering
+
+default_thresholds = [0.25, 0.2, 0.15, 0.1, 0.05]
+
+def get_point(event, point_digits):
+  return (round(float(event['longitude']), point_digits), round(float(event['latitude']), point_digits))
+
+def iter_events_from_file(path, first_id, point_digits):
+  import json
+  with open(path) as file:
+    for id, line in enumerate(file):
+      event = json.loads(line)
+      if 'latitude' in event and 'longitude' in event:
+        yield id, get_point(event, point_digits)
+
+def iter_events_from_db(data_dom, point_digits):
+  import sdbutils
+  for event in sdbutils.select_all(data_dom, None, ['latitude', 'longitude'], needs_non_null=['latitude', 'longitude']):
+    yield event.name, get_point(event, point_digits)
+
+def update_clustering(clustering_name, data_dom, thresholds, iter_events):
+  def set_cluster(id, cluster, detail):
+    data_dom.put_attributes(id, { 'mapClustering:%s:%i' % (clustering_name, detail): cluster.id })
+  clustering.geo_cluster(iter_events, set_cluster, thresholds)
+
+if __name__ == '__main__':
+  import getopt
+
+  try:
+    opts, args = getopt.getopt(sys.argv[1:], "i:dc:t:")
+    if len(args) not in [1, 2]:
+      raise getopt.GetoptError("wrong number of positional arguments")
+    opts = dict(opts)
+  except getopt.GetoptError:
+    print >> sys.stderr, __doc__.strip('\n\r') % (sys.argv[0])
+    sys.exit(1)
+
+  data_domain_name = args[0]
+  input_path = args[1] if len(args) > 1 else None
+  thresholds = dict((i, float(t)) for i, t in enumerate(opts['-t'].split(',') if '-t' in opts else default_thresholds))
+  first_id = int(opts['-i']) if '-i' in opts else 0
+  point_digits = int(opts['-p']) if '-p' in opts else 6
+  clustering_name = opts['-c'] if '-c' in opts else 'default'
+  use_database = '-d' in opts
+
+  sdb = boto.connect_sdb()
+  data_dom = sdb.get_domain(data_domain_name)
+
+  if '-d' in opts:
+    update_clustering(clustering_name, data_dom, thresholds, lambda: iter_events_from_db(data_dom, point_digits))
+  elif input_path is None:
+    # If reading from standard input then we save to a temp file so avoid keeping all the data in memory at once
+    with ioutils.cache_input(sys.stdin) as cached_input_path:
+      update_clustering(clustering_name, data_dom, thresholds, lambda: iter_events_from_file(cached_input_path, first_id, point_digits))
+  else:
+    update_clustering(clustering_name, data_dom, thresholds, lambda: iter_events_from_file(input_path, first_id, point_digits))

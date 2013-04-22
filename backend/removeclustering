@@ -1,0 +1,39 @@
+#!/usr/bin/env python2
+
+"""
+Usage: %s DATA-DOMAIN CLUSTERING-NAME DETAIL-LEVELS
+
+Arguments:
+DATA-DOMAIN       SimpleDB domain containing the data.
+CLUSTERING-NAME   Name of clustering.
+DETAIL-LEVELS     Detail levels to remove. Comma separated.
+
+Removes detail levels of a clustering (or the whole clustering, if given all its
+detail levels).
+"""
+
+import sys
+import boto
+import sdbutils
+
+if __name__ == '__main__':
+  import getopt
+
+  try:
+    opts, args = getopt.getopt(sys.argv[1:], "")
+    if len(args) not in [3]:
+      raise getopt.GetoptError("wrong number of positional arguments")
+    opts = dict(opts)
+  except getopt.GetoptError:
+    print >> sys.stderr, __doc__.strip('\n\r') % (sys.argv[0])
+    sys.exit(1)
+
+  data_domain_name = args[0]
+  clustering_name = args[1]
+  detail_levels = [dl.strip() for dl in args[2].split(',')]
+  
+  sdb = boto.connect_sdb()
+  data_dom = sdb.get_domain(data_domain_name)
+
+  fields = ["mapClustering:%s:%s" % (clustering_name, dl) for dl in detail_levels]
+  sdbutils.remove_all_attributes(data_dom, fields)

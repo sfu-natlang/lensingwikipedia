@@ -1,0 +1,110 @@
+#!/usr/bin/env python2
+
+"""
+Usage: %s [opts] SETTINGS-DOMAIN
+
+Arguments:
+SETTINGS-DOMAIN   SimpleDB domain to read settings from.
+
+Options
+-h STRING   Hostname for server. Defaults to empty.
+-p INT      Port for server. Defaults to %i.
+
+Runs the backend.
+"""
+
+import sys
+import json
+import time
+import datetime
+import traceback
+import boto
+import wsgiref
+import wsgiref.simple_server
+import sdbutils
+import queries
+import backend_settings
+
+default_port = 1500
+
+class State:
+  pass
+
+def log_extra():
+  print >> sys.stderr, "pagination cache size", len(sdbutils.pagination_cache)
+  print >> sys.stderr, "response cache size", len(queries.response_cache)
+
+def apply_settings(settings):
+  # Here we mess with the state of other modules.
+  queries.response_cache.clear()
+  sdbutils.pagination_cache.clear()
+  sdbutils.pagination_cache.set_max_size(settings.pagination_cache_size)
+  queries.description_page_size = settings.description_page_size
+  queries.num_initial_description_pages_to_cache = settings.num_initial_description_pages_to_cache
+  queries.all_argument_numbers = settings.all_argument_numbers
+
+def serve(hostname, port, sdb, settings_dom):
+  state = State()
+  state.data_dom = None
+  state.settings = backend_settings.Settings(backend_settings.defaults)
+  state.next_settings_update = -sys.maxint - 1
+
+  def app(environ, start_response):
+    print >> sys.stderr
+    print >> sys.stderr, "request at %s" % (str(datetime.datetime.now()))
+
+    if time.time() >= state.next_settings_update:
+      print >> sys.stderr, "updating settings"
+      log_extra()
+      backend_settings.update_settings_from_db(state.settings, backend_settings.defaults, settings_dom)
+      state.next_settings_update = time.time() + state.settings.settings_timeout
+      state.data_dom = sdbutils.get_domain(sdb, state.settings.data_domain_name)
+      apply_settings(state.settings)
+
+    try:
+      if environ['REQUEST_METHOD'] == 'POST':
+        body = str(environ['wsgi.input'].read(int(environ['CONTENT_LENGTH'])))
+        #print >> sys.stderr, "query: %s" % (body)
+        query = json.loads(body)
+      else:
+        query = {}
+      try:
+        response = json.dumps(queries.handle_query(query, state.data_dom, state.settings.clustering_name, body))
+        #print >> sys.stderr, "response: %s" % (response)
+        start_response("200 OK", [("Content-type", "application/json"), ("Access-Control-Allow-Origin", "*")])
+        return [response]
+      except:
+        print >> sys.stderr, "query response failed:"
+        traceback.print_exc(file=sys.stderr)
+    except:
+      print >> sys.stderr, "couldn't read query from post:"
+      traceback.print_exc(file=sys.stderr)
+
+    # Fail if we haven't returned already
+    start_response("404 Not Found", [])
+    return []
+
+  httpd = wsgiref.simple_server.make_server(hostname, port, app)
+  print >> sys.stderr, "serving"
+  httpd.serve_forever()
+
+if __name__ == '__main__':
+  import getopt
+
+  try:
+    opts, args = getopt.getopt(sys.argv[1:], "p:h:")
+    if len(args) not in [1]:
+      raise getopt.GetoptError("wrong number of positional arguments")
+    opts = dict(opts)
+  except getopt.GetoptError:
+    print >> sys.stderr, __doc__.strip('\n\r') % (sys.argv[0], default_port)
+    sys.exit(1)
+
+  settings_dom_name = args[0]
+  hostname = opts['-h'] if '-h' in opts else ""
+  port = opts['-p'] if '-p' in opts else default_port
+
+  print >> sys.stderr, "connecting to database"
+  sdb = boto.connect_sdb()
+  settings_dom = sdbutils.get_domain(sdb, settings_dom_name)
+  serve(hostname, port, sdb, settings_dom)

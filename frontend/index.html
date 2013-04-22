@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Lensing Wikipedia</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<link rel="stylesheet" type="text/css" href="main.css">
+	</head>
+	<body>
+		<div class="constraintlist"></div>
+		<div class="eventdescriptions"></div>
+		<div class="facet allargs"></div>
+		<div class="facet arg0"></div>
+		<div class="facet arg1"></div>
+
+		<!-- TODO: change to local js files for libraries -->
+		<script src="http://code.jquery.com/jquery.js"></script>
+
+		<script src="config.js"></script>
+		<script src="queries.js"></script>
+
+		<script src="constraintlist.js"></script>
+		<script src="eventdescriptionslist.js"></script>
+		<script src="facet.js"></script>
+
+		<script>
+			function setupFitVisTabs() {
+				var tabBarHeight = 75;
+				function fitVisTabs() {
+					var height = $(window).height() - tabBarHeight;
+					$(".viscontent").css("height", height);
+				}
+				$(window).bind('doneResize', function() {
+					fitVisTabs();
+				});
+				$(window).bind("ready", function() {
+					fitVisTabs();
+				});
+			}
+
+			var globalQuery = new Query(backendUrl);
+			setupConstraintList($("div.constraintlist"), globalQuery);
+			setupEventDescriptionsList($("div.eventdescriptions"), globalQuery);
+			setupFacet($("div.facet.allargs"), globalQuery, "Any arg", {
+				type: 'countbyrole'
+			}, function makeConstraint(role) {
+				return {
+					type: 'role',
+					role: role
+				}
+			});
+			setupFacet($("div.facet.arg0"), globalQuery, "Arg 0", {
+				type: 'countbyrole',
+				arg: 0
+			}, function makeConstraint(role) {
+				return {
+					type: 'role',
+					arg: 0,
+					role: role
+				}
+			});
+			setupFacet($("div.facet.arg1"), globalQuery, "Arg 1", {
+				type: 'countbyrole',
+				arg: 1
+			}, function makeConstraint(role) {
+				return {
+					type: 'role',
+					arg: 1,
+					role: role
+				}
+			});
+			globalQuery.update();
+		</script>
+	</body>
+</html>

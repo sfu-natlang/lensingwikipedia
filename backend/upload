@@ -1,0 +1,118 @@
+#!/usr/bin/env python2
+
+"""
+Usage: %s [opts] DATA-DOMAIN [DATA-FILE]
+
+Arguments:
+DATA-DOMAIN   SimpleDB domain to upload the data to.
+DATA-FILE     Local data file. Uses standard input if not given.
+
+Options:
+  -d      Delete and replace the existing domain, if there is one.
+  -i INT  Event ID index offset.
+
+Uploads events from local data to a SimpleDB database.
+
+Events are identified with sequential indices. Be careful to get them right if
+doing multiple uploads to the same domain without deleting or clearing it first.
+"""
+
+import sys
+import re
+import json
+import cgi
+import boto
+
+max_sdb_value_len = 1000 # should be 1024 - 1 (for the ellipsis) but seems to need some padding
+base_wikipedia_url = "https://en.wikipedia.org"
+
+ref_re = re.compile("\[[0-9]+\]")
+def make_html_description(text, urls):
+  html = cgi.escape(ref_re.sub("", text))
+  for url_rep in urls:
+    try:
+      i = url_rep.index(' ')
+      url = url_rep[:i]
+      key = cgi.escape(url_rep[i+1:])
+      html = html.replace(key, "<a href=\"%s%s\">%s</a>" % (base_wikipedia_url, url, key))
+    except ValueError:
+      print >> sys.stderr, "warning: couldn't understand URL replacement \"%s\"" % (url_rep)
+  return html
+
+def clip_html(html, max_len):
+  """
+  Clips text to a maximum length while making sure not to leave invalid HTML tags.
+  """
+  if len(html) <= max_len:
+    return html
+  else:
+    text = html[:max_len]
+    i = text.rfind("<")
+    j = text.rfind("</a>")
+    k = text.rfind("<a ")
+    if i > 0 and i != j:
+      if i < 0 and k < 0:
+        text = text[:i]
+      else:
+        text = text[:max(j, k)]
+    text += "&hellip;"
+    return text
+
+def clip_field(event, field, html=False):
+  text = event[field]
+  if len(text) > max_sdb_value_len:
+    event[field] = clip_html(text, max_sdb_value_len) if html else text[:max_sdb_value_len]
+
+def prepare_event(event):
+  """
+  Modifies an event for uploading.
+  """
+  event['urls'] = ["%s %s" % (u, k) for k, u in event['urls'].iteritems()]
+  event['descriptionHtml'] = make_html_description(event['description'], event.get('urls') or {})
+  clip_field(event, 'description')
+  clip_field(event, 'descriptionTokenized')
+  clip_field(event, 'descriptionHtml', html=True)
+
+def upload(input, dom_name, first_id, do_delete):
+  sdb = boto.connect_sdb()
+
+  dom = None
+  if do_delete:
+    try:
+      sdb.delete_domain(dom_name)
+      print >> sys.stderr, "removing old domain"
+    except boto.exception.SDBResponseError:
+      print >> sys.stderr, "no old domain"
+  else:
+    try:
+      dom = sdb.get_domain(dom_name)
+      print >> sys.stderr, "using existing domain"
+    except boto.exception.SDBResponseError:
+      pass
+  if dom is None:
+    print >> sys.stderr, "creating new domain"
+    dom = sdb.create_domain(dom_name)
+
+  for i, line in enumerate(input):
+    event = json.loads(line)
+    print >> sys.stderr, "uploading event %i" % (i)
+    prepare_event(event)
+    dom.put_attributes(str(i), event)
+
+if __name__ == '__main__':
+  import getopt
+
+  try:
+    opts, args = getopt.getopt(sys.argv[1:], "i:d")
+    if len(args) not in [1, 2]:
+      raise getopt.GetoptError("wrong number of positional arguments")
+    opts = dict(opts)
+  except getopt.GetoptError:
+    print >> sys.stderr, __doc__.strip('\n\r') % (sys.argv[0])
+    sys.exit(1)
+
+  first_id = int(opts['-i']) if '-i' in opts else 0
+  do_delete = '-d' in opts
+  dom_name = args[0]
+  input = open(args[1]) if len(args) > 1 else sys.stdin
+  upload(input, dom_name, first_id, do_delete)
