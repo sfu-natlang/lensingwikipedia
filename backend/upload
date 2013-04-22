@@ -28,15 +28,21 @@ base_wikipedia_url = "https://en.wikipedia.org"
 
 ref_re = re.compile("\[[0-9]+\]")
 def make_html_description(text, urls):
-  html = cgi.escape(ref_re.sub("", text))
-  for url_rep in urls:
+  def parse(url_rep):
     try:
       i = url_rep.index(' ')
-      url = url_rep[:i]
-      key = cgi.escape(url_rep[i+1:])
-      html = html.replace(key, "<a href=\"%s%s\">%s</a>" % (base_wikipedia_url, url, key))
+      return cgi.escape(url_rep[i+1:]), url_rep[:i]
     except ValueError:
       print >> sys.stderr, "warning: couldn't understand URL replacement \"%s\"" % (url_rep)
+  urls = dict(parse(ur) for ur in urls)
+  pat = "|".join("(%s)" % (k)  for k in urls)
+
+  def replace(match):
+    key = match.group(0)
+    return "<a href=\"%s%s\">%s</a>" % (base_wikipedia_url, urls[key], key)
+
+  html = cgi.escape(ref_re.sub("", text))
+  html = re.sub(pat, replace, html)
   return html
 
 def clip_html(html, max_len):
@@ -46,17 +52,17 @@ def clip_html(html, max_len):
   if len(html) <= max_len:
     return html
   else:
-    text = html[:max_len]
-    i = text.rfind("<")
-    j = text.rfind("</a>")
-    k = text.rfind("<a ")
+    html = html[:max_len]
+    i = html.rfind("<")
+    j = html.rfind("</a>")
+    k = html.rfind("<a ")
     if i > 0 and i != j:
       if i < 0 and k < 0:
-        text = text[:i]
+        html = html[:i]
       else:
-        text = text[:max(j, k)]
-    text += "&hellip;"
-    return text
+        html = html[:max(j, k)]
+    html += "&hellip;"
+    return html
 
 def clip_field(event, field, html=False):
   text = event[field]
