@@ -24,6 +24,7 @@ from the database; the backend will use its own default in this case.
 
 import sys
 import boto
+import sdbutils
 import backend_settings
 
 def update_settings_from_opts(settings, opts):
@@ -52,7 +53,7 @@ if __name__ == '__main__':
   show_all = '-a' in opts
 
   sdb = boto.connect_sdb()
-  settings_dom = sdb.get_domain(settings_dom_name)
+  settings_dom = sdbutils.get_domain(sdb, settings_dom_name)
 
   if '-o' in opts:
     backend_settings.show_from_db(settings_dom, show_all=show_all)
