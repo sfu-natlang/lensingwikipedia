@@ -1,0 +1,14 @@
+.eventdescriptionslist {
+	height: 100%;
+	margin: 0;
+	padding: 0;
+	overflow-y: scroll;
+}
+.eventdescriptionslist dl {
+	margin: 0 0.5em 0 0.5em;
+	padding: 0;
+}
+.eventdescriptionslist dl dd {
+	margin: 1em;
+	padding: 0;
+}

@@ -4,53 +4,23 @@ body,html {
 	height: 100%;
 }
 
-.loading {
-	color: red;
-	font-size: large;
-}
-.remove {
-	color: red;
-}
-.remove:hover {
-	background-color: gray;
-}
-
-div.constraintlist {
-	position: absolute;
-	top: 0;
-	height: 25%;
-	left: 0;
+div.sidebar {
+	float: left;
+	height: 100%;
 	width: 25%;
-	overflow-y: auto;
-}
-.constraintlist ul {
-	margin: 1em;
-	padding: 0;
-}
-.constraintlist ul li {
 	margin: 0;
 	padding: 0;
-	list-style: none;
+	overflow: hidden;
+}
+div.selectorsarea {
+	float: right;
+	height: 100%;
+	width: 75%;
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
 }
 
-div.eventdescriptions {
-	position: absolute;
-	top: 25%;
-	bottom: 0;
-	left: 0;
-	width: 25%;
-	overflow-y: auto;
-}
-.eventdescriptions dl {
-	margin: 1em;
-}
-
-div.facet {
-	position: absolute;
-	top: 0;
-	bottom: 0;
-	margin: 0 1em 0 1em;
-}
 div.facet.allargs {
 	left: 25%;
 	width: 20%;
@@ -85,4 +55,9 @@ div.facet.arg1 {
 }
 .facet ul li:hover {
 	background-color: gray;
+}
+
+.loading {
+	color: red;
+	font-size: large;
 }

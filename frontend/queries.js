@@ -10,9 +10,13 @@ function Constraint() {
 	nextConstraintId++;
 	this.value = null;
 	this.queriesIn = {};
+	this.changeWatchers = [];
 }
 
 Constraint.prototype._updateChangeWatchers = function(changeType) {
+	for (i in this.changeWatchers)
+		for (queryId in this.queriesIn)
+			this.changeWatchers[i](changeType, this.queriesIn[queryId]);
 	for (queryId in this.queriesIn) {
 		var query = this.queriesIn[queryId];
 		for (i in query.changeWatchers)
@@ -35,6 +39,10 @@ Constraint.prototype.clear = function() {
 		this.value = null;
 		this._updateChangeWatchers('removed');
 	}
+}
+
+Constraint.prototype.onChange = function(callback) {
+	this.changeWatchers.push(callback);
 }
 
 /*
@@ -94,9 +102,12 @@ Query.prototype.addConstraint = function(constraint) {
 	if (!this.constraints.hasOwnProperty(constraint.id)) {
 		this.constraints[constraint.id] = constraint;
 		constraint.queriesIn[this.id] = this;
-		if (constraint.value != null)
+		if (constraint.value != null) {
 			for (i in this.changeWatchers)
 				this.changeWatchers[i]('added', constraint);
+			for (i in constraint.changeWatchers)
+				constraint.changeWatchers[i]('added', this);
+		}
 	} else
 		console.log("warning: constraint \"" + constraint.id + "\" already in query, can't add");
 }
@@ -105,9 +116,12 @@ Query.prototype.removeConstraint = function(constraint) {
 	if (this.constraints.hasOwnProperty(constraint.id)) {
 		delete this.constraints[constraint.id];
 		delete constraint.queriesIn[this.id];
-		if (constraint.value != null)
+		if (constraint.value != null) {
 			for (i in this.changeWatchers)
 				this.changeWatchers[i]('removed', constraint);
+			for (i in constraint.changeWatchers)
+				constraint.changeWatchers[i]('removed', this);
+		}
 	} else
 		console.log("warning: constraint \"" + constraint.id + "\" not in query, can't remove");
 }
@@ -148,25 +162,34 @@ Query.prototype.getConstraintJSON = function() {
 	return constraints;
 }
 
-Query.prototype.update = function() {
+Query.prototype.update = function(postponeFinish) {
 	var sendQuery = {};
 	sendQuery.constraints = this.getConstraintJSON();
 	sendQuery.views = this.views;
 	//console.log("Q " + JSON.stringify(sendQuery));
 
 	var query = this;
-	$.post(this.backendUrl, JSON.stringify(sendQuery), 'json').done(function(response) {
-		//console.log("R " + JSON.stringify(response));
-		for (var i in query.resultWatchers) {
-			var watcher = query.resultWatchers[i];
-			var resultForWatcher = {};
-			for (localViewKey in watcher.viewMap)
-				resultForWatcher[localViewKey] = response[watcher.viewMap[localViewKey]];
-			watcher.callback(resultForWatcher, function(limitParts) {
-				return new Continuer(query, watcher, limitParts)
-			});
-		}
-	});
+	var post = $.post(this.backendUrl, JSON.stringify(sendQuery), 'json');
+
+	function finish() {
+		post.done(function(response) {
+			//console.log("R " + JSON.stringify(response));
+			for (var i in query.resultWatchers) {
+				var watcher = query.resultWatchers[i];
+				var resultForWatcher = {};
+				for (localViewKey in watcher.viewMap)
+					resultForWatcher[localViewKey] = response[watcher.viewMap[localViewKey]];
+				watcher.callback(resultForWatcher, function(limitParts) {
+					return new Continuer(query, watcher, limitParts)
+				});
+			}
+		});
+	}
+
+	if (postponeFinish)
+		return finish;
+	else
+		finish();
 }
 
 Query.prototype.clearAll = function() {
@@ -174,5 +197,4 @@ Query.prototype.clearAll = function() {
 		var cnstr = this.constraints[cnstrKey];
 		cnstr.clear();
 	}
-	this.update();
 };
