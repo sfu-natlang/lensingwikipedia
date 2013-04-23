@@ -34,8 +34,8 @@ function setupFacet(container, globalQuery, name, view, makeConstraint) {
 	}, function(result) {
 		listElt.find("li").remove();
 		loadingElt = null;
-		for (value in result.counts)
-			listElt.append("<li class=\"" + value + "\">" + value + " [" + result.counts[value] + "]</li>");
+		for (value in result.counts.counts)
+			listElt.append("<li class=\"" + value + "\">" + value + " [" + result.counts.counts[value] + "]</li>");
 	});
 
 	listElt.click(function(event) {

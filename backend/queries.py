@@ -26,7 +26,7 @@ def count_by(sdb_result, key):
     item_key = key(item)
     table.setdefault(item_key, 0)
     table[item_key] += 1
-  return table
+  return { 'counts': table }
 
 def constraint_to_sdb_query(cnstr, clustering_name):
   """
@@ -82,7 +82,7 @@ def generate_view(view, sdb_query, data_dom, clustering_name):
           role = item[key]
           table.setdefault(role, 0)
           table[role] += 1
-    return table
+    return { 'counts': table }
   elif type == 'countbymapcluster':
     cluster_key = 'mapClustering:%s:%i' % (clustering_name, view['detail'])
     rs = sdbutils.select_all(data_dom, sdb_query, [cluster_key], needs_non_null=[cluster_key])
