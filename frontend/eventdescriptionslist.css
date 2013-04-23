@@ -12,3 +12,11 @@
 	margin: 1em;
 	padding: 0;
 }
+.eventdescriptionslist .buttonbox {
+	text-align: center;
+	margin: 0;
+	padding: 0;
+}
+.eventdescriptionslist button {
+	margin: 0em auto 1em auto;
+}

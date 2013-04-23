@@ -1,5 +1,7 @@
 function setupEventDescriptionsList(container, globalQuery) {
 	var listElt = $("<dl></dl>").appendTo(container);
+	var moreBoxElt = $("<div class=\"buttonbox\"></div>").appendTo(container);
+	var moreElt = $("<button type=\"button\" class=\"btn btn-primary\">More</button>").appendTo(moreBoxElt);
 
 	function resetList() {
 		listElt.find("dt,dd").remove();
@@ -21,6 +23,7 @@ function setupEventDescriptionsList(container, globalQuery) {
 		}
 	});
 
+	var continuer = null;
 	globalQuery.onResult({
 		descriptions: {
 			type: 'descriptions',
@@ -31,5 +34,12 @@ function setupEventDescriptionsList(container, globalQuery) {
 		loadingElt = null;
 		addToList(result.descriptions.descriptions);
 		continuer = getContinuer();
+	});
+
+	moreElt.click(function() {
+		if (continuer != null)
+			continuer.watchNext(function(result) {
+				addToList(result.descriptions.descriptions);
+			});
 	});
 }
