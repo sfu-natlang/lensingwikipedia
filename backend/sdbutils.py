@@ -7,7 +7,7 @@ import cache
 
 pagination_cache = cache.FIFO(100)
 
-def _select_paginated(dom, pattern, fields, last_page_cb, page_size, page_num):
+def _select_paginated(dom, pattern, order, fields, last_page_cb, page_size, page_num):
   # Here we use the counting trick suggested by
   # https://forums.aws.amazon.com/message.jspa?messageID=253237#253237 to skip
   # ahead to the right point, but we also keep a cache of next pointers to try
@@ -22,7 +22,7 @@ def _select_paginated(dom, pattern, fields, last_page_cb, page_size, page_num):
     next_token = None
     while num_skipped < pos:
       skip_now = pos
-      rs = dom.select("select count(*) from `%s` %s limit %i" % (dom.name, pattern, skip_now), next_token=next_token, max_items=skip_now)
+      rs = dom.select("select count(*) from `%s` %s %s limit %i" % (dom.name, pattern, order, skip_now), next_token=next_token, max_items=skip_now)
       for i, item in enumerate(rs):
         # I'm not sure why we can't break on the first item, but this seems to be how it works
         if i > 0:
@@ -36,7 +36,7 @@ def _select_paginated(dom, pattern, fields, last_page_cb, page_size, page_num):
         return
 
   # Now we can do the real query, starting from the next token
-  rs = dom.select("select %s from `%s` %s limit %i" % (fields, dom.name, pattern, page_size), next_token=next_token, max_items=page_size)
+  rs = dom.select("select %s from `%s` %s %s limit %i" % (fields, dom.name, pattern, order, page_size), next_token=next_token, max_items=page_size)
   for item in rs:
     yield item
     pos += 1
@@ -47,8 +47,8 @@ def _select_paginated(dom, pattern, fields, last_page_cb, page_size, page_num):
   elif last_page_cb is not None:
     last_page_cb()
 
-def _select_all(dom, pattern, fields):
-  query = "select %s from `%s` %s" % (fields, dom.name, pattern)
+def _select_all(dom, pattern, order, fields):
+  query = "select %s from `%s` %s %s" % (fields, dom.name, pattern, order)
   next_token = None
   while True:
     rs = dom.select(query)
@@ -58,7 +58,7 @@ def _select_all(dom, pattern, fields):
     if next_token == None:
       return
 
-def select_all(dom, pattern=None, fields=['*'], needs_non_null=[], non_null_is_any=False, paginated=None, last_page_callback=None):
+def select_all(dom, pattern=None, fields=['*'], needs_non_null=[], non_null_is_any=False, paginated=None, last_page_callback=None, order=None, order_descending=False):
   """
   Select with commonly used options. Should guarantee finding all matches even
   if there are more than SimpleDB will return at once. Can optionally do
@@ -77,7 +77,6 @@ def select_all(dom, pattern=None, fields=['*'], needs_non_null=[], non_null_is_a
   """
 
   where = []
-
   if pattern is not None and len(pattern.strip()) > 0:
     where.append("%s" % (pattern))
   if len(needs_non_null) > 0:
@@ -85,12 +84,13 @@ def select_all(dom, pattern=None, fields=['*'], needs_non_null=[], non_null_is_a
     where.append(sep.join("`%s` is not null" % (f) for f in needs_non_null))
 
   pattern_str = "where %s" % (" and ".join("(%s)" % (c) for c in where)) if len(where) > 0 else ""
+  order_str = "order by %s%s" % (order, " desc" if order_descending else "") if order is not None else ""
   fields_str = ",".join("`%s`" % (f) for f in fields)
 
   if paginated is None:
-    return _select_all(dom, pattern_str, fields_str)
+    return _select_all(dom, pattern_str, order_str, fields_str)
   else:
-    return _select_paginated(dom, pattern_str, fields_str, last_page_callback, *paginated)
+    return _select_paginated(dom, pattern_str, order_str, fields_str, last_page_callback, *paginated)
 
 def get_domain(sdb, dom_name):
   """
