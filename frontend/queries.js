@@ -48,11 +48,11 @@ Constraint.prototype.onChange = function(callback) {
 /*
  For continuing paginated queries.
  */
-function Continuer(query, resultWatcher, limitParts) {
+function Continuer(query, resultWatcher, limitParts, firstPage) {
 	this.query = query;
 	this.resultWatcher = resultWatcher;
 	this.limitParts = limitParts;
-	this.page = 0;
+	this.page = firstPage || 1;
 	this.cb_queue = [];
 }
 
