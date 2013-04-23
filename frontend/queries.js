@@ -48,16 +48,29 @@ Constraint.prototype.onChange = function(callback) {
 /*
  For continuing paginated queries.
  */
-function Continuer(query, resultWatcher, limitParts, firstPage) {
+function Continuer(query, resultWatcher, limitParts, initialResultForWatcher, firstPageOffset) {
 	this.query = query;
 	this.resultWatcher = resultWatcher;
 	this.limitParts = limitParts;
-	this.page = firstPage || 1;
+	this.pageOffset = firstPageOffset || 1;
 	this.cb_queue = [];
+
+	this.haveMore = false;
+	for (localViewKey in this.resultWatcher.viewMap) {
+		var viewResponse = initialResultForWatcher[localViewKey];
+		if (viewResponse['more'] == true)
+			this.haveMore = true;
+	}
 }
 
-Continuer.prototype.watchNext = function(callback) {
+Continuer.prototype.hasMore = function() {
+	return this.haveMore;
+}
+
+Continuer.prototype.fetchNext = function(callback) {
 	// TODO: can we factor out more of the code shared with the main query sender?
+
+	this.haveMore = false;
 
 	var sendQuery = {};
 	sendQuery.constraints = this.query.getConstraintJSON();
@@ -70,19 +83,24 @@ Continuer.prototype.watchNext = function(callback) {
 			for (key in oldView)
 				if (key != 'page')
 					newView[key] = oldView[key];
-			newView.page = (oldView.page || 0) + this.page;
+			newView.page = (oldView.page || 0) + this.pageOffset;
 			sendQuery.views[queryViewKey] = newView;
 		}
 
+	var continuer = this;
 	var watcher = this.resultWatcher;
 	$.post(this.query.backendUrl, JSON.stringify(sendQuery), 'json').done(function(response) {
 		var resultForWatcher = {};
-		for (localViewKey in watcher.viewMap)
-			resultForWatcher[localViewKey] = response[watcher.viewMap[localViewKey]];
+		for (localViewKey in watcher.viewMap) {
+			var viewResponse = response[watcher.viewMap[localViewKey]];
+			resultForWatcher[localViewKey] = viewResponse;
+			if (viewResponse['more'] == true)
+				continuer.haveMore = true;
+		}
 		callback(resultForWatcher);
 	});
 
-	this.page++;
+	this.pageOffset++;
 }
 
 /*
@@ -180,7 +198,7 @@ Query.prototype.update = function(postponeFinish) {
 				for (localViewKey in watcher.viewMap)
 					resultForWatcher[localViewKey] = response[watcher.viewMap[localViewKey]];
 				watcher.callback(resultForWatcher, function(limitParts) {
-					return new Continuer(query, watcher, limitParts)
+					return new Continuer(query, watcher, limitParts, resultForWatcher);
 				});
 			}
 		});

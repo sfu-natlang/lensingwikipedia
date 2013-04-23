@@ -65,10 +65,12 @@ def generate_view(view, sdb_query, data_dom, clustering_name):
   type = view['type']
   if type == 'descriptions':
     page_num = view['page'] if 'page' in view else 0
-    rs = sdbutils.select_all(data_dom, sdb_query, ['year', 'descriptionHtml'], paginated=(description_page_size, page_num))
-    return {
-      'descriptions': [dict(e) for e in rs]
-    }
+    response = { 'more': True }
+    def on_last_page():
+      response['more'] = False
+    rs = sdbutils.select_all(data_dom, sdb_query, ['year', 'descriptionHtml'], paginated=(description_page_size, page_num), last_page_callback=on_last_page)
+    response['descriptions'] = [dict(e) for e in rs]
+    return response
   elif type == 'countbyrole':
     arg_nums = [int(view['arg'])] if 'arg' in view else all_argument_numbers
     arg_keys = ["roleA%i" % (an) for an in arg_nums]

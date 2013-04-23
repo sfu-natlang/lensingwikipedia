@@ -7,7 +7,7 @@ import cache
 
 pagination_cache = cache.FIFO(100)
 
-def _select_paginated(dom, pattern, fields, page_size, page_num):
+def _select_paginated(dom, pattern, fields, last_page_cb, page_size, page_num):
   # Here we use the counting trick suggested by
   # https://forums.aws.amazon.com/message.jspa?messageID=253237#253237 to skip
   # ahead to the right point, but we also keep a cache of next pointers to try
@@ -31,6 +31,8 @@ def _select_paginated(dom, pattern, fields, page_size, page_num):
       next_token = rs.next_token
       if next_token == None:
         # If we got to the end of the possible results then stop
+        if last_page_cb is not None:
+          last_page_cb()
         return
 
   # Now we can do the real query, starting from the next token
@@ -42,6 +44,8 @@ def _select_paginated(dom, pattern, fields, page_size, page_num):
 
   if next_token is not None:
     pagination_cache[pattern, fields, page_size, pos] = next_token
+  elif last_page_cb is not None:
+    last_page_cb()
 
 def _select_all(dom, pattern, fields):
   query = "select %s from `%s` %s" % (fields, dom.name, pattern)
@@ -54,7 +58,7 @@ def _select_all(dom, pattern, fields):
     if next_token == None:
       return
 
-def select_all(dom, pattern=None, fields=['*'], needs_non_null=[], non_null_is_any=False, paginated=None):
+def select_all(dom, pattern=None, fields=['*'], needs_non_null=[], non_null_is_any=False, paginated=None, last_page_callback=None):
   """
   Select with commonly used options. Should guarantee finding all matches even
   if there are more than SimpleDB will return at once. Can optionally do
@@ -86,7 +90,7 @@ def select_all(dom, pattern=None, fields=['*'], needs_non_null=[], non_null_is_a
   if paginated is None:
     return _select_all(dom, pattern_str, fields_str)
   else:
-    return _select_paginated(dom, pattern_str, fields_str, *paginated)
+    return _select_paginated(dom, pattern_str, fields_str, last_page_callback, *paginated)
 
 def get_domain(sdb, dom_name):
   """
