@@ -30,7 +30,9 @@ function setupEventDescriptionsList(container, globalQuery) {
 		if (loadingElt == null) {
 			setMoreEnabled(false);
 			resetList();
-			loadingElt = listElt.append("<dt><dd class=\"loading\">Loading&hellip;</dd>");
+			$("<dt></dt>").appendTo(listElt);
+			var ddElt = $("<dd></dd>").appendTo(listElt);
+			loadingElt = makeLoadingIndicator().appendTo(ddElt);
 		}
 	});
 

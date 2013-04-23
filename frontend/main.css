@@ -56,8 +56,3 @@ div.facet.arg1 {
 .facet ul li:hover {
 	background-color: gray;
 }
-
-.loading {
-	color: red;
-	font-size: large;
-}

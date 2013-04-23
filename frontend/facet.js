@@ -25,7 +25,8 @@ function setupFacet(container, globalQuery, name, view, makeConstraint) {
 	globalQuery.onChange(function() {
 		if (loadingElt == null) {
 			listElt.find("li").remove();
-			loadingElt = listElt.append("<li class=\"loading\">Loading&hellip;</li>");
+			var liElt = $("<li></li>").appendTo(listElt);
+			loadingElt = makeLoadingIndicator().appendTo(liElt);
 		}
 	});
 
