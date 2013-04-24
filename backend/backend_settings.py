@@ -20,7 +20,7 @@ defaults.clustering_name = 'default'
 defaults.description_page_size = 25
 defaults.num_initial_description_pages_to_cache = 10
 defaults.pagination_cache_size = 100
-defaults.all_argument_numbers = [1, 2]
+defaults.all_argument_numbers = [0, 1]
 
 # How to parse the settings
 parse_settings = {

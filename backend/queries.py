@@ -9,7 +9,7 @@ import json
 import sha
 
 # All possible predicate argument numbers
-all_argument_numbers = [1, 2]
+all_argument_numbers = [0, 1]
 # Number of events on a page of descriptions
 description_page_size = 10
 # Number of pages of the initial (empty conditional) query to cache
