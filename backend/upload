@@ -10,6 +10,8 @@ DATA-FILE     Local data file. Uses standard input if not given.
 Options:
   -d      Delete and replace the existing domain, if there is one.
   -i INT  Event ID index offset.
+  -y INTS Range of valid years (negatives being BCE dates) for padding year
+    values. Colon separated.
 
 Uploads events from local data to a SimpleDB database.
 
@@ -69,7 +71,7 @@ def clip_field(event, field, html=False):
   if len(text) > max_sdb_value_len:
     event[field] = clip_html(text, max_sdb_value_len) if html else text[:max_sdb_value_len]
 
-def prepare_event(event):
+def prepare_event(event, min_year, year_key_digits):
   """
   Modifies an event for uploading.
   """
@@ -78,9 +80,12 @@ def prepare_event(event):
   clip_field(event, 'description')
   clip_field(event, 'descriptionTokenized')
   clip_field(event, 'descriptionHtml', html=True)
+  event['yearKey'] = ("%%0%id" % (year_key_digits)) % (int(event['year']) - min_year)
 
-def upload(input, dom_name, first_id, do_delete):
+def upload(input, dom_name, first_id, min_year, max_year, do_delete):
   sdb = boto.connect_sdb()
+
+  year_key_digits = len(str(max_year - min_year))
 
   dom = None
   if do_delete:
@@ -102,14 +107,14 @@ def upload(input, dom_name, first_id, do_delete):
   for i, line in enumerate(input):
     event = json.loads(line)
     print >> sys.stderr, "uploading event %i" % (i)
-    prepare_event(event)
+    prepare_event(event, min_year, year_key_digits)
     dom.put_attributes(str(i), event)
 
 if __name__ == '__main__':
   import getopt
 
   try:
-    opts, args = getopt.getopt(sys.argv[1:], "i:d")
+    opts, args = getopt.getopt(sys.argv[1:], "i:dy:")
     if len(args) not in [1, 2]:
       raise getopt.GetoptError("wrong number of positional arguments")
     opts = dict(opts)
@@ -119,6 +124,7 @@ if __name__ == '__main__':
 
   first_id = int(opts['-i']) if '-i' in opts else 0
   do_delete = '-d' in opts
+  min_year, max_year = [int(y) for y in opts['-y'].split(':')] if '-y' in opts else (-1000000, 1000000)
   dom_name = args[0]
   input = open(args[1]) if len(args) > 1 else sys.stdin
-  upload(input, dom_name, first_id, do_delete)
+  upload(input, dom_name, first_id, min_year, max_year, do_delete)

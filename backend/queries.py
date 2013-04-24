@@ -68,7 +68,7 @@ def generate_view(view, sdb_query, data_dom, clustering_name):
     response = { 'more': True }
     def on_last_page():
       response['more'] = False
-    rs = sdbutils.select_all(data_dom, sdb_query, ['year', 'descriptionHtml'], paginated=(description_page_size, page_num), last_page_callback=on_last_page)
+    rs = sdbutils.select_all(data_dom, sdb_query, ['year', 'descriptionHtml'], paginated=(description_page_size, page_num), last_page_callback=on_last_page, needs_non_null=['yearKey'], order='yearKey', order_descending=True)
     response['descriptions'] = [dict(e) for e in rs]
     return response
   elif type == 'countbyrole':
