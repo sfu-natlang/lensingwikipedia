@@ -36,6 +36,44 @@ function setupFacet(container, globalQuery, name, view, makeConstraint) {
 			searchInputElt.removeClass('error');
 	}
 
+	var curData = null;
+	function setData(data, onClick, itemClass) {
+		function keyList(dict) {
+			var list = [];
+			for (key in dict)
+				list.push(key);
+			return list;
+		}
+		function addValue(value, count) {
+			var classStr = value == itemClass != null ? " class=\"" + itemClass + "\"" : "";
+			var itemElt = $("<li" + classStr + ">" + value + " [" + count + "]</li>").appendTo(listElt);
+			if (onClick != null)
+				itemElt.click(function() {
+					onClick(value);
+				});
+		}
+		curData = data;
+		searchInputElt.val("");
+		setSearchErrorStatus(false);
+		listElt.find('li').remove();
+		if (data != null) {
+			searchInputElt.removeAttr('disabled');
+			search.data('typeahead').source = keyList(data);
+			for (value in data)
+				addValue(value, data[value]);
+		} else {
+			searchInputElt.removeAttr('data-source');
+			searchInputElt.attr('disabled', 'disabled');
+		}
+	}
+	setData(null);
+
+	function setSelectedData(value, count) {
+		var data = {};
+		data[value] = count;
+		setData(data, null, "selected");
+	}
+
 	var selectedValue = null;
 	var constraint = new Constraint();
 	globalQuery.addConstraint(constraint);
@@ -47,47 +85,26 @@ function setupFacet(container, globalQuery, name, view, makeConstraint) {
 			cnstrVal.name = name + ": " + value;
 			constraint.set(cnstrVal);
 			globalQuery.update();
+			setSelectedData(value, 999);
 		}
+	}
+	function haveSelection() {
+		return selectedValue != null;
 	}
 
-	var curData = null;
-	function setData(values) {
-		function keyList(dict) {
-			var list = [];
-			for (key in dict)
-				list.push(key);
-			return list;
-		}
-		function addValue(value, count) {
-			var classStr = value == selectedValue ? " class=\"selected\"" : "";
-			var itemElt = $("<li" + classStr + ">" + value + " [" + count + "]</li>").appendTo(listElt);
-			itemElt.click(function() {
-				select(value);
-			});
-		}
-		curData = values;
-		searchInputElt.val("");
-		setSearchErrorStatus(false);
-		if (values != null) {
-			searchInputElt.removeAttr('disabled');
-			search.data('typeahead').source = keyList(values);
-			for (value in values)
-				addValue(value, values[value]);
-		} else {
-			searchInputElt.removeAttr('data-source');
-			searchInputElt.attr('disabled', 'disabled');
-			listElt.find('li').remove();
-		}
+	function setQueryData(data) {
+		setData(data, select);
 	}
-	setData(null);
 
 	clearElt.click(function () {
 		constraint.clear();
 		globalQuery.update();
 	});
 	globalQuery.onChange(function () {
-		setData(null);
-		setLoadingIndicator(true);
+		if (!haveSelection()) {
+			setData(null);
+			setLoadingIndicator(true);
+		}
 	});
 	constraint.onChange(function (changeType) {
 		if (changeType == 'removed')
@@ -96,16 +113,20 @@ function setupFacet(container, globalQuery, name, view, makeConstraint) {
 	globalQuery.onResult({
 		counts: view
 	}, function(result) {
-		setLoadingIndicator(false);
-		setData(result.counts.counts);
+		if (!haveSelection()) {
+			setLoadingIndicator(false);
+			setQueryData(result.counts.counts);
+		}
 	});
 	searchBoxElt.submit(function () {
-		var value = searchInputElt.val();
-		if (curData != null && value in curData) {
-			setSearchErrorStatus(false);
-			select(value);
-		} else
-			setSearchErrorStatus(true);
+		if (!haveSelection()) {
+			var value = searchInputElt.val();
+			if (curData != null && value in curData) {
+				setSearchErrorStatus(false);
+				select(value);
+			} else
+				setSearchErrorStatus(true);
+		}
 		return false;
 	});
 }

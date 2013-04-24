@@ -67,3 +67,6 @@
 .facet .listbox ul li:hover {
 	background-color: lightgray;
 }
+.facet .listbox ul li.selected:hover {
+	background-color: gray;
+}
