@@ -1,7 +1,14 @@
 function setupEventDescriptionsList(container, globalQuery) {
-	var listElt = $("<dl></dl>").appendTo(container);
-	var moreBoxElt = $("<div class=\"buttonbox\"></div>").appendTo(container);
+	var outerElt = $("<div class=\"eventdescriptionslist\"></div>").appendTo(container);
+	var loadingElt = makeLoadingIndicator().prependTo(outerElt);
+	var listElt = $("<dl></dl>").appendTo(outerElt);
+	var moreBoxElt = $("<div class=\"buttonbox\"></div>").appendTo(outerElt);
 	var moreElt = $("<button type=\"button\" class=\"btn\" disabled=\"true\">More</button>").appendTo(moreBoxElt);
+
+	function setLoadingIndicator(enabled) {
+		loadingElt.css('display', enabled ? '' : 'none');
+	}
+	setLoadingIndicator(true);
 
 	function setMoreEnabled(enabled) {
 		if (enabled) {
@@ -25,15 +32,10 @@ function setupEventDescriptionsList(container, globalQuery) {
 		});
 	}
 
-	var loadingElt = null;
 	globalQuery.onChange(function() {
-		if (loadingElt == null) {
-			setMoreEnabled(false);
-			resetList();
-			$("<dt></dt>").appendTo(listElt);
-			var ddElt = $("<dd></dd>").appendTo(listElt);
-			loadingElt = makeLoadingIndicator().appendTo(ddElt);
-		}
+		setLoadingIndicator(true);
+		setMoreEnabled(false);
+		resetList();
 	});
 
 	var continuer = null;
@@ -43,8 +45,8 @@ function setupEventDescriptionsList(container, globalQuery) {
 			page: 0
 		}
 	}, function(result, getContinuer) {
+		setLoadingIndicator(false);
 		resetList();
-		loadingElt = null;
 		addToList(result.descriptions.descriptions);
 		continuer = getContinuer();
 		setMoreEnabled(continuer.hasMore());

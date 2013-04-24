@@ -12,15 +12,13 @@
 		<link rel="stylesheet" type="text/css" href="main.css">
 	</head>
 	<body>
-		<div class="sidebar"></div>
+		<div class="sidebar">
+			<div class="constraintslistbox"></div>
+			<div class="eventdescriptionslistbox"></div>
+		</div>
 		<div class="selectorsarea">
 			<div class="facets"></div>
 		</div>
-<!--
-		<div class="facet allargs"></div>
-		<div class="facet arg0"></div>
-		<div class="facet arg1"></div>
--->
 		<!-- TODO: message on no javascript -->
 
 		<!-- TODO: change to local js files for libraries -->
@@ -30,27 +28,22 @@
 		<script src="config.js"></script>
 		<script src="queries.js"></script>
 
+		<script src="layoututils.js"></script>
+
 		<script src="loadingindicator.js"></script>
 		<script src="constraintslist.js"></script>
 		<script src="eventdescriptionslist.js"></script>
 		<script src="facet.js"></script>
 
-		<script src="sidebar.js"></script>
-		<script src="facets.js"></script>
-
 		<script>
-			function setupFitVisTabs() {
-				var tabBarHeight = 75;
-				function fitVisTabs() {
-					var height = $(window).height() - tabBarHeight;
-					$(".viscontent").css("height", height);
-				}
-				$(window).bind('doneResize', function() {
-					fitVisTabs();
-				});
-				$(window).bind("ready", function() {
-					fitVisTabs();
-				});
+			function setupSidebar(container, globalQuery) {
+				var cnstrBoxElt = $(".constraintslistbox");
+				var eventDescBoxElt = $(".eventdescriptionslistbox");
+
+				setupConstraintList(cnstrBoxElt, globalQuery);
+				setupEventDescriptionsList(eventDescBoxElt, globalQuery);
+
+				setupPanelled(container, cnstrBoxElt, eventDescBoxElt, 'vertical', 0, true);
 			}
 
 			var globalQuery = new Query(backendUrl);
@@ -92,7 +85,7 @@
 					});
 				},
 			];
-			setupFacets($(".facets"), globalQuery, facets);
+			setupSplitMakeElements($(".facets"), 'horizontal', facets);
 			globalQuery.update();
 		</script>
 	</body>

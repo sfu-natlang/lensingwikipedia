@@ -1,9 +1,11 @@
 .facet {
-	margin: 5px 5px 0 5px;
+	margin: 0 5px 0 5px;
+	padding: 0;
 }
 
 .facet .topbox {
-	padding: 10px;
+	margin: 0;
+	padding: 0;
 }
 
 .facet .topbox h1 {
@@ -14,8 +16,8 @@
 }
 
 .facet .searchbox {
-	padding: 0;
-	margin: 5px 0 5px 0;
+	margin: 0;
+	padding: 5px 0 5px 0;
 }
 .facet .searchbox .inputbox {
 	overflow: hidden;
@@ -49,6 +51,7 @@
 	padding: 0;
 	overflow-y: auto;
 }
+
 .facet .listbox ul {
 	margin: 1em;
 	padding: 0;

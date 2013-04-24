@@ -28,11 +28,19 @@ div.selectorsarea {
 	padding: 0;
 	overflow: hidden;
 }
-.facetbox {
+.splitpartbox {
 	float: left;
 	height: 100%;
 	width: 100%;
 	margin: 0;
 	padding: 0;
 	overflow: hidden;
+}
+.constraintslistbox {
+	margin: 0;
+	padding: 0;
+}
+.eventdescriptionslistbox {
+	margin: 0;
+	padding: 0;
 }

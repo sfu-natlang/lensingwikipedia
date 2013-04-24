@@ -13,21 +13,13 @@ function setupFacet(container, globalQuery, name, view, makeConstraint) {
 	var loadingElt = makeLoadingIndicator().prependTo(listBoxElt);
 	var listElt = $("<ul></ul>").appendTo(listBoxElt);
 
-	var verticalMarginsSize = 25; // Pixel size to account for margins etc.
-	function fit() {
-		facetElt.height(container.height());
-		listBoxElt.height(facetElt.height() - topBoxElt.height() - verticalMarginsSize);
-	}
-	$(window).resize(fit);
-	fit();
+	verticalFill(container, facetElt);
+	setupPanelled(facetElt, topBoxElt, listBoxElt, 'vertical', 0, false);
 
 	function setLoadingIndicator(enabled) {
-		if (enabled)
-			loadingElt.css('display', '');
-		else
-			loadingElt.css('display', 'none');
+		loadingElt.css('display', enabled ? '' : 'none');
 	}
-	setLoadingIndicator(false);
+	setLoadingIndicator(true);
 
 	function setSearchErrorStatus(isError) {
 		if (isError)
