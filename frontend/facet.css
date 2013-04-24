@@ -1,15 +1,48 @@
 .facet {
 	margin: 5px 5px 0 5px;
 }
-.facet h1 {
+
+.facet .topbox {
+	padding: 10px;
+}
+
+.facet .topbox h1 {
 	text-align: center;
 	font-size: 24.5px; // match bootstrap at a lower header size
 	padding: 0;
 	margin: 0;
 }
-.facet .topbox {
-	padding: 10px;
+
+.facet .searchbox {
+	padding: 0;
+	margin: 5px 0 5px 0;
 }
+.facet .searchbox .inputbox {
+	overflow: hidden;
+	margin: 0;
+	padding: 0 20px 0 0;
+}
+.facet .searchbox input {
+	overflow: hidden;
+	width: 100%;
+	margin: 0;
+	padding: 2px 8px 2px 8px;
+}
+.facet .searchbox input.error {
+	border-style: solid;
+	border-width: 4;
+	border-color: red;
+}
+.facet .searchbox button {
+	float: right;
+	width: 20px;
+	margin: 0;
+	padding: 2px 8px 2px 8px;
+	background-image: url("search.png");
+	background-position: center center;
+	background-repeat: no-repeat;
+}
+
 .facet .listbox {
 	height: 100%;
 	margin: 0;
@@ -25,14 +58,9 @@
 	padding: 0;
 	list-style: none;
 }
-.facet .listbox ul li:hover {
+.facet .listbox ul li.selected {
 	background-color: gray;
 }
-
-.facets {
-	height: 100%;
-	width: 100%;
-	margin: 0;
-	padding: 0;
-	overflow: hidden;
+.facet .listbox ul li:hover {
+	background-color: lightgray;
 }

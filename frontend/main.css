@@ -21,6 +21,13 @@ div.selectorsarea {
 	overflow: hidden;
 }
 
+.facets {
+	height: 100%;
+	width: 100%;
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+}
 .facetbox {
 	float: left;
 	height: 100%;
