@@ -21,38 +21,11 @@ div.selectorsarea {
 	overflow: hidden;
 }
 
-div.facet.allargs {
-	left: 25%;
-	width: 20%;
-}
-div.facet.arg0 {
-	left: 45%;
-	width: 20%;
-}
-div.facet.arg1 {
-	left: 65%;
-	width: 20%;
-}
-.facet button {
-	margin: 0 1em 0 1em;
-}
-.facet .listbox {
-	position: absolute;
-	top: 20%;
+.facetbox {
+	float: left;
+	height: 100%;
 	width: 100%;
-	bottom: 0;
-	margin: 0;
-	overflow-y: auto;
-}
-.facet ul {
-	margin: 1em;
-	padding: 0;
-}
-.facet ul li {
 	margin: 0;
 	padding: 0;
-	list-style: none;
-}
-.facet ul li:hover {
-	background-color: gray;
+	overflow: hidden;
 }

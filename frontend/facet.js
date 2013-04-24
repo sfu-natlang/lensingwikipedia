@@ -1,16 +1,23 @@
 function setupFacet(container, globalQuery, name, view, makeConstraint) {
-	container.append("<h1>" + name + "</h1>");
-	container.append("<button>Clear</button>");
-	var clearElt = container.find("button");
-	container.append("<div class=\"listbox\"></div>");
-	var boxElt = container.find(".listbox");
-	boxElt.append("<ul></ul>");
-	var listElt = boxElt.find("ul");
+	var facetElt = $("<div class=\"facet\"></div>").appendTo(container);
+	var topBoxElt = $("<div class=\"topbox\"></div>").appendTo(facetElt);
+	var listBoxElt = $("<div class=\"listbox\"></div>").appendTo(facetElt);
+	var listElt = $("<ul></ul>").appendTo(listBoxElt);
+
+	$("<h1>" + name + "</h1>").appendTo(topBoxElt);
+	var clearElt = $("<button type=\"button\" class=\"btn btn-block btn-mini btn-warning\">Clear selection</button></ul>").appendTo(topBoxElt);
+
+	var verticalMarginsSize = 25; // Pixel size to account for margins etc.
+	function fit() {
+		facetElt.height(container.height());
+		listBoxElt.height(facetElt.height() - topBoxElt.height() - verticalMarginsSize);
+	}
+	$(window).resize(fit);
+	fit();
 
 	var constraint = new Constraint();
 	globalQuery.addConstraint(constraint);
 	function select(value) {
-		console.log("select " + value);
 		var cnstrVal = makeConstraint(value);
 		cnstrVal.name = name + ": " + value;
 		constraint.set(cnstrVal);
@@ -23,25 +30,29 @@ function setupFacet(container, globalQuery, name, view, makeConstraint) {
 
 	var loadingElt = null;
 	globalQuery.onChange(function() {
-		if (loadingElt == null) {
-			listElt.find("li").remove();
-			var liElt = $("<li></li>").appendTo(listElt);
-			loadingElt = makeLoadingIndicator().appendTo(liElt);
-		}
+		listElt.find("li").remove();
+		if (loadingElt == null)
+			loadingElt = makeLoadingIndicator().prependTo(listBoxElt);
 	});
+
+	function addRole(role, count) {
+		var itemElt = $("<li class=\"" + role + "\">" + role + " [" + count + "]</li>").appendTo(listElt);
+		itemElt.click(function() {
+			var cnstrVal = makeConstraint(role);
+			cnstrVal.name = name + ": " + role;
+			constraint.set(cnstrVal);
+			globalQuery.update();
+		});
+	}
 
 	globalQuery.onResult({
 		counts: view
 	}, function(result) {
-		listElt.find("li").remove();
-		loadingElt = null;
+		if (loadingElt != null) {
+			listBoxElt.find(".loadingindicator").remove();
+			loadingElt = null;
+		}
 		for (value in result.counts.counts)
-			listElt.append("<li class=\"" + value + "\">" + value + " [" + result.counts.counts[value] + "]</li>");
-	});
-
-	listElt.click(function(event) {
-		var on = event.target;
-		if (Object.prototype.toString.call(on) == "[object HTMLLIElement]")
-			select($(on).attr("class"));
+			addRole(value, result.counts.counts[value]);
 	});
 }

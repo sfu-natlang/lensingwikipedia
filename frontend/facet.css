@@ -1,0 +1,38 @@
+.facet {
+	margin: 5px 5px 0 5px;
+}
+.facet h1 {
+	text-align: center;
+	font-size: 24.5px; // match bootstrap at a lower header size
+	padding: 0;
+	margin: 0;
+}
+.facet .topbox {
+	padding: 10px;
+}
+.facet .listbox {
+	height: 100%;
+	margin: 0;
+	padding: 0;
+	overflow-y: auto;
+}
+.facet .listbox ul {
+	margin: 1em;
+	padding: 0;
+}
+.facet .listbox ul li {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.facet .listbox ul li:hover {
+	background-color: gray;
+}
+
+.facets {
+	height: 100%;
+	width: 100%;
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+}

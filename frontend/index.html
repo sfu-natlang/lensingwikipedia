@@ -8,11 +8,14 @@
 		<link rel="stylesheet" type="text/css" href="loadingindicator.css">
 		<link rel="stylesheet" type="text/css" href="constraintslist.css">
 		<link rel="stylesheet" type="text/css" href="eventdescriptionslist.css">
+		<link rel="stylesheet" type="text/css" href="facet.css">
 		<link rel="stylesheet" type="text/css" href="main.css">
 	</head>
 	<body>
 		<div class="sidebar"></div>
-		<div class="selectorsarea facet"></div>
+		<div class="selectorsarea">
+			<div class="facets"></div>
+		</div>
 <!--
 		<div class="facet allargs"></div>
 		<div class="facet arg0"></div>
@@ -30,8 +33,10 @@
 		<script src="loadingindicator.js"></script>
 		<script src="constraintslist.js"></script>
 		<script src="eventdescriptionslist.js"></script>
-		<script src="sidebar.js"></script>
 		<script src="facet.js"></script>
+
+		<script src="sidebar.js"></script>
+		<script src="facets.js"></script>
 
 		<script>
 			function setupFitVisTabs() {
@@ -49,37 +54,45 @@
 			}
 
 			var globalQuery = new Query(backendUrl);
-			setupSidebar($("div.sidebar"), globalQuery);
-			setupFacet($(".selectorsarea"), globalQuery, "Any arg", {
-				type: 'countbyrole'
-			}, function makeConstraint(role) {
-				return {
-					type: 'role',
-					role: role
-				}
-			});
-<!--
-			setupFacet($("div.facet.arg0"), globalQuery, "Arg 0", {
-				type: 'countbyrole',
-				arg: 0
-			}, function makeConstraint(role) {
-				return {
-					type: 'role',
-					arg: 0,
-					role: role
-				}
-			});
-			setupFacet($("div.facet.arg1"), globalQuery, "Arg 1", {
-				type: 'countbyrole',
-				arg: 1
-			}, function makeConstraint(role) {
-				return {
-					type: 'role',
-					arg: 1,
-					role: role
-				}
-			});
--->
+			setupSidebar($(".sidebar"), globalQuery);
+
+			var facets = [
+				function(container) {
+					setupFacet(container, globalQuery, "Role (any arg)", {
+						type: 'countbyrole'
+					}, function makeConstraint(role) {
+						return {
+							type: 'role',
+							role: role
+						}
+					});
+				},
+				function(container) {
+					setupFacet(container, globalQuery, "Role (arg 0)", {
+						type: 'countbyrole',
+						arg: 0
+					}, function makeConstraint(role) {
+						return {
+							type: 'role',
+							arg: 0,
+							role: role
+						}
+					});
+				},
+				function(container) {
+					setupFacet(container, globalQuery, "Role (arg 1)", {
+						type: 'countbyrole',
+						arg: 1
+					}, function makeConstraint(role) {
+						return {
+							type: 'role',
+							arg: 1,
+							role: role
+						}
+					});
+				},
+			];
+			setupFacets($(".facets"), globalQuery, facets);
 			globalQuery.update();
 		</script>
 	</body>

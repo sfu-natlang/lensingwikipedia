@@ -1,4 +1,3 @@
-
 function setupSidebar(container, globalQuery) {
 	var cnstrBoxElt = $("<div class=\"constraintslist\"></div>").appendTo(container);
 	var eventDescListElt = $("<div class=\"eventdescriptionslist\"></div>").appendTo(container);
