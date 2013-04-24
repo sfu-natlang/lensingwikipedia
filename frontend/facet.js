@@ -21,6 +21,14 @@ function setupFacet(container, globalQuery, name, view, makeConstraint) {
 	}
 	setLoadingIndicator(true);
 
+	function setClearEnabled(enabled) {
+		if (enabled)
+			clearElt.removeAttr('disabled');
+		else
+			clearElt.attr('disabled', 'disabled');
+	}
+	setClearEnabled(false);
+
 	function setSearchErrorStatus(isError) {
 		if (isError)
 			searchInputElt.addClass('error');
@@ -32,6 +40,7 @@ function setupFacet(container, globalQuery, name, view, makeConstraint) {
 	var constraint = new Constraint();
 	globalQuery.addConstraint(constraint);
 	function select(value) {
+		setClearEnabled(value != null);
 		selectedValue = value;
 		if (value != null) {
 			var cnstrVal = makeConstraint(value);

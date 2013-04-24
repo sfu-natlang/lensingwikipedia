@@ -216,3 +216,10 @@ Query.prototype.clearAll = function() {
 		cnstr.clear();
 	}
 };
+
+Query.prototype.isEmpty = function() {
+	for (var cnstrKey in this.constraints)
+		if (this.constraints[cnstrKey].value != null)
+			return false;
+	return true;
+}

@@ -4,6 +4,14 @@ function setupConstraintList(container, globalQuery) {
 	var clearAllElt = $("<button type=\"button\" class=\"btn btn-block btn-mini btn-warning\">Clear all constraints</button></ul>").appendTo(outerElt);
 	var listElt = $("<ul></ul>").appendTo(outerElt);
 
+	function setClearEnabled(enabled) {
+		if (enabled)
+			clearAllElt.removeAttr('disabled');
+		else
+			clearAllElt.attr('disabled', 'disabled');
+	}
+	setClearEnabled(false);
+
 	function removeConstraintElement(cnstrElt) {
 		cnstrElt.slideUp(400, function() {
 			container.trigger('changedSize');
@@ -35,6 +43,7 @@ function setupConstraintList(container, globalQuery) {
 			addConstraintElement(cnstr)
 			container.trigger('changedSize');
 		}
+		setClearEnabled(!globalQuery.isEmpty());
 	}, true);
 
 	clearAllElt.click(function() {
