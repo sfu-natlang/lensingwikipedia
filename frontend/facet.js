@@ -123,7 +123,7 @@ function setupFacet(container, globalQuery, name, view, makeConstraint) {
 			var value = searchInputElt.val();
 			if (curData != null && value in curData) {
 				setSearchErrorStatus(false);
-				select(value);
+				select(value, curData[value]);
 			} else
 				setSearchErrorStatus(true);
 		}
