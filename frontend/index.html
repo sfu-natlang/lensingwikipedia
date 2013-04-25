@@ -21,7 +21,16 @@
 				<div class="eventdescriptionslistbox"></div>
 			</div>
 			<div class="selectorsarea">
-				<div class="facets"></div>
+				<ul class="nav nav-pills" id="tabbar">
+					<li class="active"><a href="#facets" data-toggle="tab">Facets</a></li>
+					<li><a href="#timeline" data-toggle="tab">Timeline</a></li>
+					<li><a href="#map" data-toggle="tab">Map</a></li>
+				</ul>
+				<div class="tab-content">
+					<div class="tab-pane active" id="facets"></div>
+					<div class="tab-pane" id="timeline">TODO: timeline</div>
+					<div class="tab-pane" id="map">TODO: map</div>
+				</div>
 			</div>
 		</div>
 		<!-- TODO: message on no javascript -->
@@ -42,6 +51,7 @@
 
 		<script>
 			setupPanelled($('body'), $('.header'), $('.contentarea'), 'vertical', 4);
+			setupPanelled($('.selectorsarea'), $('#tabbar'), $('.tab-content'), 'vertical');
 
 			function setupSidebar(container, globalQuery) {
 				var cnstrBoxElt = $(".constraintslistbox");
@@ -92,8 +102,16 @@
 					});
 				},
 			];
-			setupSplitMakeElements($(".facets"), 'horizontal', facets);
+			verticalFill($('.tab-content'), $('#facets'));
+			verticalFill($('.tab-content'), $('#timeline'));
+			verticalFill($('.tab-content'), $('#map'));
+			setupSplitMakeElements($('#facets'), 'horizontal', facets);
 			globalQuery.update();
+
+			// Fake a window resize on changing tabs, so ensure that the contents are sized properly
+			$('a[data-toggle="tab"]').on('shown', function () {
+				$(window).trigger('resize');
+			});
 		</script>
 	</body>
 </html>

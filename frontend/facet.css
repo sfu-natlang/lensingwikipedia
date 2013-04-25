@@ -10,9 +10,10 @@
 
 .facet .topbox h1 {
 	text-align: center;
-	font-size: 24.5px; // match bootstrap at a lower header size
-	padding: 0;
+	font-size: 18px;
+	padding: 0 0 5px 0;
 	margin: 0;
+	line-height: 20px;
 }
 
 .facet .searchbox {
