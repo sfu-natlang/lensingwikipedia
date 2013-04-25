@@ -49,7 +49,7 @@ function setupFacet(container, globalQuery, name, view, makeConstraint) {
 			var itemElt = $("<li" + classStr + ">" + value + " [" + count + "]</li>").appendTo(listElt);
 			if (onClick != null)
 				itemElt.click(function() {
-					onClick(value);
+					onClick(value, data[value]);
 				});
 		}
 		curData = data;
@@ -77,7 +77,7 @@ function setupFacet(container, globalQuery, name, view, makeConstraint) {
 	var selectedValue = null;
 	var constraint = new Constraint();
 	globalQuery.addConstraint(constraint);
-	function select(value) {
+	function select(value, count) {
 		setClearEnabled(value != null);
 		selectedValue = value;
 		if (value != null) {
@@ -85,7 +85,7 @@ function setupFacet(container, globalQuery, name, view, makeConstraint) {
 			cnstrVal.name = name + ": " + value;
 			constraint.set(cnstrVal);
 			globalQuery.update();
-			setSelectedData(value, 999);
+			setSelectedData(value, count);
 		}
 	}
 	function haveSelection() {
