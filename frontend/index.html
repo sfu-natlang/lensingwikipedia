@@ -12,12 +12,17 @@
 		<link rel="stylesheet" type="text/css" href="main.css">
 	</head>
 	<body>
-		<div class="sidebar">
-			<div class="constraintslistbox"></div>
-			<div class="eventdescriptionslistbox"></div>
+		<div class="header">
+			Lensing Wikipedia by <a href="http://natlang.cs.sfu.ca">SFU Natlang Lab</a>
 		</div>
-		<div class="selectorsarea">
-			<div class="facets"></div>
+		<div class="contentarea">
+			<div class="sidebar">
+				<div class="constraintslistbox"></div>
+				<div class="eventdescriptionslistbox"></div>
+			</div>
+			<div class="selectorsarea">
+				<div class="facets"></div>
+			</div>
 		</div>
 		<!-- TODO: message on no javascript -->
 
@@ -36,6 +41,8 @@
 		<script src="facet.js"></script>
 
 		<script>
+			setupPanelled($('body'), $('.header'), $('.contentarea'), 'vertical', 4);
+
 			function setupSidebar(container, globalQuery) {
 				var cnstrBoxElt = $(".constraintslistbox");
 				var eventDescBoxElt = $(".eventdescriptionslistbox");

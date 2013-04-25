@@ -4,6 +4,17 @@ body,html {
 	height: 100%;
 }
 
+.header {
+	background-color: black;
+	color: white;
+	margin: 0;
+	padding: 2px 1em 2px 1em;
+}
+.contentarea {
+	margin: 0;
+	padding: 0;
+}
+
 div.sidebar {
 	float: left;
 	height: 100%;
