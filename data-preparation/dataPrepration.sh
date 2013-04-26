@@ -1,21 +1,20 @@
 #!/bin/bash
 
-W_DIR=/cs/natlang-projects/users/maryam/wikiCrawler/bkp
-NER_HOME=/cs/natlang-projects/users/maryam/clustering/NERStanford
-UIUC_Dir=/cs/natlang-sw/Linux-x86_64/NL/TOOLKITS/UIUCSRL/2.0/
-PYPATH=/cs/natlang-sw/Linux-x86_64/NL/LANG/PYTHON/2.7.3/bin/python
-
-module load NL/LANG/PYTHON/2.7.3
-module load NL/TOOLKITS/UIUCSRL/2.0
+W_DIR=<working dir>
+NER_HOME=<path of NER model>
+UIUC_Dir=<path of UIUCSRL>
+PYPATH=<path of python2.7.3>
 
 cd $W_DIR
 
-### STEP 1: crawling the main domain
+### STEP 1: crawling the main domain ###
+########################################
 echo "Running eventSpider to crawl wiki articles"
-scrapy runspider -a outfile='$W_DIR/response.txt' -a endYear='2013' spiders/eventSpider.py
+scrapy runspider -a outfile='response.txt' -a endYear='2013' spiders/eventSpider.py
 
 
-### STEP 2: Running NER
+### STEP 2: Running NER ###
+###########################
 
 echo "Extracting description parts and write in: eventDescription.txt"
 $PYPATH xtrctTxtForNER.py response.txt
@@ -60,10 +59,11 @@ $PYPATH getTxtFromNER.py eventDescription.ner
 #locFromNER.txt: 		each line is a location predicted by NER
 
 
-### STEP 3: Extract location inforamtion
+### STEP 3: Extract location inforamtion ###
+############################################
 
 echo "Running locationSpider to crawl all links and specified locations"
-scrapy runspider -a infile='$W_DIR/response.txt' -a outfile='$W_DIR/location.txt' spiders/locationSpider.py
+scrapy runspider -a infile='response.txt' -a outfile='location.txt' spiders/locationSpider.py
 echo "Running nerLocSpider to crawl corresponding wiki articles and recognize locations"
 scrapy runspider -a infile='locFromNER.txt' -a outfile='lFNER.txt' spiders/nerLocSpider.py
 
@@ -75,13 +75,15 @@ $PYPATH makeLocationDict.py location.txt lFNER.txt txturl2latlong.txt
 #text\tlatitude , longtitude
 
 
-### STEP 4: Reverse Geocoding
+### STEP 4: Reverse Geocoding ###
+#################################
 
 # We use google geocoding (reverseGeocoding.sh) which currently has a limitation on number of queries per day.
 # Therefore you should run it seperately and prepare a file contains all locations ("locationDictionary.txt") 
 #using txturl2latlong.txt, and use it to prepare final json file.
 
-### STEP 5: Running SRL
+### STEP 5: Running SRL ###
+###########################
 
 echo "Running UIUC SRL: input:eventDescription.ner.tok output:eventDescription.ner.tok.srl"
 
@@ -96,7 +98,8 @@ cd $UIUC_DIR/bin
 perl srl-client-primitive.pl 0 0 $W_DIR/eventDescription.ner.tok  $W_DIR/eventDescription.ner.tok.srl
 
 
-### STEP 6: Prepare json file
+### STEP 6: Prepare json file ###
+#################################
 
 cd $W_DIR
 
