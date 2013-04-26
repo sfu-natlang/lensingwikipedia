@@ -48,15 +48,21 @@ import clustering
 
 default_thresholds = [0.25, 0.2, 0.15, 0.1, 0.05]
 
+def has_point(event):
+  return len(event['locations']) > 0
+
 def get_point(event, point_digits):
-  return (round(float(event['longitude']), point_digits), round(float(event['latitude']), point_digits))
+  # Choose first location as canonical for clustering
+  loc = event['locations'][0]
+  lat, lon = loc['latitude'], loc['longitude']
+  return (round(float(lon), point_digits), round(float(lat), point_digits))
 
 def iter_events_from_file(path, first_id, point_digits):
   import json
   with open(path) as file:
     for id, line in enumerate(file):
       event = json.loads(line)
-      if 'latitude' in event and 'longitude' in event:
+      if has_point(event):
         yield id, get_point(event, point_digits)
 
 def iter_events_from_db(data_dom, point_digits):

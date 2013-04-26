@@ -74,7 +74,12 @@ def prepare_event(event, min_year, year_key_digits):
   """
   Modifies an event for uploading.
   """
+  event['locationText'] = [loc['text'] for loc in event['locations']]
   event['urls'] = ["%s %s" % (u, k) for k, u in event['urls'].iteritems()]
+  def format_location(location):
+    i, j = location.get('span') or [-1, -1]
+    return "%f %f %i %i %s" % (location['latitude'], location['longitude'], i, j, location['text'])
+  event['locations'] = [format_location(l) for l in event['locations']]
   event['descriptionHtml'] = make_html_description(event['description'], event.get('urls') or {})
   clip_field(event, 'description')
   clip_field(event, 'descriptionTokenized')

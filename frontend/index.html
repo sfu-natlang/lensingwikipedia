@@ -101,6 +101,16 @@
 						}
 					});
 				},
+				function(container) {
+					setupFacet(container, globalQuery, "Location", {
+						type: 'countbylocation'
+					}, function makeConstraint(location) {
+						return {
+							type: 'location',
+							text: location
+						}
+					});
+				}
 			];
 			verticalFill($('.tab-content'), $('#facets'));
 			verticalFill($('.tab-content'), $('#timeline'));

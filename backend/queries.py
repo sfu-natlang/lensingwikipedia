@@ -19,13 +19,16 @@ response_cache = cache.Complete()
 
 def count_by(sdb_result, key):
   """
-  Count items by the value of a specified key.
+  Count items by the value of a specified key. Each value of a multiple-valued
+  field is counted.
   """
   table = {}
   for item in sdb_result:
     item_key = key(item)
-    table.setdefault(item_key, 0)
-    table[item_key] += 1
+    values = item_key if isinstance(item_key, list) else [item_key]
+    for value in values:
+      table.setdefault(value, 0)
+      table[value] += 1
   return { 'counts': table }
 
 def constraint_to_sdb_query(cnstr, clustering_name):
@@ -48,6 +51,8 @@ def constraint_to_sdb_query(cnstr, clustering_name):
     detail_level = int(cnstr['detail'])
     ids = cnstr['ids']
     return "mapClustering:%s:%i in (%s)" % (clustering_name, detail_level, ",".join("'%i'" % (i) for i in ids))
+  elif type == 'location':
+    return "`locationText` = '%s'" % (cnstr['text'])
   else:
     raise ValueError("unknown constraint type \"%s\"" % (type))
 
@@ -90,6 +95,9 @@ def generate_view(view, sdb_query, data_dom, clustering_name):
   elif type == 'countbyyear':
     rs = sdbutils.select_all(data_dom, sdb_query, ['year'], needs_non_null=['year'])
     return count_by(rs, lambda e: e['year'])
+  elif type == 'countbylocation':
+    rs = sdbutils.select_all(data_dom, sdb_query, ['locationText'], needs_non_null=['locationText'])
+    return count_by(rs, lambda e: e['locationText'])
   else:
     raise ValueError("unknown view type \"%s\"" % (type))
 
