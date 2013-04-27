@@ -24,6 +24,7 @@ import re
 import json
 import cgi
 import boto
+import dates
 
 max_sdb_value_len = 1000 # should be 1024 - 1 (for the ellipsis) but seems to need some padding
 base_wikipedia_url = "https://en.wikipedia.org"
@@ -84,7 +85,7 @@ def prepare_event(event, min_year, year_key_digits):
   clip_field(event, 'description')
   clip_field(event, 'descriptionTokenized')
   clip_field(event, 'descriptionHtml', html=True)
-  event['yearKey'] = ("%%0%id" % (year_key_digits)) % (int(event['year']) - min_year)
+  event['yearKey'] = dates.year_key(int(event['year']), min_year, year_key_digits)
 
 def upload(input, dom_name, first_id, min_year, max_year, do_delete):
   sdb = boto.connect_sdb()

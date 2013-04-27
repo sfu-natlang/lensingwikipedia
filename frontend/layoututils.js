@@ -1,7 +1,17 @@
-function verticalFill(container, content) {
-	function fit () {
-		content.height(container.height());
-	}
+function fillElement(container, content, orient, extraSpaceSize1, extraSpaceSize2) {
+	if (extraSpaceSize1 == null) extraSpaceSize1 = 0;
+	if (extraSpaceSize2 == null) extraSpaceSize2 = 0;
+	var fit = {
+		vertical: function () {
+			content.height(container.height() - extraSpaceSize1);
+		},
+		horizontal: function () {
+			content.width(container.width() - extraSpaceSize1);
+		},
+		both: function () {
+			content.width(container.width() - extraSpaceSize1).height(container.height() - extraSpaceSize2);
+		}
+	}[orient];
 	$(window).resize(fit);
 	fit();
 }

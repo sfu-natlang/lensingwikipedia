@@ -43,11 +43,25 @@ def apply_settings(settings):
   queries.num_initial_description_pages_to_cache = settings.num_initial_description_pages_to_cache
   queries.all_argument_numbers = settings.all_argument_numbers
 
+def discover_year_range(data_dom):
+  """
+  Work out the minimum year and year digit padding.
+  We just look at a single event and hope the data is consistent.
+  """
+  rs = data_dom.select("select `year`,`yearKey` from `%s` limit %i" % (data_dom.name, 1), max_items=1)
+  for item in rs:
+    year = int(item['year'])
+    year_key_digits = len(item['yearKey']) + (1 if year >= 0 else 0)
+    min_year = year - int(item['yearKey'])
+    return min_year, year_key_digits
+
 def serve(hostname, port, sdb, settings_dom):
   state = State()
   state.data_dom = None
   state.settings = backend_settings.Settings(backend_settings.defaults)
   state.next_settings_update = -sys.maxint - 1
+  query_settings = queries.QuerySettings()
+  min_year, year_key_digits = None, None
 
   def app(environ, start_response):
     print >> sys.stderr
@@ -60,6 +74,9 @@ def serve(hostname, port, sdb, settings_dom):
       state.next_settings_update = time.time() + state.settings.settings_timeout
       state.data_dom = sdbutils.get_domain(sdb, state.settings.data_domain_name)
       apply_settings(state.settings)
+      query_settings.min_year = query_settings.year_key_digits = None
+    if query_settings.min_year is None or query_settings.year_key_digits is None:
+      query_settings.min_year, query_settings.year_key_digits = discover_year_range(state.data_dom)
 
     try:
       if environ['REQUEST_METHOD'] == 'POST':
@@ -69,7 +86,7 @@ def serve(hostname, port, sdb, settings_dom):
       else:
         query = {}
       try:
-        response = json.dumps(queries.handle_query(query, state.data_dom, state.settings.clustering_name, body))
+        response = json.dumps(queries.handle_query(query, state.data_dom, query_settings, body))
         #print >> sys.stderr, "response: %s" % (response)
         start_response("200 OK", [("Content-type", "application/json"), ("Access-Control-Allow-Origin", "*")])
         return [response]

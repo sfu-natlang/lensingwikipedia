@@ -9,6 +9,7 @@
 		<link rel="stylesheet" type="text/css" href="constraintslist.css">
 		<link rel="stylesheet" type="text/css" href="eventdescriptionslist.css">
 		<link rel="stylesheet" type="text/css" href="facet.css">
+		<link rel="stylesheet" type="text/css" href="timeline.css">
 		<link rel="stylesheet" type="text/css" href="main.css">
 	</head>
 	<body>
@@ -22,14 +23,14 @@
 			</div>
 			<div class="selectorsarea">
 				<ul class="nav nav-pills" id="tabbar">
-					<li class="active"><a href="#facets" data-toggle="tab">Facets</a></li>
-					<li><a href="#timeline" data-toggle="tab">Timeline</a></li>
-					<li><a href="#map" data-toggle="tab">Map</a></li>
+					<li class="active"><a href="#facetstab" data-toggle="tab">Facets</a></li>
+					<li><a href="#timelinetab" data-toggle="tab">Timeline</a></li>
+					<li><a href="#maptab" data-toggle="tab">Map</a></li>
 				</ul>
 				<div class="tab-content">
-					<div class="tab-pane active" id="facets"></div>
-					<div class="tab-pane" id="timeline">TODO: timeline</div>
-					<div class="tab-pane" id="map">TODO: map</div>
+					<div class="tab-pane active" id="facetstab"></div>
+					<div class="tab-pane" id="timelinetab"></div>
+					<div class="tab-pane" id="maptab">TODO: map</div>
 				</div>
 			</div>
 		</div>
@@ -38,16 +39,19 @@
 		<!-- TODO: change to local js files for libraries -->
 		<script src="http://code.jquery.com/jquery.js"></script>
 		<script src="bootstrap/js/bootstrap.min.js"></script>
+		<script src="http://d3js.org/d3.v3.min.js"></script>
 
 		<script src="config.js"></script>
 		<script src="queries.js"></script>
 
 		<script src="layoututils.js"></script>
+		<script src="d3utils.js"></script>
 
 		<script src="loadingindicator.js"></script>
 		<script src="constraintslist.js"></script>
 		<script src="eventdescriptionslist.js"></script>
 		<script src="facet.js"></script>
+		<script src="timeline.js"></script>
 
 		<script>
 			setupPanelled($('body'), $('.header'), $('.contentarea'), 'vertical', 4);
@@ -63,6 +67,7 @@
 				setupPanelled(container, cnstrBoxElt, eventDescBoxElt, 'vertical', 0, true);
 			}
 
+			var initialQuery = new Query(backendUrl);
 			var globalQuery = new Query(backendUrl);
 			setupSidebar($(".sidebar"), globalQuery);
 
@@ -112,10 +117,14 @@
 					});
 				}
 			];
-			verticalFill($('.tab-content'), $('#facets'));
-			verticalFill($('.tab-content'), $('#timeline'));
-			verticalFill($('.tab-content'), $('#map'));
-			setupSplitMakeElements($('#facets'), 'horizontal', facets);
+			fillElement($('.tab-content'), $('#facetstab'), 'vertical');
+			fillElement($('.tab-content'), $('#timelinetab'), 'vertical');
+			fillElement($('.tab-content'), $('#maptab'), 'vertical');
+			setupSplitMakeElements($('#facetstab'), 'horizontal', facets);
+
+			setupTimeline($('#timelinetab'), initialQuery, globalQuery);
+
+			initialQuery.update();
 			globalQuery.update();
 
 			// Fake a window resize on changing tabs, so ensure that the contents are sized properly

@@ -1,0 +1,35 @@
+.timeline {
+	width: 100%;
+	margin: 0;
+	padding: 0;
+}
+.timeline .topbox {
+	margin: 0;
+	padding: 0 10px 0 10px;
+}
+.timeline svg {
+	margin: 0;
+	padding: 0;
+}
+.timeline .line,.area {
+	vector-effect: non-scaling-stroke;
+}
+.timeline .bar.detail {
+	fill: #3a87ad;
+}
+.timeline .bar.selection {
+	fill: gray;
+}
+.timeline .axis path, .timeline .axis line {
+	fill: none;
+	stroke: black;
+	shape-rendering: crispEdges;
+}
+.timeline .brush .extent {
+	fill: #3a87ad;
+	fill-opacity: .5;
+}
+.timeline .disabled {
+	fill: red;
+	stroke: red;
+}

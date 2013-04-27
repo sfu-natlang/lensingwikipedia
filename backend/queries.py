@@ -3,10 +3,21 @@ Query (frontend to backend) handling.
 """
 
 import sys
+import collections
+import sha
+import json
+import dates
 import sdbutils
 import cache
-import json
-import sha
+
+class QuerySettings:
+  def __init__(self):
+    # Minimum possible year
+    self.min_year = None
+    # Number of digits in a year key (for sorting)
+    self.year_key_digits = None
+    # Name of the clustering to use
+    clustering_name = None
 
 # All possible predicate argument numbers
 all_argument_numbers = [0, 1]
@@ -31,11 +42,11 @@ def count_by(sdb_result, key):
       table[value] += 1
   return { 'counts': table }
 
-def constraint_to_sdb_query(cnstr, clustering_name):
+def constraint_to_sdb_query(cnstr, settings):
   """
   Produces a SimpleDB select expression representing a single constraint.
   cnstr: The constraint as JSON (as python objects).
-  clustering_name: Name of the clustering to use.
+  settings: Settings for handling a query.
   """
 
   type = cnstr['type']
@@ -46,23 +57,25 @@ def constraint_to_sdb_query(cnstr, clustering_name):
     role = cnstr['role']
     return " or ".join(part(an, cnstr['role']) for an in arg_nums)
   elif type == "timerange":
-    return "time >= '%i' and time <= '%i'" % (cnstr['low'], cnstr['high'])
+    low = dates.year_key(cnstr['low'], settings.min_year, settings.year_key_digits)
+    high = dates.year_key(cnstr['high'], settings.min_year, settings.year_key_digits)
+    return "yearKey >= '%s' and yearKey <= '%s'" % (low, high)
   elif type == 'mapclusters':
     detail_level = int(cnstr['detail'])
     ids = cnstr['ids']
-    return "mapClustering:%s:%i in (%s)" % (clustering_name, detail_level, ",".join("'%i'" % (i) for i in ids))
+    return "mapClustering:%s:%i in (%s)" % (settings.clustering_name, detail_level, ",".join("'%i'" % (i) for i in ids))
   elif type == 'location':
     return "`locationText` = '%s'" % (cnstr['text'])
   else:
     raise ValueError("unknown constraint type \"%s\"" % (type))
 
-def generate_view(view, sdb_query, data_dom, clustering_name):
+def generate_view(view, sdb_query, data_dom, settings):
   """
   Produces the JSON (as python objects) response for a single view request.
   view: The view as JSON (as python objects).
   sdb_query: The SimpleDB select expression for the current query.
   data_dom: The SimpleDB domain for the data.
-  clustering_name: Name of the clustering to use.
+  settings: Settings for handling a query.
   """
 
   # TODO: wherever possible this should do multiple views from a single database query
@@ -89,7 +102,7 @@ def generate_view(view, sdb_query, data_dom, clustering_name):
           table[role] += 1
     return { 'counts': table }
   elif type == 'countbymapcluster':
-    cluster_key = 'mapClustering:%s:%i' % (clustering_name, view['detail'])
+    cluster_key = 'mapClustering:%s:%i' % (settings.clustering_name, view['detail'])
     rs = sdbutils.select_all(data_dom, sdb_query, [cluster_key], needs_non_null=[cluster_key])
     return count_by(rs, lambda e: e[cluster_key])
   elif type == 'countbyyear':
@@ -105,14 +118,13 @@ def do_cache(query, view):
   return len(query['constraints']) == 0 \
     and (int(view['page'] if 'page' in view else 0) < num_initial_description_pages_to_cache if view['type'] == "descriptions" else True)
 
-def handle_query(query, data_dom, clustering_name, query_str=None):
+def handle_query(query, data_dom, settings, query_str=None):
   """
   Produces a JSON (as python objects) response for a query given as a JSON (as
   python objects) query.
   query: The query as JSON (as python objects).
   data_dom: The SimpleDB domain for the data.
-  clustering_name: The name of the clustering to use for cluster constraints and
-    views.
+  settings: Settings for handling a query.
   query_str: A canonical (ie will be consistent between different requests for
     the same view) string for the whole query; if not given then one will be
     generated as needed.
@@ -120,7 +132,7 @@ def handle_query(query, data_dom, clustering_name, query_str=None):
 
   def handle_constraint(cnstr_id, cnstr):
     print >> sys.stderr, "handling constraint \"%s\" of type \"%s\"" % (cnstr_id, cnstr['type'])
-    return constraint_to_sdb_query(cnstr, clustering_name)
+    return constraint_to_sdb_query(cnstr, settings)
   sdb_query = " and ".join("(%s)" % (handle_constraint(cid, c)) for cid, c in query['constraints'].iteritems())
 
   response = {}
@@ -135,12 +147,12 @@ def handle_query(query, data_dom, clustering_name, query_str=None):
       view_response = response_cache.get(cache_key)
       if view_response is None:
         print >> sys.stderr, "generating view for cache"
-        view_response = generate_view(view, sdb_query, data_dom, clustering_name)
+        view_response = generate_view(view, sdb_query, data_dom, settings)
         response_cache[cache_key] = view_response
       else:
         print >> sys.stderr, "using cache"
       response[view_id] = view_response
     else:
       print >> sys.stderr, "generating view"
-      response[view_id] = generate_view(view, sdb_query, data_dom, clustering_name)
+      response[view_id] = generate_view(view, sdb_query, data_dom, settings)
   return response

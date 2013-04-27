@@ -13,7 +13,7 @@ function setupFacet(container, globalQuery, name, view, makeConstraint) {
 	var loadingElt = makeLoadingIndicator().prependTo(listBoxElt);
 	var listElt = $("<ul></ul>").appendTo(listBoxElt);
 
-	verticalFill(container, facetElt);
+	fillElement(container, facetElt, 'vertical');
 	setupPanelled(facetElt, topBoxElt, listBoxElt, 'vertical', 0, false);
 
 	function setLoadingIndicator(enabled) {
