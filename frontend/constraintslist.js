@@ -23,7 +23,7 @@ function setupConstraintList(container, globalQuery) {
 		var cnstrElt = $("<div class=\"alert alert-info\"></div>").appendTo(itemElt);
 		$("<button type=\"button\" class=\"close\">&times;</button>").appendTo(cnstrElt);
 		var cnstrTextElt = $("<span></span>").appendTo(cnstrElt);
-		cnstrTextElt.append(cnstr.value.name);
+		cnstrTextElt.append(cnstr.value().name);
 		cnstrElt.click(function() {
 			cnstr.clear();
 			globalQuery.update();
@@ -33,7 +33,7 @@ function setupConstraintList(container, globalQuery) {
 			if (changeType =="removed") {
 				removeConstraintElement(cnstrElt);
 			} else if (changeType == "changed") {
-				cnstrTextElt.html(cnstr.value.name);
+				cnstrTextElt.html(cnstr.value().name);
 			}
 		});
 	}
