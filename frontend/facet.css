@@ -52,6 +52,9 @@
 	padding: 0;
 	overflow-y: auto;
 }
+.facet .listbox.selected {
+	background-color: rgba(58, 135, 173, 0.5);
+}
 
 .facet .listbox ul {
 	margin: 1em;
