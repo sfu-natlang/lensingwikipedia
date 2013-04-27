@@ -38,6 +38,13 @@ function setupFacet(container, globalQuery, name, view, makeConstraint) {
 
 	var curData = null;
 	function setData(data, onClick, itemClass) {
+		function getSortedValues() {
+			var sortedValues = [];
+			for (value in data)
+				sortedValues.push(value);
+			sortedValues.sort(function (v1, v2) { return data[v2] - data[v1]; });
+			return sortedValues;
+		}
 		function keyList(dict) {
 			var list = [];
 			for (key in dict)
@@ -60,8 +67,11 @@ function setupFacet(container, globalQuery, name, view, makeConstraint) {
 		if (data != null) {
 			searchInputElt.removeAttr('disabled');
 			search.data('typeahead').source = keyList(data);
-			for (value in data)
+			var sortedValues = getSortedValues();
+			for (i in sortedValues) {
+				var value = sortedValues[i];
 				addValue(value, data[value]);
+			}
 		} else {
 			searchInputElt.removeAttr('data-source');
 			searchInputElt.attr('disabled', 'disabled');
