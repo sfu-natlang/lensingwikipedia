@@ -61,6 +61,7 @@
 	margin: 0;
 	padding: 0;
 	list-style: none;
+	white-space: nowrap;
 }
 .facet .listbox ul li.selected {
 	background-color: #3a87ad;
