@@ -46,7 +46,8 @@ function setupFacet(container, globalQuery, name, view, makeConstraint) {
 		}
 		function addValue(value, count) {
 			var classStr = value == itemClass != null ? " class=\"" + itemClass + "\"" : "";
-			var itemElt = $("<li" + classStr + ">" + value + " [" + count + "]</li>").appendTo(listElt);
+			var countStr =  count == null ? "" : " [" + count + "]";
+			var itemElt = $("<li" + classStr + ">" + value + countStr + "</li>").appendTo(listElt);
 			if (onClick != null)
 				itemElt.click(function() {
 					onClick(value, data[value]);
@@ -68,9 +69,9 @@ function setupFacet(container, globalQuery, name, view, makeConstraint) {
 	}
 	setData(null);
 
-	function setSelectedData(value, count) {
+	function setSelectedData(value) {
 		var data = {};
-		data[value] = count;
+		data[value] = null;
 		setData(data, null, "selected");
 	}
 
@@ -85,7 +86,7 @@ function setupFacet(container, globalQuery, name, view, makeConstraint) {
 			cnstrVal.name = name + ": " + value;
 			constraint.set(cnstrVal);
 			globalQuery.update();
-			setSelectedData(value, count);
+			setSelectedData(value);
 		}
 	}
 	function haveSelection() {
