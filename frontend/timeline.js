@@ -149,7 +149,7 @@ function setupTimeline(container, initialQuery, globalQuery) {
 	var constraint = new Constraint();
 	globalQuery.addConstraint(constraint);
 	var updateTimer = null;
-	var isSelection = false;
+	var isSelection = true;
 	function setSelection(selection) {
 		if (selection == null) {
 			setClearEnabled(false);
@@ -215,9 +215,9 @@ function setupTimeline(container, initialQuery, globalQuery) {
 		var svg = d3.select(svgElt[0]);
 		var plotData = resultToPlotData(result.counts.counts);
 		setLoadingIndicator(false);
-		setSelection(null);
 		var detailScales = drawDetail(svg, detailBox, plotData);
 		clearBrush = drawSelector(svg, selectBox, plotData, detailScales, setSelection);
+		setSelection(null);
 		scaleSvg();
 	});
 }
