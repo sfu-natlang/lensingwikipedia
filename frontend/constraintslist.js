@@ -20,7 +20,7 @@ function setupConstraintList(container, globalQuery) {
 
 	function addConstraintElement(cnstr) {
 		var itemElt = $("<li></li>").appendTo(listElt);
-		var cnstrElt = $("<div class=\"alert alert-info\"></div>").appendTo(itemElt);
+		var cnstrElt = $("<div class=\"alert alert-constraint\"></div>").appendTo(itemElt);
 		$("<button type=\"button\" class=\"close\">&times;</button>").appendTo(cnstrElt);
 		var cnstrTextElt = $("<span></span>").appendTo(cnstrElt);
 		cnstrTextElt.append(cnstr.value().name);

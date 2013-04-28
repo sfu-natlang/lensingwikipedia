@@ -17,3 +17,9 @@
 	margin: 10px 0 10px 0;
 	overflow: hidden;
 }
+.alert-constraint {
+	color: black;
+	background-color: rgba(58, 135, 173, 0.5);
+	border-color: rgba(58, 135, 173, 1.0);
+	text-shadow: none;
+}
