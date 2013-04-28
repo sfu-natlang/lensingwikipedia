@@ -1,105 +1,128 @@
-function resultToPlotData(counts) {
+var timelineClipNum = 0;
+
+function resultToPlotData(initialCounts, contextCounts) {
+	var allYears = {};
+	for (year in initialCounts)
+		allYears[year] = true;
+	for (year in contextCounts)
+		allYears[year] = true;
+
 	var samples = [];
-	for (year in counts) {
+	for (year in allYears) {
 		var date = new Date(0, 0, 1);
 		date.setFullYear(year);
-		samples.push({
+		sample = {
 			year: +year,
 			date: date,
-			count: +counts[year]
-		});
+			initialCount: +initialCounts[year] || 0,
+			contextCount: +contextCounts[year] || 0
+		};
+		sample.count = Math.max(sample.initialCount, sample.contextCount);
+		samples.push(sample);
 	}
+
 	samples.sort(function (a, b) { return a.year - b.year; });
 	return samples;
 }
 
-function drawDetail(svg, box, data) {
-	svg.append('defs')
-		.append('clipPath')
-		.attr('id', 'clip')
-		.append('rect')
-		.attr('width', box.width)
-		.attr('height', box.height);
-	var draw = svg.append('g')
-		.attr('transform', "translate(" + box.x + "," + box.y + ")");
-	var scales = {
-		x: d3.time.scale().range([0, box.width]),
-		y: d3.scale.linear().range([box.height, 0])
-	};
-	scales.x.domain(d3.extent(data, function (s) { return s.date; }));
-	scales.y.domain([0, d3.max(data, function (s) { return s.count; })]);
-	var axes = {
-		x: d3.svg.axis().scale(scales.x).orient('bottom'),
-		y: d3.svg.axis().scale(scales.y).orient('left')
-	};
-	var area = d3.svg.area()
+function drawCounts(data, box, draw, scales, classStr, clipId) {
+	var initialArea = d3.svg.area()
 		.interpolate('step-after')
 		.x(function(s) { return scales.x(s.date); })
 		.y0(box.height)
-		.y1(function(s) { return scales.y(s.count); });
-	draw.append('path')
+		.y1(function(s) { return scales.y(s.initialCount); });
+	var contextArea = d3.svg.area()
+		.interpolate('step-after')
+		.x(function(s) { return scales.x(s.date); })
+		.y0(box.height)
+		.y1(function(s) { return scales.y(s.contextCount); });
+
+	var initialPath = draw.append('path')
 		.datum(data)
-		.attr('class', 'bar detail')
-		.attr('clip-path', 'url(#clip)')
-		.attr('d', area);
-	draw.append('g')
-		.attr('class', 'x axis detail')
-		.attr('transform', "translate(0," + box.height + ")")
-		.call(axes.x);
-	draw.append('g')
-		.attr('class', 'y axis detail')
-		.call(axes.y);
-	scales.updateX = function(newXDomain) {
-		scales.x.domain(newXDomain);
-		draw.select('path').attr('d', area);
-		draw.select('.x.axis').call(axes.x);
+		.attr('class', "bar " + classStr + " initial");
+	var contextPath = draw.append('path')
+		.datum(data)
+		.attr('class', "bar " + classStr + " context");
+	if (clipId != null) {
+		initialPath.attr('clip-path', "url(#" + clipId + ")");
+		contextPath.attr('clip-path', "url(#" + clipId + ")");
 	}
-	return scales;
+
+	function update () {
+		initialPath.attr('d', initialArea);
+		contextPath.attr('d', contextArea);
+	}
+	update();
+
+	return update;
 }
 
-function drawSelector(svg, box, data, detailScales, brushCallback) {
+function drawPlot(svg, box, data, classStr, matchScales, clipId) {
+	var draw = svg.append('g')
+		.attr('transform', "translate(" + box.x + "," + box.y + ")");
 	var scales = {
 		x: d3.time.scale().range([0, box.width]),
 		y: d3.scale.linear().range([box.height, 0])
 	};
+	if (matchScales != null) {
+		scales.x.domain(matchScales.x.domain());
+		scales.y.domain(matchScales.y.domain());
+	} else {
+		scales.x.domain(d3.extent(data, function (s) { return s.date; }));
+		scales.y.domain([0, d3.max(data, function (s) { return s.count; })]);
+	}
 	var axes = {
 		x: d3.svg.axis().scale(scales.x).orient('bottom'),
 		y: d3.svg.axis().scale(scales.y).orient('left')
 	};
-	var draw = svg.append('g')
-		.attr('transform', "translate(" + box.x + "," + box.y + ")");
-	scales.x.domain(detailScales.x.domain());
-	scales.y.domain(detailScales.y.domain());
-	var area = d3.svg.area()
-		.interpolate('step-after')
-		.x(function(s) { return scales.x(s.date); })
-		.y0(box.height)
-		.y1(function(s) { return scales.y(s.count); });
-	draw.append('path')
-		.datum(data)
-		.attr('class', 'bar selection')
-		.attr('clip-path', 'url(#clip)')
-		.attr('d', area);
+	var updatePlot = drawCounts(data, box, draw, scales, classStr, clipId);
 	draw.append('g')
-		.attr('class', 'x axis selection')
+		.attr('class', "x axis " + classStr)
 		.attr('transform', "translate(0," + box.height + ")")
 		.call(axes.x);
 	draw.append('g')
-		.attr('class', 'y axis selection')
+		.attr('class', "y axis " + classStr)
 		.call(axes.y);
+	function updateX(newXDomain) {
+		scales.x.domain(newXDomain);
+		updatePlot();
+		draw.select('.x.axis').call(axes.x);
+	}
+	return {
+		draw: draw,
+		scales: scales,
+		updateX: updateX
+	};
+}
+
+function drawTimeline(svg, detailBox, selectBox, data, initialBrushExtent, brushCallback) {
+	var clipId = "timelineclip" + timelineClipNum;
+	timelineClipNum++;
+	svg.append('defs')
+		.append('clipPath')
+		.attr('id', clipId)
+		.append('rect')
+		.attr('width', detailBox.width)
+		.attr('height', detailBox.height);
+	var detailPlot = drawPlot(svg, detailBox, data, 'detail', null, clipId);
+
+	var selectPlot = drawPlot(svg, selectBox, data, 'selection', detailPlot.scales);
 	function onBrush() {
-		detailScales.updateX(brush.empty() ? scales.x.domain() : brush.extent());
+		detailPlot.updateX(brush.empty() ? selectPlot.scales.x.domain() : brush.extent());
 		brushCallback(brush.empty() ? null : brush.extent());
 	}
 	var brush = d3.svg.brush()
-		.x(scales.x)
+		.x(selectPlot.scales.x)
 		.on('brush', onBrush);
-	draw.append('g')
+	if (initialBrushExtent != null)
+		brush.extent(initialBrushExtent);
+	selectPlot.draw.append('g')
 		.attr('class', 'x brush')
 		.call(brush)
 		.selectAll('rect')
-		.attr('y', -6)
-		.attr('height', box.height + 7);
+		.attr('y', -2)
+		.attr('height', selectBox.height + 6);
+
 	return function() { d3.select('g.brush').call(brush.clear()); onBrush(); };
 }
 
@@ -120,8 +143,8 @@ function setupTimeline(container, initialQuery, globalQuery) {
 	var topBoxElt = $("<div class=\"topbox\"></div>").appendTo(outerElt);
 	var clearElt = $("<button type=\"button\" class=\"btn btn-block btn-mini btn-warning\">Clear selection</button></ul>").appendTo(topBoxElt);
 	var loadingElt = makeLoadingIndicator().appendTo(outerElt);
-	var outerSvgElt = $("<svg id=\"graphwraptest\"></svg>").appendTo(outerElt);
-	var svgElt = $("<svg id=\"innersvgtest\" viewBox=\"" + viewBox.x + " " + viewBox.y + " " + viewBox.width + " " + viewBox.height + "\" preserveAspectRatio=\"none\"></svg>").appendTo(outerSvgElt);
+	var outerSvgElt = $("<svg class=\"outersvg\"></svg>").appendTo(outerElt);
+	var svgElt = $("<svg class=\"innersvg\" viewBox=\"" + viewBox.x + " " + viewBox.y + " " + viewBox.width + " " + viewBox.height + "\" preserveAspectRatio=\"none\"></svg>").appendTo(outerSvgElt);
 
 	fillElement(container, outerElt, 'vertical');
 	setupPanelled(outerElt, topBoxElt, outerSvgElt, 'vertical', 0, false);
@@ -148,15 +171,22 @@ function setupTimeline(container, initialQuery, globalQuery) {
 
 	var constraint = new Constraint();
 	globalQuery.addConstraint(constraint);
+	var ownCnstrQuery = new Query(globalQuery.backendUrl());
+	ownCnstrQuery.addConstraint(constraint);
+	var contextQuery = new Query(globalQuery.backendUrl(), 'setminus', globalQuery, ownCnstrQuery);
 	var updateTimer = null;
 	var isSelection = true;
-	function setSelection(selection) {
+	var lastSelection = null;
+	function setSelection(selection, forceUpdate) {
+		if (forceUpdate)
+			isSelection = !isSelection;
 		if (selection == null) {
 			setClearEnabled(false);
 			constraint.clear();
 			globalQuery.update();
 			if (isSelection) {
-				$('.bar.detail').css('display', 'none');
+				$('.bar.detail.initial').css('display', 'none');
+				$('.bar.detail.context').css('display', 'none');
 				$('.axis.detail').children().css('fill-opacity', '0.25');
 				$('.axis.detail').children().css('stroke-opacity', '0.25');
 			}
@@ -189,8 +219,10 @@ function setupTimeline(container, initialQuery, globalQuery) {
 				$('.axis.detail').children().css('stroke-opacity', '');
 			}
 		}
+		lastSelection = selection;
 		isSelection = (selection != null);
 	}
+	setSelection(null);
 
 	var clearBrush = null;
 	clearElt.click(function () {
@@ -204,6 +236,20 @@ function setupTimeline(container, initialQuery, globalQuery) {
 			clearBrush();
 	});
 
+	var initialData = null,
+	    contextData = null;
+	function draw() {
+		if (initialData != null && contextData != null) {
+			svgElt.children().remove();
+			var svg = jqueryToD3(svgElt);
+			var plotData = resultToPlotData(initialData, contextData);
+			setLoadingIndicator(false);
+			clearBrush = drawTimeline(svg, detailBox, selectBox, plotData, lastSelection, setSelection);
+			setSelection(lastSelection, true);
+			scaleSvg();
+		}
+	}
+
 	initialQuery.onChange(function () {
 		setLoadingIndicator(true);
 	});
@@ -212,12 +258,19 @@ function setupTimeline(container, initialQuery, globalQuery) {
 			type: 'countbyyear'
 		}
 	}, function(result) {
-		var svg = d3.select(svgElt[0]);
-		var plotData = resultToPlotData(result.counts.counts);
-		setLoadingIndicator(false);
-		var detailScales = drawDetail(svg, detailBox, plotData);
-		clearBrush = drawSelector(svg, selectBox, plotData, detailScales, setSelection);
-		setSelection(null);
-		scaleSvg();
+		initialData = result.counts.counts;
+		draw();
 	});
+	contextQuery.onChange(function () {
+		setLoadingIndicator(true);
+	});
+	contextQuery.onResult({
+		counts: {
+			type: 'countbyyear'
+		}
+	}, function(result) {
+		contextData = result.counts.counts;
+		draw();
+	});
+	contextData = {};
 }

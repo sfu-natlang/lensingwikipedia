@@ -14,11 +14,17 @@
 .timeline .line,.area {
 	vector-effect: non-scaling-stroke;
 }
-.timeline .bar.detail {
-	fill: #3a87ad;
+.timeline .bar.detail.initial {
+	fill: rgba(58, 135, 173, 0.5);
 }
-.timeline .bar.selection {
-	fill: gray;
+.timeline .bar.detail.context {
+	fill: rgba(58, 135, 173, 1.0);
+}
+.timeline .bar.selection.initial {
+	fill: rgba(128, 128, 128, 0.5);
+}
+.timeline .bar.selection.context {
+	fill: rgba(128, 128, 128, 1.0);
 }
 .timeline .axis path, .timeline .axis line {
 	fill: none;
