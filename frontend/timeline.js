@@ -107,15 +107,21 @@ function drawTimeline(svg, detailBox, selectBox, data, initialBrushExtent, brush
 	var detailPlot = drawPlot(svg, detailBox, data, 'detail', null, clipId);
 
 	var selectPlot = drawPlot(svg, selectBox, data, 'selection', detailPlot.scales);
-	function onBrush() {
+	var brush = null;
+	function updateBrush() {
 		detailPlot.updateX(brush.empty() ? selectPlot.scales.x.domain() : brush.extent());
+	}
+	function onBrush() {
+		updateBrush();
 		brushCallback(brush.empty() ? null : brush.extent());
 	}
-	var brush = d3.svg.brush()
+	brush = d3.svg.brush()
 		.x(selectPlot.scales.x)
 		.on('brush', onBrush);
-	if (initialBrushExtent != null)
+	if (initialBrushExtent != null) {
 		brush.extent(initialBrushExtent);
+		updateBrush();
+	}
 	selectPlot.draw.append('g')
 		.attr('class', 'x brush')
 		.call(brush)
