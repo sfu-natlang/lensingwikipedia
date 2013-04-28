@@ -119,7 +119,7 @@ if __name__ == '__main__':
 
   settings_dom_name = args[0]
   hostname = opts['-h'] if '-h' in opts else ""
-  port = opts['-p'] if '-p' in opts else default_port
+  port = int(opts['-p']) if '-p' in opts else default_port
 
   print >> sys.stderr, "connecting to database"
   sdb = boto.connect_sdb()
