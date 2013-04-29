@@ -13,7 +13,7 @@ function setupFacet(container, globalQuery, name, view, makeConstraint) {
 	var loadingElt = makeLoadingIndicator().prependTo(listBoxElt);
 	var listElt = $("<ul></ul>").appendTo(listBoxElt);
 
-	verticalFill(container, facetElt);
+	fillElement(container, facetElt, 'vertical');
 	setupPanelled(facetElt, topBoxElt, listBoxElt, 'vertical', 0, false);
 
 	function setLoadingIndicator(enabled) {
@@ -36,8 +36,38 @@ function setupFacet(container, globalQuery, name, view, makeConstraint) {
 			searchInputElt.removeClass('error');
 	}
 
+	var selectedValue = null;
+	var constraint = new Constraint();
+	globalQuery.addConstraint(constraint);
+	var ownCnstrQuery = new Query(globalQuery.backendUrl());
+	ownCnstrQuery.addConstraint(constraint);
+	var contextQuery = new Query(globalQuery.backendUrl(), 'setminus', globalQuery, ownCnstrQuery);
+	function select(value) {
+		setClearEnabled(value != null);
+		selectedValue = value;
+		if (value != null) {
+			var cnstrVal = makeConstraint(value);
+			cnstrVal.name = name + ": " + value;
+			constraint.set(cnstrVal);
+			listBoxElt.addClass('selected');
+			globalQuery.update();
+		} else {
+			listBoxElt.removeClass('selected');
+		}
+	}
+	function haveSelection() {
+		return selectedValue != null;
+	}
+
 	var curData = null;
-	function setData(data, onClick, itemClass) {
+	function setData(data) {
+		function getSortedValues() {
+			var sortedValues = [];
+			for (value in data)
+				sortedValues.push(value);
+			sortedValues.sort(function (v1, v2) { return data[v2] - data[v1]; });
+			return sortedValues;
+		}
 		function keyList(dict) {
 			var list = [];
 			for (key in dict)
@@ -45,12 +75,12 @@ function setupFacet(container, globalQuery, name, view, makeConstraint) {
 			return list;
 		}
 		function addValue(value, count) {
-			var classStr = value == itemClass != null ? " class=\"" + itemClass + "\"" : "";
-			var itemElt = $("<li" + classStr + ">" + value + " [" + count + "]</li>").appendTo(listElt);
-			if (onClick != null)
-				itemElt.click(function() {
-					onClick(value, data[value]);
-				});
+			var classStr = value == selectedValue ? " class=\"selected\"" : "";
+			var countStr =  count == null ? "" : " [" + count + "]";
+			var itemElt = $("<li" + classStr + ">" + value + countStr + "</li>").appendTo(listElt);
+			itemElt.click(function() {
+				select(value);
+			});
 		}
 		curData = data;
 		searchInputElt.val("");
@@ -59,42 +89,17 @@ function setupFacet(container, globalQuery, name, view, makeConstraint) {
 		if (data != null) {
 			searchInputElt.removeAttr('disabled');
 			search.data('typeahead').source = keyList(data);
-			for (value in data)
+			var sortedValues = getSortedValues();
+			for (i in sortedValues) {
+				var value = sortedValues[i];
 				addValue(value, data[value]);
+			}
 		} else {
 			searchInputElt.removeAttr('data-source');
 			searchInputElt.attr('disabled', 'disabled');
 		}
 	}
 	setData(null);
-
-	function setSelectedData(value, count) {
-		var data = {};
-		data[value] = count;
-		setData(data, null, "selected");
-	}
-
-	var selectedValue = null;
-	var constraint = new Constraint();
-	globalQuery.addConstraint(constraint);
-	function select(value, count) {
-		setClearEnabled(value != null);
-		selectedValue = value;
-		if (value != null) {
-			var cnstrVal = makeConstraint(value);
-			cnstrVal.name = name + ": " + value;
-			constraint.set(cnstrVal);
-			globalQuery.update();
-			setSelectedData(value, count);
-		}
-	}
-	function haveSelection() {
-		return selectedValue != null;
-	}
-
-	function setQueryData(data) {
-		setData(data, select);
-	}
 
 	clearElt.click(function () {
 		constraint.clear();
@@ -106,6 +111,19 @@ function setupFacet(container, globalQuery, name, view, makeConstraint) {
 			setLoadingIndicator(true);
 		}
 	});
+	contextQuery.onChange(function () {
+		if (haveSelection()) {
+			setData(null);
+			setLoadingIndicator(true);
+		}
+	});
+	ownCnstrQuery.onChange(function () {
+		// If our own constraint changes we don't get any new result,
+		// but still want to change the selection.
+		if (haveSelection()) {
+			setData(curData);
+		}
+	});
 	constraint.onChange(function (changeType) {
 		if (changeType == 'removed')
 			select(null);
@@ -115,9 +133,19 @@ function setupFacet(container, globalQuery, name, view, makeConstraint) {
 	}, function(result) {
 		if (!haveSelection()) {
 			setLoadingIndicator(false);
-			setQueryData(result.counts.counts);
+			setData(result.counts.counts);
 		}
 	});
+	contextQuery.onResult({
+		counts: view
+	}, function(result) {
+		if (haveSelection()) {
+			setLoadingIndicator(false);
+			if (!(selectedValue in result.counts.counts))
+				result.counts.counts[selectedValue] = 0;
+			setData(result.counts.counts);
+		}
+	}, haveSelection);
 	searchBoxElt.submit(function () {
 		if (!haveSelection()) {
 			var value = searchInputElt.val();

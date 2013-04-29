@@ -24,6 +24,7 @@ import re
 import json
 import cgi
 import boto
+import dates
 
 max_sdb_value_len = 1000 # should be 1024 - 1 (for the ellipsis) but seems to need some padding
 base_wikipedia_url = "https://en.wikipedia.org"
@@ -39,7 +40,7 @@ def make_html_description(text, urls):
   html = cgi.escape(ref_re.sub("", text))
   urls = dict(parse(ur) for ur in urls)
   if len(urls) > 0:
-    pat = "|".join("(%s)" % (k)  for k in urls)
+    pat = "|".join("(%s)" % (re.escape(k)) for k in urls)
     def replace(match):
       key = match.group(0)
       return "<a href=\"%s%s\">%s</a>" % (base_wikipedia_url, urls[key], key)
@@ -74,12 +75,17 @@ def prepare_event(event, min_year, year_key_digits):
   """
   Modifies an event for uploading.
   """
+  event['locationText'] = [loc['text'] for loc in event['locations']]
   event['urls'] = ["%s %s" % (u, k) for k, u in event['urls'].iteritems()]
+  def format_location(location):
+    i, j = location.get('span') or [-1, -1]
+    return "%f %f %i %i %s" % (location['latitude'], location['longitude'], i, j, location['text'])
+  event['locations'] = [format_location(l) for l in event['locations']]
   event['descriptionHtml'] = make_html_description(event['description'], event.get('urls') or {})
   clip_field(event, 'description')
   clip_field(event, 'descriptionTokenized')
   clip_field(event, 'descriptionHtml', html=True)
-  event['yearKey'] = ("%%0%id" % (year_key_digits)) % (int(event['year']) - min_year)
+  event['yearKey'] = dates.year_key(int(event['year']), min_year, year_key_digits)
 
 def upload(input, dom_name, first_id, min_year, max_year, do_delete):
   sdb = boto.connect_sdb()
