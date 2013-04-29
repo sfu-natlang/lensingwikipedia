@@ -20,7 +20,6 @@ doing multiple uploads to the same domain without deleting or clearing it first.
 """
 
 import sys
-import re
 import json
 import cgi
 import boto
@@ -29,23 +28,46 @@ import dates
 max_sdb_value_len = 1000 # should be 1024 - 1 (for the ellipsis) but seems to need some padding
 base_wikipedia_url = "https://en.wikipedia.org"
 
-ref_re = re.compile("\[[0-9]+\]")
-def make_html_description(text, urls):
-  def parse(url_rep):
-    try:
-      i = url_rep.index(' ')
-      return cgi.escape(url_rep[i+1:]), url_rep[:i]
-    except ValueError:
-      print >> sys.stderr, "warning: couldn't understand URL replacement \"%s\"" % (url_rep)
-  html = cgi.escape(ref_re.sub("", text))
-  urls = dict(parse(ur) for ur in urls)
-  if len(urls) > 0:
-    pat = "|".join("(%s)" % (re.escape(k)) for k in urls)
-    def replace(match):
-      key = match.group(0)
-      return "<a href=\"%s%s\">%s</a>" % (base_wikipedia_url, urls[key], key)
-    html = re.sub(pat, replace, html)
-  return html
+def make_html_description(event):
+  replacements = list(event['wiki_info'].iteritems())
+  replacements.sort(key=lambda i: i[1]['span'][0])
+
+  text = event['description']
+  last_end_index = -1
+  index_offset = 0
+  for item_text, item_info in replacements:
+    i, j = item_info['span']
+    if i < last_end_index:
+      print >> sys.stderr, "warning: span %i:%i \"%s\" overlaps previous span, not making a link" % (i, j, item_text)
+      continue
+    if 'url' in item_info:
+      url = item_info['url']
+      link = "<a href=\"%s%s\">%s</a>" % (base_wikipedia_url, url, item_text)
+      old_len = len(text)
+      text = text[:i+index_offset] + link + text[j+index_offset:]
+      d = event['description'] # TODO
+      last_end_index = j
+      index_offset += len(text) - old_len
+  return text
+
+def make_location_list(event):
+  wiki_locs = set(it for it, ii in event['wiki_info'].iteritems() if 'latitude' in ii and 'longitude' in ii)
+  other_locs = set(event['locations']) if 'locations' in event else set()
+  return list(wiki_locs | other_locs)
+
+def format_location(item):
+  item_text, item_info = item
+  i, j = item_info.get('span') or ['.', '.']
+  latitude = str(item_info['latitude']) if 'latitude' in item_info else '.'
+  longitude = str(item_info['longitude']) if 'longitude' in item_info else '.'
+  return "%s %s %i %i %s" % (latitude, longitude, i, j, item_text)
+
+def format_wiki_info_item(item):
+  item_text, item_info = item
+  i, j = item_info.get('span') or ['.', '.']
+  latitude = str(item_info['latitude']) if 'latitude' in item_info else '.'
+  longitude = str(item_info['longitude']) if 'longitude' in item_info else '.'
+  return "%s %s %s %i %i %s" % (item_info['url'], latitude, longitude, i, j, item_text)
 
 def clip_html(html, max_len):
   """
@@ -75,13 +97,11 @@ def prepare_event(event, min_year, year_key_digits):
   """
   Modifies an event for uploading.
   """
-  event['locationText'] = [loc['text'] for loc in event['locations']]
-  event['urls'] = ["%s %s" % (u, k) for k, u in event['urls'].iteritems()]
-  def format_location(location):
-    i, j = location.get('span') or [-1, -1]
-    return "%f %f %i %i %s" % (location['latitude'], location['longitude'], i, j, location['text'])
-  event['locations'] = [format_location(l) for l in event['locations']]
-  event['descriptionHtml'] = make_html_description(event['description'], event.get('urls') or {})
+  event['locationText'] = make_location_list(event)
+  event['descriptionHtml'] = make_html_description(event)
+  if 'locations' in event:
+    event['locations'] = [format_location(p) for p in event['locations'].iteritems()]
+  event['wiki_info'] = [format_wiki_info_item(p) for p in event['wiki_info'].iteritems()]
   clip_field(event, 'description')
   clip_field(event, 'descriptionTokenized')
   clip_field(event, 'descriptionHtml', html=True)
