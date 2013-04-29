@@ -10,6 +10,7 @@
 		<link rel="stylesheet" type="text/css" href="eventdescriptionslist.css">
 		<link rel="stylesheet" type="text/css" href="facet.css">
 		<link rel="stylesheet" type="text/css" href="timeline.css">
+		<link rel="stylesheet" type="text/css" href="map.css">
 		<link rel="stylesheet" type="text/css" href="main.css">
 	</head>
 	<body>
@@ -30,7 +31,7 @@
 				<div class="tab-content">
 					<div class="tab-pane active" id="facetstab"></div>
 					<div class="tab-pane" id="timelinetab"></div>
-					<div class="tab-pane" id="maptab">TODO: map</div>
+					<div class="tab-pane" id="maptab"></div>
 				</div>
 			</div>
 		</div>
@@ -38,8 +39,14 @@
 
 		<!-- TODO: change to local js files for libraries -->
 		<script src="http://code.jquery.com/jquery.js"></script>
+		<script src="jquery.cookie.js"></script>
 		<script src="bootstrap/js/bootstrap.min.js"></script>
 		<script src="http://d3js.org/d3.v3.min.js"></script>
+		<!-- TODO: do we need all of these? -->
+		<script src="http://d3js.org/d3.v3.min.js"></script>
+		<script src="http://d3js.org/d3.geo.projection.v0.js" charset="utf-8"></script>
+		<script src="http://d3js.org/d3.geo.polyhedron.v0.min.js"" charset="utf-8"></script>
+		<script src="http://d3js.org/topojson.v0.min.js" charset="utf-8"></script>
 
 		<script src="config.js"></script>
 		<script src="queries.js"></script>
@@ -52,6 +59,7 @@
 		<script src="eventdescriptionslist.js"></script>
 		<script src="facet.js"></script>
 		<script src="timeline.js"></script>
+		<script src="map.js"></script>
 
 		<script>
 			setupPanelled($('body'), $('.header'), $('.contentarea'), 'vertical', 4);
@@ -123,6 +131,7 @@
 			setupSplitMakeElements($('#facetstab'), 'horizontal', facets);
 
 			setupTimeline($('#timelinetab'), initialQuery, globalQuery);
+			setupMap($('#maptab'), initialQuery, globalQuery, minMapZoom, maxMapZoom);
 
 			initialQuery.update();
 			globalQuery.update();
