@@ -201,7 +201,8 @@ function setupTimeline(container, initialQuery, globalQuery) {
 		if (selection == null) {
 			setClearEnabled(false);
 			constraint.clear();
-			globalQuery.update();
+			if (lastSelection != null)
+				globalQuery.update();
 			if (isSelection) {
 				$('.bar.detail.initial').css('display', 'none');
 				$('.bar.detail.context').css('display', 'none');
@@ -221,8 +222,8 @@ function setupTimeline(container, initialQuery, globalQuery) {
 			updateTimer = setTimeout(function () {
 				var low = getYear(selection[0]),
 				    high = getYear(selection[1]);
+				constraint.name("Timeline: " + formatYear(low) + " - " + formatYear(high));
 				constraint.set({
-					name: "Timeline: " + formatYear(low) + " - " + formatYear(high),
 					type: 'timerange',
 					low: low,
 					high: high

@@ -42,12 +42,15 @@ function setupFacet(container, globalQuery, name, view, makeConstraint) {
 	var ownCnstrQuery = new Query(globalQuery.backendUrl());
 	ownCnstrQuery.addConstraint(constraint);
 	var contextQuery = new Query(globalQuery.backendUrl(), 'setminus', globalQuery, ownCnstrQuery);
+	var contextQueryResultWatcher = new ResultWatcher(function () {});
+	contextQuery.addResultWatcher(contextQueryResultWatcher);
 	function select(value) {
 		setClearEnabled(value != null);
+		contextQueryResultWatcher.enabled(value != null);
 		selectedValue = value;
 		if (value != null) {
 			var cnstrVal = makeConstraint(value);
-			cnstrVal.name = name + ": " + value;
+			constraint.name(name + ": " + value);
 			constraint.set(cnstrVal);
 			listBoxElt.addClass('selected');
 			globalQuery.update();
@@ -136,16 +139,18 @@ function setupFacet(container, globalQuery, name, view, makeConstraint) {
 			setData(result.counts.counts);
 		}
 	});
-	contextQuery.onResult({
+	contextQueryResultWatcher.set({
 		counts: view
-	}, function(result) {
+	});
+	contextQueryResultWatcher.enabled(false);
+	contextQueryResultWatcher.setCallback(function(result) {
 		if (haveSelection()) {
 			setLoadingIndicator(false);
 			if (!(selectedValue in result.counts.counts))
 				result.counts.counts[selectedValue] = 0;
 			setData(result.counts.counts);
 		}
-	}, haveSelection);
+	});
 	searchBoxElt.submit(function () {
 		if (!haveSelection()) {
 			var value = searchInputElt.val();

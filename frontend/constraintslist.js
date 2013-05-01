@@ -23,22 +23,22 @@ function setupConstraintList(container, globalQuery) {
 		var cnstrElt = $("<div class=\"alert alert-constraint\"></div>").appendTo(itemElt);
 		$("<button type=\"button\" class=\"close\">&times;</button>").appendTo(cnstrElt);
 		var cnstrTextElt = $("<span></span>").appendTo(cnstrElt);
-		cnstrTextElt.append(cnstr.value().name);
+		cnstrTextElt.append(cnstr.name());
 		cnstrElt.click(function() {
 			cnstr.clear();
 			globalQuery.update();
 			removeConstraintElement(cnstrElt);
 		});
-		cnstr.onChange(function(changeType, query) {
+		cnstr.onChange(function(changeType, query, cnstr) {
 			if (changeType =="removed") {
 				removeConstraintElement(cnstrElt);
 			} else if (changeType == "changed") {
-				cnstrTextElt.html(cnstr.value().name);
+				cnstrTextElt.html(cnstr.name());
 			}
 		});
 	}
 
-	globalQuery.onChange(function (changeType, cnstr) {
+	globalQuery.onChange(function (changeType, query, cnstr) {
 		if (changeType == "current" || changeType == "added") {
 			addConstraintElement(cnstr)
 			container.trigger('changedSize');

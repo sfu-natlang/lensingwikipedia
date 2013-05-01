@@ -1,27 +1,174 @@
+// Keep track of unique IDs for various objects
 var nextConstraintId = 0;
-var nextViewId = 0;
+var nextChangeWatcherId = 0;
+var nextResultWatcherId = 0;
 var nextQueryId = 0;
+// Keep track of unique stringified JSON values
+var nextViewValueId = 0;
+var viewUniqueValues = {};
+
+function _addViews(views) {
+	var stringifiedViews = {};
+	for (localViewId in views) {
+		var viewStr = JSON.stringify(views[localViewId]);
+		stringifiedViews[localViewId] = viewStr;
+		var info = viewUniqueValues[viewStr];
+		if (info == null) {
+			info = {
+				id: nextViewValueId,
+				count: 1
+			};
+			nextViewValueId++;
+			viewUniqueValues[viewStr] = info;
+		} else
+			info.count++;
+	}
+	return stringifiedViews;
+}
+
+
+function _removeViews(stringifiedViews) {
+	for (localViewId in stringifiedViews) {
+		var viewStr = stringifiedViews[localViewId];
+		var info = viewUniqueValues[viewStr];
+		if (info.count > 1)
+			info.count--;
+		else
+			delete viewUniqueValues[viewStr];
+	}
+}
+
+function _resultsForResultWatchers(resultWatchers, backendResponse, expectAll, onResult) {
+	for (var watcherId in resultWatchers) {
+		var ok = true;
+		var watcher = resultWatchers[watcherId];
+		var result = {};
+		for (var localViewId in watcher._value) {
+			var globalViewId = viewUniqueValues[watcher._value[localViewId]].id;
+			if (!backendResponse.hasOwnProperty(globalViewId)) {
+				if (!expectAll)
+					console.log("warning: didn't get anything for view \"" + localViewId + "\"");
+				ok = false;
+				break;
+			}
+			result[localViewId] = backendResponse[globalViewId];
+		}
+		if (ok)
+			onResult(watcher, result);
+	}
+}
+
+/*
+ * Watcher for constraint changes on a query or an individual constraint.
+ */
+function ChangeWatcher(callback, getCurrent) {
+	this._id = nextChangeWatcherId;
+	nextChangeWatcherId++;
+	this._callback = callback;
+	this._getCurrent = (getCurrent == true);
+}
+
+ChangeWatcher.prototype.setCallback = function(callback) {
+	this._callback = callback;
+}
+
+/*
+ * Watcher for query result changes.
+ */
+function ResultWatcher(callback) {
+	this._id = nextResultWatcherId;
+	nextResultWatcherId++;
+	this._callback = callback;
+	this._value = null;
+	this._queriesIn = {};
+
+	this._enabled = true;
+	this._stored_value = null;
+}
+
+ResultWatcher.prototype.setCallback = function(callback) {
+	this._callback = callback;
+}
+
+ResultWatcher.prototype._change = function () {
+	for (var queryId in this._queriesIn) {
+		var query = this._queriesIn[queryId];
+		query._someResultWatcherChangedSinceUpdate = true;
+		query._resultWatchersChangedSinceUpdate[this._id] = true;
+	}
+}
+
+/*
+ * Note: the keys given here don't have to be unique across the whole program; they get mapped to unique keys in the generated query.
+ */
+ResultWatcher.prototype.set = function (value) {
+	if (value == null) {
+		this.clear();
+	} else if (value != this._value) {
+		if (this._value != null)
+			_removeViews(this._value);
+		this._value = _addViews(value);
+		this._change();
+	}
+}
+
+ResultWatcher.prototype.clear = function () {
+	if (this._value != null) {
+		_removeViews(this._value);
+		this._value = null;
+		this._change();
+	}
+}
+
+ResultWatcher.prototype.enabled = function (enabled) {
+	if (enabled == null) {
+		return this._enabled;
+	} else {
+		if (enabled) {
+			if (!this._enabled) {
+				if (this._value != null)
+					console.log("warning: expected value to be null");
+				if (this._stored_value == null)
+					console.log("warning: expected stored value be non-null");
+				this._value = this._stored_value;
+				this._stored_value = null;
+				this._change();
+			}
+		} else {
+			if (this._enabled) {
+				if (this._value == null)
+					console.log("warning: expected value to be non-null");
+				this._stored_value = this._value;
+				this._value = null;
+				this._change();
+			}
+		}
+		this._enabled = enabled;
+	}
+}
 
 /*
  * A single constraint that can be added to a query.
  */
-function Constraint() {
+function Constraint(name) {
 	this._id = nextConstraintId;
+	this._name = name;
 	nextConstraintId++;
 	this._value = null;
 	this._queriesIn = {};
-	this._changeWatchers = [];
+	this._changeWatchers = {};
+}
+
+Constraint.prototype.name = function(name) {
+	if (name == null)
+		return this._name;
+	else
+		this._name = name;
 }
 
 Constraint.prototype._updateChangeWatchers = function(changeType) {
-	for (i in this._changeWatchers)
-		for (queryId in this._queriesIn)
-			this._changeWatchers[i](changeType, this._queriesIn[queryId]);
-	for (queryId in this._queriesIn) {
-		var query = this._queriesIn[queryId];
-		for (i in query._changeWatchers)
-			query._changeWatchers[i](changeType, this);
-	}
+	for (var queryId in this._queriesIn)
+		this._queriesIn[queryId]._updateChangeWatchers(changeType, this);
 }
 
 Constraint.prototype.set = function(value) {
@@ -29,10 +176,8 @@ Constraint.prototype.set = function(value) {
 		this._clear()
 	} else if (this._value != value) {
 		var changeType = this._value == null ? 'added' : 'changed';
-		this._value = value;
+		this._value = JSON.stringify(value);
 		this._updateChangeWatchers(changeType);
-		for (queryId in this._queriesIn)
-			this._queriesIn[queryId]._changedSinceUpdate = true;
 	}
 }
 
@@ -40,13 +185,27 @@ Constraint.prototype.clear = function() {
 	if (this._value != null) {
 		this._value = null;
 		this._updateChangeWatchers('removed');
-		for (queryId in this._queriesIn)
-			this._queriesIn[queryId]._changedSinceUpdate = true;
 	}
 }
 
+Constraint.prototype.addChangeWatcher = function(watcher) {
+	if (!this._changeWatchers.hasOwnProperty(watcher._id)) {
+		this._changeWatchers[watcher._id] = watcher;
+	} else
+		console.log("warning: change watcher \"" + watacher._id + "\" already on query, can't add");
+}
+
+Constraint.prototype.removeChangeWatcher = function(watcher) {
+	if (this._changeWatchers.hasOwnProperty(watcher._id)) {
+		delete this._changeWatchers[watcher._id];
+	} else
+		console.log("warning: change watcher \"" + watacher._id + "\" not on constraint, can't remove");
+}
+
 Constraint.prototype.onChange = function(callback) {
-	this._changeWatchers.push(callback);
+	var watcher = new ChangeWatcher(callback);
+	this.addChangeWatcher(watcher);
+	return watcher;
 }
 
 Constraint.prototype.value = function() {
@@ -56,15 +215,20 @@ Constraint.prototype.value = function() {
 /*
  For continuing paginated queries.
  */
-function Continuer(query, resultWatcher, limitParts, initialResultForWatcher, firstPageOffset) {
+function Continuer(query, resultWatcher, limitLocalViewIds, initialResultForWatcher, firstPageOffset) {
 	this._query = query;
 	this._resultWatcher = resultWatcher;
-	this._limitParts = limitParts;
 	this._pageOffset = firstPageOffset || 1;
-	this._cb_queue = [];
+
+	if (limitLocalViewIds != null) {
+		this._views = {};
+		for (var localViewId in limitLocalViewIds)
+			this._views[localViewId] = resultWatcher._value[localViewId];
+	} else
+		this._views = resultWatcher._value;
 
 	this._haveMore = false;
-	for (localViewKey in this._resultWatcher.viewMap) {
+	for (localViewKey in this._resultWatcher._value) {
 		var viewResponse = initialResultForWatcher[localViewKey];
 		if (viewResponse['more'] == true)
 			this._haveMore = true;
@@ -76,39 +240,28 @@ Continuer.prototype.hasMore = function() {
 }
 
 Continuer.prototype.fetchNext = function(callback) {
-	// TODO: can we factor out more of the code shared with the main query sender?
+	var contr = this;
 
-	this._haveMore = false;
-
-	var sendQuery = {};
-	sendQuery.constraints = this._query._getConstraintJSON();
-	sendQuery.views = {};
-	for (localViewKey in this._resultWatcher.viewMap)
-		if (this._limitParts == null || localViewKey in this._limitParts) {
-			var queryViewKey = this._resultWatcher.viewMap[localViewKey];
-			var oldView = this._query._views[queryViewKey];
-			var newView = {};
-			for (key in oldView)
-				if (key != 'page')
-					newView[key] = oldView[key];
-			newView.page = (oldView.page || 0) + this._pageOffset;
-			sendQuery.views[queryViewKey] = newView;
-		}
-
-	var continuer = this;
-	var watcher = this._resultWatcher;
-	$.post(this._query._backendUrl, JSON.stringify(sendQuery), 'json').done(function(response) {
-		var resultForWatcher = {};
-		for (localViewKey in watcher.viewMap) {
-			var viewResponse = response[watcher.viewMap[localViewKey]];
-			resultForWatcher[localViewKey] = viewResponse;
-			if (viewResponse['more'] == true)
-				continuer.haveMore = true;
-		}
-		callback(resultForWatcher);
+	var cnstrsJson = this._query._getConstraintsJSON();
+	var viewsJson = this._query._getViewsJSON(this._parts, function (localViewId, globalViewId, view) {
+		view = JSON.parse(view);
+		view.page = (view.page || 0) + contr._pageOffset;
+		return JSON.stringify(view);
 	});
+	var queryJson = "{\"constraints\":" + cnstrsJson + ",\"views\":" + viewsJson + "}";
 
-	this._pageOffset++;
+	$.post(this._query._backendUrl, queryJson, 'json').done(function(response) {
+		contr._haveMore = false;
+		_resultsForResultWatchers({ 0: contr._resultWatcher }, response, true, function (watcher, result) {
+			for (var localViewId in result)
+				if (result[localViewId].more) {
+					contr._haveMore = true;
+					break;
+				}
+			callback(result);
+		});
+		contr._pageOffset++;
+	});
 }
 
 /*
@@ -117,14 +270,18 @@ Continuer.prototype.fetchNext = function(callback) {
 function Query(backendUrl, type, arg1, arg2) {
 	if (type == null) type = 'base';
 
+	this._id = nextQueryId;
+	nextQueryId++;
 	this._backendUrl = backendUrl;
 	this._type = type;
-	this._changeWatchers = [];
-	this._resultWatchers = [];
 	this._constraints = {};
-	this._views = {};
-	this._changedSinceUpdate = true;
-	this._viewsNeededAtLastUpdate = {};
+	this._changeWatchers = {};
+	this._resultWatchers = {};
+	this._someConstraintChangedSinceUpdate = true;
+	this._someResultWatcherChangedSinceUpdate = true;
+	this._resultWatchersChangedSinceUpdate = {};
+	this._resultWatchersUpdatePremptivelyAt = {};
+	this._constraintSetStr;
 
 	if (type == 'base')
 		this._setupBase();
@@ -135,69 +292,70 @@ function Query(backendUrl, type, arg1, arg2) {
 }
 
 Query.prototype._setupBase = function () {
-	this._id = nextQueryId;
-	nextQueryId++;
+	// nothing to do
 }
 
 Query.prototype._setupSetminus = function (query1, query2) {
 	var query = this;
-	query1.onChange(function (changeType, cnstr) {
+	query1.onChange(function (changeType, _, cnstr) {
 		if (changeType == 'added' || changeType == 'current') {
-			if (!query1._constraints.hasOwnProperty(cnstr.id) && !query2._constraints.hasOwnProperty(cnstr._id))
+			if (!query2._constraints.hasOwnProperty(cnstr._id))
 				query._addConstraint(cnstr);
 		} else if (changeType == 'removed') {
-			if (query1._constraints.hasOwnProperty(cnstr.id))
+			if (!query2._constraints.hasOwnProperty(cnstr._id))
 				query._removeConstraint(cnstr);
 		} else if (changeType == 'changed') {
 			if (!query2._constraints.hasOwnProperty(cnstr._id))
 				query._changeConstraint(cnstr);
 		}
 	}, true);
-	query2.onChange(function (changeType, cnstr) {
+	query2.onChange(function (changeType, _, cnstr) {
 		if (changeType == 'added' || changeType == 'current') {
-			if (query1._constraints.hasOwnProperty(cnstr.id) && !query2._constraints.hasOwnProperty(cnstr._id))
+			if (query1._constraints.hasOwnProperty(cnstr._id) && !query2._constraints.hasOwnProperty(cnstr._id))
 				query._removeConstraint(cnstr);
 		} else if (changeType == 'removed') {
-			if (query1._constraints.hasOwnProperty(cnstr.id))
+			if (query1._constraints.hasOwnProperty(cnstr._id) && cnstr._value != null)
 				query._addConstraint(cnstr);
 		}
 	}, true);
-	query1.onResult(null, function () {
+	query1.onResult({}, function () {
 		query.update();
 	});
-	query2.onResult(null, function () {
+	query2.onResult({}, function () {
 		query.update();
 	});
 }
 
+Query.prototype._updateChangeWatchers = function(changeType, constraint) {
+	var query = this;
+	for (var watcherId in this._changeWatchers)
+		this._changeWatchers[watcherId]._callback(changeType, query, constraint);
+	for (var watcherId in constraint._changeWatchers)
+		constraint._changeWatchers[watcherId]._callback(changeType, query, constraint);
+	this._someConstraintChangedSinceUpdate = true;
+}
+
 Query.prototype._addConstraint = function(constraint) {
-	this._changedSinceUpdate = true;
+	this._someConstraintChangedSinceUpdate = true;
 	this._constraints[constraint._id] = constraint;
 	constraint._queriesIn[this._id] = this;
 	if (constraint._value != null) {
-		for (i in this._changeWatchers)
-			this._changeWatchers[i]('added', constraint);
-		for (i in constraint._changeWatchers)
-			constraint._changeWatchers[i]('added', this);
+		this._updateChangeWatchers('added', constraint);
 	}
 }
 
 Query.prototype._removeConstraint = function(constraint) {
-	this._changedSinceUpdate = true;
+	this._someConstraintChangedSinceUpdate = true;
 	delete this._constraints[constraint._id];
 	delete constraint._queriesIn[this._id];
-	if (constraint._value != null) {
-		for (i in this._changeWatchers)
-			this._changeWatchers[i]('removed', constraint);
-		for (i in constraint._changeWatchers)
-			constraint._changeWatchers[i]('removed', this);
-	}
+	var query = this;
+	this._updateChangeWatchers('removed', constraint);
 }
 
 Query.prototype._changeConstraint = function(constraint) {
-	this._changedSinceUpdate = true;
-	for (i in this._changeWatchers)
-		this._changeWatchers[i]('changed', constraint);
+	this._someConstraintChangedSinceUpdate = true;
+	var query = this;
+	this._updateChangeWatchers('changed', constraint);
 }
 
 Query.prototype.addConstraint = function(constraint) {
@@ -222,102 +380,52 @@ Query.prototype.removeConstraint = function(constraint) {
 		console.log("warning: constraint \"" + constraint._id + "\" not in query, can't remove");
 }
 
-Query.prototype.onChange = function(callback, getCurrent) {
-	this._changeWatchers.push(callback);
-	if (getCurrent)
-		for (cnstrKey in this._constraints) {
-			var cnstr = this._constraints[cnstrKey];
-			if (cnstr._value != null)
-				callback('current', cnstr);
-		}
-}
-
-/*
- * Note: the keys given here don't have to be unique across the whole program; they get mapped to unique keys in the generated query.
- */
-Query.prototype.onResult = function(views, callback, neededContition) {
-	this._changedSinceUpdate = true;
-	var watcher = {};
-	watcher.callback = callback;
-	watcher.neededContition = neededContition;
-	if (views == null) {
-		watcher.viewMap = null;
-	} else {
-		watcher.viewMap = {};
-		for (localViewKey in views) {
-			var queryViewKey = nextViewId;
-			nextViewId++;
-			watcher.viewMap[localViewKey] = queryViewKey;
-			this._views[queryViewKey] = views[localViewKey];
-		}
-	}
-	this._resultWatchers.push(watcher);
-}
-
-Query.prototype._getConstraintJSON = function() {
-	constraints = {};
-	for (cnstrKey in this._constraints) {
-		var cnstr = this._constraints[cnstrKey];
-		if (cnstr._value != null)
-			constraints[cnstrKey] = cnstr._value;
-	}
-	return constraints;
-}
-
-Query.prototype.update = function(postponeFinish) {
-	// Only need to go to the backend if
-	// 1. there has been a change to the constraints or result watchers; or
-	// 2. one of the watchers is now needed but was not at the last update.
-	var needed = this._changedSinceUpdate;
-	var viewsNeeded = {};
-	for (var i in this._resultWatchers) {
-		var watcher = this._resultWatchers[i];
-		if (watcher.neededContition == null || watcher.neededContition()) {
-			if (!this._viewsNeededAtLastUpdate[i])
-				needed = true;
-			viewsNeeded[i] = true;
-		}
-	}
-	this._changedSinceUpdate = false;
-
-	var finish = null;
-	if (!needed) {
-		finish = function () {};
-	} else {
-		this._viewsNeededAtLastUpdate = viewsNeeded;
-
-		var sendQuery = {};
-		sendQuery.constraints = this._getConstraintJSON();
-		sendQuery.views = this._views;
-		//console.log("Q " + JSON.stringify(sendQuery));
-
-		var query = this;
-		var post = $.post(this._backendUrl, JSON.stringify(sendQuery), 'json');
-
-		finish = function () {
-			post.done(function(response) {
-				//console.log("R " + JSON.stringify(response));
-				for (var i in query._resultWatchers) {
-					var watcher = query._resultWatchers[i];
-					if (watcher.viewMap == null) {
-						watcher.callback();
-					} else {
-						var resultForWatcher = {};
-						for (localViewKey in watcher.viewMap)
-							resultForWatcher[localViewKey] = response[watcher.viewMap[localViewKey]];
-						watcher.callback(resultForWatcher, function(limitParts) {
-							return new Continuer(query, watcher, limitParts, resultForWatcher);
-						});
-					}
-				}
+Query.prototype.addChangeWatcher = function(watcher) {
+	if (!this._changeWatchers.hasOwnProperty(watcher._id)) {
+		this._changeWatchers[watcher._id] = watcher;
+		if (watcher._getCurrent)
+			$.each(this._constraints, function (cnstrKey, cnstr) {
+				if (cnstr._value != null)
+					watcher._callback('current', cnstr);
 			});
-		}
-	}
+	} else
+		console.log("warning: change watcher \"" + watacher._id + "\" already on query, can't add");
+}
 
-	if (postponeFinish)
-		return finish;
-	else
-		finish();
+Query.prototype.removeChangeWatcher = function(watcher) {
+	if (this._changeWatchers.hasOwnProperty(watcher._id)) {
+		delete this._changeWatchers[watcher._id];
+	} else
+		console.log("warning: change watcher \"" + watacher._id + "\" not on query, can't remove");
+}
+
+Query.prototype.addResultWatcher = function(watcher) {
+	if (!this._resultWatchers.hasOwnProperty(watcher._id)) {
+		this._resultWatchers[watcher._id] = watcher;
+		watcher._queriesIn[this._id] = this;
+	} else
+		console.log("warning: result watcher \"" + watacher._id + "\" already on query, can't add");
+}
+
+Query.prototype.removeResultWatcher = function(watcher) {
+	if (this._resultWatchers.hasOwnProperty(watcher._id)) {
+		delete this._resultWatchers[watcher._id];
+		delete watcher._queriesIn[this._id];
+	} else
+		console.log("warning: result watcher \"" + watacher._id + "\" not on query, can't remove");
+}
+
+Query.prototype.onChange = function(callback, getCurrent) {
+	var watcher = new ChangeWatcher(callback, getCurrent);
+	this.addChangeWatcher(watcher);
+	return watcher;
+}
+
+Query.prototype.onResult = function(views, callback) {
+	var watcher = new ResultWatcher(callback);
+	this.addResultWatcher(watcher);
+	watcher.set(views);
+	return watcher;
 }
 
 Query.prototype.clearAll = function() {
@@ -336,4 +444,94 @@ Query.prototype.isEmpty = function() {
 
 Query.prototype.backendUrl = function() {
 	return this._backendUrl;
+}
+
+Query.prototype._getConstraintsJSON = function() {
+	var jsonStr = "{";
+	var first = true;
+	for (var cnstrId in this._constraints) {
+		var cnstr = this._constraints[cnstrId];
+		if (cnstr._value != null) {
+			if (first)
+				first = false;
+			else
+				jsonStr += ",";
+			jsonStr += "\"" + cnstrId + "\":";
+			jsonStr += cnstr._value;
+		}
+	}
+	jsonStr += "}";
+	return jsonStr;
+}
+
+Query.prototype._getViewsJSON = function(resultWatchers, viewRewriter) {
+	if (resultWatchers == null) resultWatchers = this._resultWatchers;
+	var seenGlobalIds = {};
+	var jsonStr = "{";
+	var first = true;
+	for (var resultWatcherId in resultWatchers) {
+		var watcher = resultWatchers[resultWatcherId];
+		for (var localViewId in watcher._value) {
+			var view = watcher._value[localViewId];
+			var globalViewId = viewUniqueValues[view].id;
+			if (viewRewriter != null)
+				view = viewRewriter(localViewId, globalViewId, view);
+			if (!seenGlobalIds.hasOwnProperty(globalViewId)) {
+				if (first)
+					first = false;
+				else
+					jsonStr += ",";
+				jsonStr += "\"" + globalViewId + "\":";
+				jsonStr += view;
+				seenGlobalIds[view] = true;
+			}
+		}
+	}
+	jsonStr += "}";
+	return jsonStr;
+}
+
+Query.prototype.update = function(postponeFinish) {
+	var query = this;
+
+	function getResultWatchersToUpdate() {
+		var toUpdate = {};
+		for (var watcherId in query._resultWatchers) {
+			var watcher = query._resultWatchers[watcherId];
+			if ((query._someConstraintChangedSinceUpdate || query._resultWatchersChangedSinceUpdate[watcher._id]) && watcher._value != null)
+				toUpdate[watcher._id] = watcher;
+		}
+		return toUpdate;
+	}
+
+	// We only go the backend if something changed and there is at least one view that needs updating.
+	var finish = null;
+	if (query._someConstraintChangedSinceUpdate || query._someResultWatcherChangedSinceUpdate) {
+		var resultWatchersToUpdate = getResultWatchersToUpdate();
+		if (!$.isEmptyObject(resultWatchersToUpdate)) {
+			var queryJson = "{\"constraints\":" + query._getConstraintsJSON() + ",\"views\":" + query._getViewsJSON(resultWatchersToUpdate) + "}";
+			//console.log("Q", query._id, queryJson);
+			var post = $.post(query._backendUrl, queryJson, 'json');
+			query._someConstraintChangedSinceUpdate = false;
+			query._someResultWatcherChangedSinceUpdate = false;
+			query._resultWatchersChangedSinceUpdate = {};
+			finish = function () {
+				post.done(function (response) {
+					//console.log("R", query._id, response);
+					_resultsForResultWatchers(resultWatchersToUpdate, response, true, function (watcher, result) {
+						watcher._callback(result, function (limitLocalViewIds) {
+							return new Continuer(query, watcher, limitLocalViewIds, result);
+						});
+					});
+				});
+			}
+		}
+	}
+	if (finish == null)
+		finish = function () {};
+
+	if (postponeFinish)
+		return finish;
+	else
+		finish();
 }
