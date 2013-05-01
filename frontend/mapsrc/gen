@@ -1,0 +1,14 @@
+{
+cat <<END
+land ne_110m_land.shp
+lakes ne_110m_lakes.shp
+rivers ne_110m_rivers_lake_centerlines.shp
+countries ne_110m_admin_0_countries.shp
+END
+} | while read part file opts; do
+	dst=$part.json
+	echo "$part : $file ($opts) -> $dst" 1>&2
+	rm -f "$dst"
+	eval "ogr2ogr -f geojson $opts \"$dst\" \"$file\""
+	echo "$dst"
+done | xargs topojson -o map.json

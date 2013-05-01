@@ -1,0 +1,155 @@
+.map {
+	width: 100%;
+	margin: 0;
+	padding: 0;
+}
+.map .topbox {
+	margin: 0;
+	padding: 0 10px 0 10px;
+	height: 26px;
+}
+.map svg {
+	margin: 0;
+	padding: 0;
+}
+.map .line,.area {
+	vector-effect: non-scaling-stroke;
+}
+.map .axis path, .map .axis line {
+	fill: none;
+	stroke: black;
+	shape-rendering: crispEdges;
+}
+.map .brush .extent {
+	fill: #3a87ad;
+	fill-opacity: .1;
+	stroke: black;
+	stroke-dasharray: 5,5;
+}
+
+/* Map style from d3 examples */
+.map .background {
+	fill: #a4bac7;
+}
+.map .foreground {
+	fill: none;
+	stroke: #333;
+	stroke-width: 1.5px;
+}
+.map .graticule {
+	fill: none;
+	stroke: #fff;
+	stroke-width: .5px;
+}
+.map .graticule :nth-child(2n) {
+	stroke-dasharray: 2,2;
+}
+.map .land {
+	fill: #d7c7ad;
+	stroke: #766951;
+}
+.map .river {
+	stroke: #a4bac7;
+	fill: none;
+}
+.map .lake {
+	fill: #a4bac7;
+}
+.map .currentcountryboundary {
+	fill: none;
+	stroke: #a5967e;
+}
+.map .graticule {
+	fill: none;
+	stroke: #fff;
+	stroke-width: .5px;
+}
+
+/* Custom styles for our map visualizations */
+.map .cluster {
+	fill: #999999;
+	stroke: #000000;
+	fill-opacity: 0.5;
+	stroke-opacity: 0.25;
+}
+.map .cluster.selected {
+	fill: #000000;
+}
+.map .clustercount {
+	fill: black;
+}
+.map .dragsel {
+	stroke: black;
+	stroke-dasharray: 5,5;
+	fill: none;
+}
+
+.map .brush .extent {
+	stroke: #fff;
+	fill-opacity: .125;
+	shape-rendering: crispEdges;
+}
+.map .testbrush {
+	fill: red;
+}
+
+.map .dropdown-menu {
+	padding: 1em;
+	margin: 0;
+}
+.map .dropdown-menu ul {
+	list-style: none;
+	padding: 0;
+	margin: 0.5em 0 0.1em 0;
+}
+.map .dropdown-menu ul li {
+	padding: 0;
+	margin: 0;
+}
+.map .dropdown-menu ul li a {
+	padding: 0;
+	margin: 0;
+}
+
+.map .topbox .selbox {
+	float: left;
+	margin-bottom: 0.25em;
+}
+.map .topbox .viewbox {
+	float: right;
+	margin-bottom: 0.25em;
+}
+.map .topbox button {
+	margin: 0 0.5em 0 0.5em;
+}
+.map .topbox .btn-group button {
+	padding: 0 0.5em 0 0.5em;
+	margin: 0;
+}
+.map .viewbox .dropdown-menu {
+	left: auto;
+	right: 0;
+}
+.map .viewbox .dropdown-menu.zoomlevelmenu {
+	left: 0;
+	right: 0;
+	min-width: 2em;
+	padding: 0;
+}
+.map .topbox .btn-group.btn-group-vertical {
+	width: 100%;
+}
+.map .topbox .btn-group.btn-group-vertical button {
+	width: 100%;
+}
+
+.map .zoomcontrols .zoomin {
+	font-size: large;
+}
+.map .zoomcontrols .zoomout {
+	font-size: large;
+}
+
+.map .selbox .mode button {
+	min-width: 5em;
+}
