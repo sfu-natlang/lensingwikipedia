@@ -16,6 +16,7 @@ class Settings:
 defaults = Settings()
 defaults.settings_timeout = 60 * 60
 defaults.data_domain_name = None
+defaults.cluster_domain_name = None
 defaults.clustering_name = 'default'
 defaults.description_page_size = 25
 defaults.num_initial_description_pages_to_cache = 10
@@ -26,6 +27,7 @@ defaults.all_argument_numbers = [0, 1]
 parse_settings = {
   'settings_timeout': int,
   'data_domain_name': str,
+  'cluster_domain_name': str,
   'clustering_name': str,
   'num_initial_description_pages_to_cache': int,
   'description_page_size': int,

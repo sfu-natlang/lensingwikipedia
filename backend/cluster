@@ -1,16 +1,18 @@
 #!/usr/bin/env python2
 
 """
-Usage: %s [opts] DATA-DOMAIN [DATA-FILE]
+Usage: %s [opts] DATA-DOMAIN CLUSTER-DOMAIN [DATA-FILE]
 
 Arguments:
-DATA-DOMAIN   SimpleDB domain to save clustering to, and optionally to read
-  events from.
+DATA-DOMAIN     SimpleDB domain with the data to cluster.
+CLUSTER-DOMAIN  SimpleDB domain for extra cluster information.
 DATA-FILE     Local file to read data from. Ignored if -d is given. Standard
   input is used if neither are given.
 
 Options:
-  -d        Use database instead of local input.
+  -b        Use database instead of local input.
+  -d        Delete and replace the existing cluster information domain, if there
+    is one. The data domain is never deleted here.
   -i INT    Event ID offset.
   -c STRING Name of clustering to set (will be used as part of database field
     names).
@@ -44,43 +46,65 @@ using the -p option.
 import sys
 import ioutils
 import boto
+import sdbutils
 import clustering
 
 default_thresholds = [0.25, 0.2, 0.15, 0.1, 0.05]
 
-def has_point(event):
-  return len(event['locations']) > 0
-
-def get_point(event, point_digits):
-  # Choose first location as canonical for clustering
-  loc = event['locations'][0]
-  lat, lon = loc['latitude'], loc['longitude']
-  return (round(float(lon), point_digits), round(float(lat), point_digits))
-
 def iter_events_from_file(path, first_id, point_digits):
+  def get_points(event):
+    def points_from(items):
+      return set((i['latitude'], i['longitude']) for i in items.itervalues() if 'latitude' in i and 'longitude' in i)
+    points = points_from(event['wiki_info'])
+    if 'locations' in event:
+      points |= points_from(event['locations'])
+    return tuple((round(float(lon), point_digits), round(float(lat), point_digits)) for (lat, lon) in points)
   import json
   with open(path) as file:
     for id, line in enumerate(file):
       event = json.loads(line)
-      if has_point(event):
-        yield id, get_point(event, point_digits)
+      points = get_points(event)
+      if len(points) > 0:
+        yield id, points
 
 def iter_events_from_db(data_dom, point_digits):
-  import sdbutils
-  for event in sdbutils.select_all(data_dom, None, ['latitude', 'longitude'], needs_non_null=['latitude', 'longitude']):
-    yield event.name, get_point(event, point_digits)
+  def point_set(item, field, i, j):
+    if field in item:
+      values = item[field]
+      if values.__class__ != list:
+        values = [values]
+      return set((float(p[i]), float(p[j])) for l in values for p in [l.split()] if p[i] != '.' and p[j] != '.')
+    else:
+      return set()
+      print 'location points', item.name, points
+      return points
+  for item in sdbutils.select_all(data_dom, None, ['wiki_info', 'locations']):
+    points = point_set(item, 'wiki_info', 1, 2) | point_set(item, 'locations', 0, 1)
+    yield item.name, points
 
-def update_clustering(clustering_name, data_dom, thresholds, iter_events):
-  def set_cluster(id, cluster, detail):
-    data_dom.put_attributes(id, { 'mapClustering:%s:%i' % (clustering_name, detail): cluster.id })
-  clustering.geo_cluster(iter_events, set_cluster, thresholds)
+def update_clustering(clustering_name, data_dom, cluster_dom, thresholds, iter_events):
+  def add_event_to_cluster(id, cluster_id, detail):
+    item = data_dom.get_item(id)
+    item.add_value('mapClustering:%s:%i' % (clustering_name, detail), cluster_id)
+    item.save()
+  nextCluster = [0]
+  def set_cluster_info(detail_level, cluster_id, cluster_centre):
+    cluster_dom.put_attributes("%s%i" % (clustering_name, nextCluster[0]), {
+      'clustering': clustering_name,
+      'detaillevel': detail_level,
+      'id': cluster_id,
+      'latitude': cluster_centre[1],
+      'longitude': cluster_centre[0]
+    })
+    nextCluster[0] += 1
+  all_centres = clustering.geo_cluster(iter_events, thresholds, add_event_to_cluster, set_cluster_info)
 
 if __name__ == '__main__':
   import getopt
 
   try:
-    opts, args = getopt.getopt(sys.argv[1:], "i:dc:t:")
-    if len(args) not in [1, 2]:
+    opts, args = getopt.getopt(sys.argv[1:], "i:dbc:t:")
+    if len(args) not in [2, 3]:
       raise getopt.GetoptError("wrong number of positional arguments")
     opts = dict(opts)
   except getopt.GetoptError:
@@ -88,21 +112,24 @@ if __name__ == '__main__':
     sys.exit(1)
 
   data_domain_name = args[0]
-  input_path = args[1] if len(args) > 1 else None
+  cluster_domain_name = args[1]
+  input_path = args[2] if len(args) > 2 else None
   thresholds = dict((i, float(t)) for i, t in enumerate(opts['-t'].split(',') if '-t' in opts else default_thresholds))
   first_id = int(opts['-i']) if '-i' in opts else 0
   point_digits = int(opts['-p']) if '-p' in opts else 6
   clustering_name = opts['-c'] if '-c' in opts else 'default'
-  use_database = '-d' in opts
+  do_delete = '-d' in opts
+  use_database = '-b' in opts
 
   sdb = boto.connect_sdb()
-  data_dom = sdb.get_domain(data_domain_name)
+  data_dom = sdbutils.get_domain(sdb, data_domain_name, make_new=False)
+  cluster_dom = sdbutils.get_domain(sdb, cluster_domain_name, make_new=True, delete_old=do_delete)
 
-  if '-d' in opts:
-    update_clustering(clustering_name, data_dom, thresholds, lambda: iter_events_from_db(data_dom, point_digits))
+  if use_database:
+    update_clustering(clustering_name, data_dom, cluster_dom, thresholds, lambda: iter_events_from_db(data_dom, point_digits))
   elif input_path is None:
     # If reading from standard input then we save to a temp file so avoid keeping all the data in memory at once
     with ioutils.cache_input(sys.stdin) as cached_input_path:
-      update_clustering(clustering_name, data_dom, thresholds, lambda: iter_events_from_file(cached_input_path, first_id, point_digits))
+      update_clustering(clustering_name, data_dom, cluster_dom, thresholds, lambda: iter_events_from_file(cached_input_path, first_id, point_digits))
   else:
-    update_clustering(clustering_name, data_dom, thresholds, lambda: iter_events_from_file(input_path, first_id, point_digits))
+    update_clustering(clustering_name, data_dom, cluster_dom, thresholds, lambda: iter_events_from_file(input_path, first_id, point_digits))

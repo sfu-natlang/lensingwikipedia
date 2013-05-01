@@ -19,6 +19,18 @@ class QuerySettings:
     # Name of the clustering to use
     clustering_name = None
 
+def discover_year_range(data_dom):
+  """
+  Work out the minimum year and year digit padding.
+  We just look at a single event and hope the data is consistent.
+  """
+  rs = data_dom.select("select `year`,`yearKey` from `%s` limit %i" % (data_dom.name, 1), max_items=1)
+  for item in rs:
+    year = int(item['year'])
+    year_key_digits = len(item['yearKey']) + (1 if year >= 0 else 0)
+    min_year = year - int(item['yearKey'])
+    return min_year, year_key_digits
+
 # All possible predicate argument numbers
 all_argument_numbers = [0, 1]
 # Number of events on a page of descriptions
@@ -66,10 +78,12 @@ def constraint_to_sdb_query(cnstr, settings):
     return "mapClustering:%s:%i in (%s)" % (settings.clustering_name, detail_level, ",".join("'%i'" % (i) for i in ids))
   elif type == 'location':
     return "`locationText` = '%s'" % (cnstr['text'])
+  elif type == "mapclustersinfo":
+    return "detaillevel = '%s'" % (cnstr['detaillevel'])
   else:
     raise ValueError("unknown constraint type \"%s\"" % (type))
 
-def generate_view(view, sdb_query, data_dom, settings):
+def generate_view(view, sdb_query, data_dom, cluster_dom, settings):
   """
   Produces the JSON (as python objects) response for a single view request.
   view: The view as JSON (as python objects).
@@ -102,7 +116,8 @@ def generate_view(view, sdb_query, data_dom, settings):
           table[role] += 1
     return { 'counts': table }
   elif type == 'countbymapcluster':
-    cluster_key = 'mapClustering:%s:%i' % (settings.clustering_name, view['detail'])
+    cluster_key = 'mapClustering:%s:%s' % (settings.clustering_name, view['detaillevel'])
+    print >> sys.stderr, 'KEY', cluster_key, view
     rs = sdbutils.select_all(data_dom, sdb_query, [cluster_key], needs_non_null=[cluster_key])
     return count_by(rs, lambda e: e[cluster_key])
   elif type == 'countbyyear':
@@ -111,6 +126,16 @@ def generate_view(view, sdb_query, data_dom, settings):
   elif type == 'countbylocation':
     rs = sdbutils.select_all(data_dom, sdb_query, ['locationText'], needs_non_null=['locationText'])
     return count_by(rs, lambda e: e['locationText'])
+  elif type == 'mapclustersinfo':
+    detail_levels = [int(dl) for dl in view['detaillevel']] if 'detaillevel' in view else []
+    query_parts = [sdb_query, "clustering = '%s'" % (settings.clustering_name)]
+    sdb_query = " and ".join("(%s)" % (q) for q in query_parts if len(q) > 0)
+    rs = sdbutils.select_all(cluster_dom, sdb_query, ['detaillevel', 'id', 'latitude', 'longitude'])
+    response = {}
+    for item in rs:
+      response.setdefault(item['detaillevel'], {})
+      response[item['detaillevel']][item['id']] = { 'centre': (item['latitude'], item['longitude']) }
+    return response
   else:
     raise ValueError("unknown view type \"%s\"" % (type))
 
@@ -118,7 +143,7 @@ def do_cache(query, view):
   return len(query['constraints']) == 0 \
     and (int(view['page'] if 'page' in view else 0) < num_initial_description_pages_to_cache if view['type'] == "descriptions" else True)
 
-def handle_query(query, data_dom, settings, query_str=None):
+def handle_query(query, data_dom, cluster_dom, settings, query_str=None):
   """
   Produces a JSON (as python objects) response for a query given as a JSON (as
   python objects) query.
@@ -147,12 +172,12 @@ def handle_query(query, data_dom, settings, query_str=None):
       view_response = response_cache.get(cache_key)
       if view_response is None:
         print >> sys.stderr, "generating view for cache"
-        view_response = generate_view(view, sdb_query, data_dom, settings)
+        view_response = generate_view(view, sdb_query, data_dom, cluster_dom, settings)
         response_cache[cache_key] = view_response
       else:
         print >> sys.stderr, "using cache"
       response[view_id] = view_response
     else:
       print >> sys.stderr, "generating view"
-      response[view_id] = generate_view(view, sdb_query, data_dom, settings)
+      response[view_id] = generate_view(view, sdb_query, data_dom, cluster_dom, settings)
   return response

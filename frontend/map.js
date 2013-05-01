@@ -39,7 +39,7 @@ var mapProjections = {
 	},
 }
 
-function drawWorld(svg, worldData, projection) {
+function drawWorld(svg, group, worldData, projection) {
 	// This is all from d3's Waterman Butterfly example
 
 	var path = d3.geo.path()
@@ -61,8 +61,6 @@ function drawWorld(svg, worldData, projection) {
 		.attr("id", clipId)
 		.append("use")
 		.attr("xlink:href", "#" + sphereId);
-
-	var group = svg.append("g");
 
 	group.append("use")
 		.attr("class", "background")
@@ -99,7 +97,56 @@ function drawWorld(svg, worldData, projection) {
 		.attr("class", "currentcountryboundary")
 		.attr("d", path);
 
-	return { path: path, group: group };
+	return path;
+}
+
+function drawClusters(svg, group, proj, clusters, initialCounts, contextCounts) {
+	var maxCount = 0;
+	for (i = 0; i < clusters.length; i++) {
+		if (clusters[i].initial_count > maxCount)
+			maxCount = clusters[i].initial_count;
+		if (clusters[i].context_count > maxCount)
+			maxCount = clusters[i].context_count;
+	}
+
+	var path = d3.geo.path().projection(proj);
+	var toDraw = clusters.filter(function (cluster) {
+		// We use a path to determine visibility, since the projection function can't determine if a point shouldn't be draw (eg in a orthographic projection)
+		var screen_centre = path({ type: "Point", coordinates: cluster.centre });
+		if (screen_centre != undefined) {
+			cluster.screen_centre = proj(cluster.centre);
+			return true;
+		} else
+			return false;
+	});
+
+	var countScale = 10.81;
+	group.selectAll("cluster")
+		.data(toDraw)
+		.enter()
+		.append("circle")
+		.attr("cx", function(c) { return c.screen_centre[0]; })
+		.attr("cy", function(c) { return c.screen_centre[1]; })
+		.attr("r", function(c) { return Math.sqrt(c.initial_count * countScale * proj.scale() / maxCount); })
+		.attr("class", function(c) { return "cluster initial " + c.id; });
+	group.selectAll("cluster")
+		.data(toDraw)
+		.enter()
+		.append("circle")
+		.attr("cx", function(c) { return c.screen_centre[0]; })
+		.attr("cy", function(c) { return c.screen_centre[1]; })
+		.attr("r", function(c) { return Math.sqrt(c.context_count * countScale * proj.scale() / maxCount); })
+		.attr("class", function(c) { return "cluster context " + c.id; });
+	group.selectAll("clustercount")
+		.data(toDraw)
+		.enter()
+		.append("text")
+		.attr("x", function(c) { return c.screen_centre[0]; })
+		.attr("y", function(c) { return c.screen_centre[1]; })
+		.attr("dy", "0.35em")
+		.attr("text-anchor", 'middle')
+		.text(function (c) { return c.count; })
+		.attr("class", 'clustercount')
 }
 
 function makeMapControls(container, projections, minZoom, maxZoom, defaults) {
@@ -257,6 +304,8 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 
 	var svg = jqueryToD3(svgElt);
 	var box = { x: viewBox.x + margins.left, y: viewBox.y + margins.top, width: viewBox.width - margins.left - margins.right, height: viewBox.height - margins.top - margins.bottom };
+
+/*
 	var draw = svg.append('g')
 		.attr('transform', "translate(" + box.x + "," + box.y + ")");
 
@@ -266,7 +315,6 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 	};
 	scales.x.domain([0, 1]);
 	scales.y.domain([0, 1]);
-/*
 	var axes = {
 		x: d3.svg.axis().scale(scales.x).orient('bottom'),
 		y: d3.svg.axis().scale(scales.y).orient('left')
@@ -278,7 +326,6 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 	draw.append('g')
 		.attr('class', "y axis " + "")
 		.call(axes.y);
-*/
 
 	makeDragSelector(draw, scales, "brush", function (extent) {
 		var a = extent;
@@ -289,9 +336,20 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 		console.log("brush a " + a);
 		console.log("brush b " + b);
 	});
+*/
 
+	var clusterInfoQuery = new Query(globalQuery.backendUrl());
+	var detailLevelCnstr = new Constraint();
+	clusterInfoQuery.addConstraint(detailLevelCnstr);
+	var ownCnstrQuery = new Query(globalQuery.backendUrl());
+	var constraint = new Constraint();
+	ownCnstrQuery.addConstraint(constraint);
+	var contextQuery = new Query(globalQuery.backendUrl(), 'setminus', globalQuery, ownCnstrQuery);
 
 	var mapData = null,
+	    clustersInfo = null,
+	    initialCounts = null,
+	    contextCounts = null,
 	    projection = null,
 	    zoomLevel = null,
 	    viewChoices = {},
@@ -300,7 +358,7 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 	    curProj = null,
 	    panFactor = 1.0;
 	function update(quick) {
-		if (mapData == null || projection == null || zoomLevel == null || viewChoices == null || pan == null) {
+		if (mapData == null || clustersInfo == null || initialCounts == null || contextCounts == null || projection == null || zoomLevel == null || viewChoices == null || pan == null) {
 			outerSvgElt.css('display', 'none');
 			loadingElt.css('display', '');
 		} else {
@@ -314,7 +372,9 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 			curProj.scale(viewBox.width * (projection.initialScaleFactor + totalScaleFactorChange));
 			if (curState == null) {
 				svgElt.children().remove();
-				curState = drawWorld(svg, mapData, curProj);
+				curState = {};
+				curState.group = svg.append("g");
+				curState.path = drawWorld(svg, curState.group, mapData, curProj);
 				newPath = true;
 			} else if (!quick) {
 				curState.path.projection(curProj);
@@ -333,6 +393,7 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 					svg.select("." + setting).style('display', choice ? '' : 'none');
 				});
 			}
+			//drawClusters(svg, curState.group, curProj, clustersInfo);
 		}
 	}
 	function resetProjection() {
@@ -352,7 +413,12 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 		console.log("selection mode " + $(this).val());
 	});
 	topBoxElt.find(".viewbox .zoomlevel button").bind('click', function () {
-		zoomLevel = $(this).val();
+		zoomLevel = +$(this).val();
+		detailLevelCnstr.set({
+			type: 'mapclustersinfo',
+			detaillevel: zoomLevel
+		});
+		clusterInfoQuery.update();
 		update();
 	});
 	topBoxElt.find(".viewbox .projection button").bind('click', function () {
@@ -392,6 +458,51 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 			mouseDownAt = null;
 		}
 	});
+
+	clusterInfoQuery.onChange(function (ct) {
+		clustersInfo = null;
+		update();
+	});
+	clusterInfoQuery.onResult({
+		info: {
+			type: 'mapclustersinfo'
+		}
+	}, function (result) {
+		var clusters = [];
+		$.each(result.info[zoomLevel], function (id, cluster) {
+			cluster.id = id;
+			clusters.push(cluster);
+		});
+		clustersInfo = clusters;
+		update();
+	});
+
+	initialQuery.onChange(function (ct) {
+		initialCounts = null;
+		update();
+	});
+	initialQuery.onResult({
+		counts: {
+			type: 'countbymapcluster',
+			detaillevel: zoomLevel
+		}
+	}, function (result) {
+		console.log("IQ", result);
+	});
+/*
+	contextQuery.onChange(function (ct) {
+		initialCounts = null;
+		update();
+	});
+	contextQuery.onResult({
+		counts: {
+			type: 'countbymapcluster',
+			detaillevel: zoomLevel
+		}
+	}, function (result) {
+		console.log("CQ", result);
+	});
+*/
 
 	initControls();
 }

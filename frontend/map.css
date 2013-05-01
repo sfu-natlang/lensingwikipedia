@@ -66,23 +66,17 @@
 }
 
 /* Custom styles for our map visualizations */
-.map .cluster {
-	fill: #999999;
-	stroke: #000000;
+.map .cluster.initial {
+	fill: #3a87ad;
 	fill-opacity: 0.5;
-	stroke-opacity: 0.25;
 }
-.map .cluster.selected {
-	fill: #000000;
+.map .cluster.context {
+	fill: #3a87ad;
 }
 .map .clustercount {
 	fill: black;
 }
-.map .dragsel {
-	stroke: black;
-	stroke-dasharray: 5,5;
-	fill: none;
-}
+
 
 .map .brush .extent {
 	stroke: #fff;

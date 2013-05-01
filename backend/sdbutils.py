@@ -92,14 +92,24 @@ def select_all(dom, pattern=None, fields=['*'], needs_non_null=[], non_null_is_a
   else:
     return _select_paginated(dom, pattern_str, order_str, fields_str, last_page_callback, *paginated)
 
-def get_domain(sdb, dom_name):
+def get_domain(sdb, dom_name, make_new=True, delete_old=False):
   """
-  Gets a domain, creating it if needed.
+  Gets a domain.
+  make_new: Create the domain if it doesn't already exist.
+  delete_old: Remove any old domain with the same name.
   """
+  if delete_old:
+    try:
+      sdb.delete_domain(dom_name)
+    except boto.exception.SDBResponseError:
+      pass
   try:
     return sdb.get_domain(dom_name)
   except boto.exception.SDBResponseError:
-    return sdb.create_domain(dom_name)
+    if make_new:
+      return sdb.create_domain(dom_name)
+    else:
+      raise
 
 def remove_all_attributes(dom, attributes):
   """

@@ -11,9 +11,9 @@ class Cluster:
     self.init_count = 0
     self.centre = [0.0, 0.0]
     self.count = 0
-    self.events = []
+    self.events = set()
 
-def geo_cluster(iter_events, set_cluster, thresholds):
+def geo_cluster(iter_events, thresholds, add_event_to_cluster, set_cluster_info):
   """
   Geographic clustering of points.
 
@@ -49,7 +49,7 @@ def geo_cluster(iter_events, set_cluster, thresholds):
     """
     if count > 0:
       lon_changes = [0.0, 360.0, -360.0]
-      lon = min(lon_changes, key=lambda dl: abs(sample[0] + dl - avg[0]))
+      lon = sample[0] + min(lon_changes, key=lambda dl: abs(sample[0] + dl - avg[0]))
       sample = (lon, sample[1])
       for i in range(2):
         avg[i] = (avg[i] * (count - 1) + sample[i]) / count
@@ -68,22 +68,30 @@ def geo_cluster(iter_events, set_cluster, thresholds):
   for detail_level in detail_levels:
     clusters = all_clusters[detail_level]
     threshold = thresholds[detail_level]
-    for event, point in iter_events():
-      closest = min(clusters, key=lambda c: dist(c.init_centre, point)) if len(clusters) > 0 else None
-      if closest is None or dist(closest.init_centre, point) > threshold:
-        closest = Cluster(len(clusters))
-        clusters.append(closest)
-      closest.init_count += 1
-      updateAvgGeoPoint(closest.init_centre, point, closest.count)
-    print >> sys.stderr, "num initial clusters at detail level %s: %i" % (str(detail_level), len(clusters))
+    for event, points in iter_events():
+      for point in points:
+        closest = min(clusters, key=lambda c: dist(c.init_centre, point)) if len(clusters) > 0 else None
+        if closest is None or dist(closest.init_centre, point) > threshold:
+          closest = Cluster(len(clusters))
+          clusters.append(closest)
+        closest.init_count += 1
+        updateAvgGeoPoint(closest.init_centre, point, closest.count)
+    print >> sys.stderr, "num clusters at detail level %s: %i" % (str(detail_level), len(clusters))
 
   # Second pass to assign points to clusters
   # TODO: I'm not sure if this two-pass system is needed, or if the issues I added it to fix were caused by other bugs.
   for detail_level in detail_levels:
     clusters = all_clusters[detail_level]
-    for event, point in iter_events():
-      closest = min(clusters, key=lambda c: dist(c.init_centre, point))
-      closest.count += 1
-      updateAvgGeoPoint(closest.centre, point, closest.count)
-      set_cluster(event, closest, detail_level)
-    print >> sys.stderr, "num non-empty final clusters at detail level %s: %i" % (str(detail_level), len([None for c in clusters if c.count > 0]))
+    for event, points in iter_events():
+      for point in points:
+        closest = min(clusters, key=lambda c: dist(c.init_centre, point))
+        if event not in closest.events:
+          closest.events.add(event)
+          closest.count += 1
+        updateAvgGeoPoint(closest.centre, point, closest.count)
+        add_event_to_cluster(event, closest.id, detail_level)
+
+  for detail_level, clusters in all_clusters.iteritems():
+    for cluster in clusters:
+      print >> sys.stderr, "cluster %i at detail level %i: centre %f, %f initial size %i final size %i" % (cluster.id, detail_level, cluster.centre[0], cluster.centre[1], cluster.init_count, cluster.count)
+      set_cluster_info(detail_level, cluster.id, cluster.centre)
