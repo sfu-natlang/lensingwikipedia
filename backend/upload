@@ -22,18 +22,23 @@ doing multiple uploads to the same domain without deleting or clearing it first.
 import sys
 import json
 import cgi
+import re
 import boto
 import dates
 
 max_sdb_value_len = 1000 # should be 1024 - 1 (for the ellipsis) but seems to need some padding
 base_wikipedia_url = "https://en.wikipedia.org"
 
+ref_re = re.compile("\[[0-9]+\]")
 def make_html_description(event):
   replacements = list(event['wiki_info'].iteritems())
   replacements.sort(key=lambda i: i[1]['span'][0])
 
+  def cleanup(text):
+    return cgi.escape(ref_re.sub("", text))
+
   text = event['description']
-  last_end_index = -1
+  last_end_index = 0
   index_offset = 0
   for item_text, item_info in replacements:
     i, j = item_info['span']
@@ -44,10 +49,10 @@ def make_html_description(event):
       url = item_info['url']
       link = "<a href=\"%s%s\">%s</a>" % (base_wikipedia_url, url, item_text)
       old_len = len(text)
-      text = text[:i+index_offset] + link + text[j+index_offset:]
-      d = event['description'] # TODO
+      text = text[:last_end_index+index_offset] + cleanup(text[last_end_index+index_offset:i+index_offset]) + link + text[j+index_offset:]
       last_end_index = j
       index_offset += len(text) - old_len
+  text = text[:last_end_index+index_offset] + cleanup(text[last_end_index+index_offset:])
   return text
 
 def make_location_list(event):
