@@ -123,9 +123,8 @@ function setupFacet(container, globalQuery, name, view, makeConstraint) {
 	ownCnstrQuery.onChange(function () {
 		// If our own constraint changes we don't get any new result,
 		// but still want to change the selection.
-		if (haveSelection()) {
+		if (haveSelection())
 			setData(curData);
-		}
 	});
 	constraint.onChange(function (changeType) {
 		if (changeType == 'removed')

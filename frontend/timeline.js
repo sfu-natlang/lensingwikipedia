@@ -217,21 +217,23 @@ function setupTimeline(container, initialQuery, globalQuery) {
 			function formatYear(year) {
 				return (year >= 0 ? year : -year) + (year >= 0 ? "CE" : "BCE");
 			}
-			if (updateTimer != null)
-				clearTimeout(updateTimer);
-			updateTimer = setTimeout(function () {
-				var low = getYear(selection[0]),
-				    high = getYear(selection[1]);
-				constraint.name("Timeline: " + formatYear(low) + " - " + formatYear(high));
-				constraint.set({
-					type: 'timerange',
-					low: low,
-					high: high
-				});
-				globalQuery.update();
-				updateTimer = null;
-				scaleSvg();
-			}, updateDelay);
+			if (selection != lastSelection) {
+				if (updateTimer != null)
+					clearTimeout(updateTimer);
+				updateTimer = setTimeout(function () {
+					var low = getYear(selection[0]),
+					    high = getYear(selection[1]);
+					constraint.name("Timeline: " + formatYear(low) + " - " + formatYear(high));
+					constraint.set({
+						type: 'timerange',
+						low: low,
+						high: high
+					});
+					globalQuery.update();
+					updateTimer = null;
+					scaleSvg();
+				}, updateDelay);
+			}
 			if (!isSelection) {
 				$('.bar.detail').css('display', '');
 				$('.axis.detail').children().css('fill-opacity', '');
