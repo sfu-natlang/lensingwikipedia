@@ -1,6 +1,17 @@
 var timelineClipNum = 0;
 
 function resultToPlotData(initialCounts, contextCounts) {
+	// Add in extra samples to show where the time sequence will go to zero
+	function patch(counts) {
+		for (year in counts) {
+			var nextYear = +year + 1;
+			if (!(nextYear in counts))
+				counts[nextYear] = 0;
+		}
+	}
+	patch(initialCounts);
+	patch(contextCounts);
+
 	var allYears = {};
 	for (year in initialCounts)
 		allYears[year] = true;
@@ -22,6 +33,7 @@ function resultToPlotData(initialCounts, contextCounts) {
 	}
 
 	samples.sort(function (a, b) { return a.year - b.year; });
+
 	return samples;
 }
 
