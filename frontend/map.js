@@ -63,29 +63,29 @@ function drawWorld(svg, group, worldData, projection) {
 		.attr("xlink:href", "#" + sphereId);
 
 	group.append("use")
-		.attr("class", "background")
+		.attr("class", "map background")
 		.attr("xlink:href", "#" + sphereId);
 	group.append("use")
-		.attr("class", "foreground")
+		.attr("class", "map foreground")
 		.attr("xlink:href", "#" + sphereId);
 
 	group.insert("path", ".graticule")
 		.datum(topojson.object(worldData, worldData.objects.land))
 		.attr("clip-path", "url(#" + clipId + ")")
-		.attr("class", "land")
+		.attr("class", "map land")
 		.attr("d", path);
-	group.insert("path", ".graticule")
+	group.insert("path", "map .graticule")
 		.datum(topojson.object(worldData, worldData.objects.lakes))
 		.attr("clip-path", "url(#" + clipId + ")")
-		.attr("class", "lake")
+		.attr("class", "map lake")
 		.attr("d", path);
 	group.insert("path", ".graticule")
 		.datum(topojson.object(worldData, worldData.objects.rivers))
 		.attr("clip-path", "url(#" + clipId + ")")
-		.attr("class", "river")
+		.attr("class", "map river")
 		.attr("d", path);
 	group.append("g")
-		.attr("class", "graticule")
+		.attr("class", "map graticule")
 		.attr("clip-path", "url(#" + clipId + ")")
 		.selectAll("path")
 		.data(graticule.lines)
@@ -94,7 +94,7 @@ function drawWorld(svg, group, worldData, projection) {
 	group.insert("path", ".graticule")
 		.datum(topojson.mesh(worldData, worldData.objects.countries, function(a, b) { return a !== b; }))
 		.attr("clip-path", "url(#" + clipId + ")")
-		.attr("class", "currentcountryboundary")
+		.attr("class", "map currentcountryboundary")
 		.attr("d", path);
 
 	return path;
@@ -102,51 +102,70 @@ function drawWorld(svg, group, worldData, projection) {
 
 function drawClusters(svg, group, proj, clusters, initialCounts, contextCounts) {
 	var maxCount = 0;
-	for (i = 0; i < clusters.length; i++) {
-		if (clusters[i].initial_count > maxCount)
-			maxCount = clusters[i].initial_count;
-		if (clusters[i].context_count > maxCount)
-			maxCount = clusters[i].context_count;
+	for (var i = 0; i < clusters.length; i++) {
+		var cluster = clusters[i];
+		cluster.initialCount = initialCounts[cluster.id] || 0;
+		cluster.contextCount = contextCounts[cluster.id] || 0;
+		if (cluster.initialCount > maxCount)
+			maxCount = cluster.initialCount;
+		if (cluster.contextCount > maxCount)
+			maxCount = cluster.contextCount;
 	}
 
 	var path = d3.geo.path().projection(proj);
 	var toDraw = clusters.filter(function (cluster) {
 		// We use a path to determine visibility, since the projection function can't determine if a point shouldn't be draw (eg in a orthographic projection)
-		var screen_centre = path({ type: "Point", coordinates: cluster.centre });
-		if (screen_centre != undefined) {
-			cluster.screen_centre = proj(cluster.centre);
+		var screenCentre = path({ type: "Point", coordinates: cluster.centre });
+		if (screenCentre != undefined) {
+			cluster.screenCentre = proj(cluster.centre);
 			return true;
 		} else
 			return false;
 	});
+
+	// Custom events to communicate clicks
+	function triggerDown(cluster) {
+		$(svg).trigger('clickclusterdown', [cluster]);
+	}
+	function triggerUp(cluster) {
+		$(svg).trigger('clickclusterup', [cluster]);
+	}
 
 	var countScale = 10.81;
 	group.selectAll("cluster")
 		.data(toDraw)
 		.enter()
 		.append("circle")
-		.attr("cx", function(c) { return c.screen_centre[0]; })
-		.attr("cy", function(c) { return c.screen_centre[1]; })
-		.attr("r", function(c) { return Math.sqrt(c.initial_count * countScale * proj.scale() / maxCount); })
-		.attr("class", function(c) { return "cluster initial " + c.id; });
+		.attr("cx", function(c) { return c.screenCentre[0]; })
+		.attr("cy", function(c) { return c.screenCentre[1]; })
+		.attr("r", function(c) { return Math.sqrt(c.initialCount * countScale * proj.scale() / maxCount); })
+		.attr("class", function(c) { return "cluster initial " + cluster.id + (c.selected ? " selected" : ""); })
+		.on('mousedown', triggerDown)
+		.on('mouseup', triggerUp);
 	group.selectAll("cluster")
 		.data(toDraw)
 		.enter()
 		.append("circle")
-		.attr("cx", function(c) { return c.screen_centre[0]; })
-		.attr("cy", function(c) { return c.screen_centre[1]; })
-		.attr("r", function(c) { return Math.sqrt(c.context_count * countScale * proj.scale() / maxCount); })
-		.attr("class", function(c) { return "cluster context " + c.id; });
+		.attr("cx", function(c) { return c.screenCentre[0]; })
+		.attr("cy", function(c) { return c.screenCentre[1]; })
+		.attr("r", function(c) { return Math.sqrt(c.contextCount * countScale * proj.scale() / maxCount); })
+		.attr("class", function(c) { return "cluster context " + cluster.id + (c.selected ? " selected" : ""); })
+		.on('mousedown', triggerDown)
+		.on('mouseup', triggerUp);
 	group.selectAll("clustercount")
 		.data(toDraw)
 		.enter()
 		.append("text")
-		.attr("x", function(c) { return c.screen_centre[0]; })
-		.attr("y", function(c) { return c.screen_centre[1]; })
+		.attr("x", function(c) { return c.screenCentre[0]; })
+		.attr("y", function(c) { return c.screenCentre[1]; })
 		.attr("dy", "0.35em")
 		.attr("text-anchor", 'middle')
-		.text(function (c) { return c.count; })
-		.attr("class", 'clustercount')
+		.text(function (c) { return c.contextCount > 0 ? c.contextCount : ""; })
+		.attr("class", function (c) { return "cluster counttext " + cluster.id; })
+		.on('mousedown', triggerDown)
+		.on('mouseup', triggerUp);
+
+	return path;
 }
 
 function makeMapControls(container, projections, minZoom, maxZoom, defaults) {
@@ -154,8 +173,6 @@ function makeMapControls(container, projections, minZoom, maxZoom, defaults) {
 		<div class=\"selbox\"> \
 			<button type=\"button\" class=\"btn btn-mini btn-warning clear\">Clear selection</button> \
 			<div class=\"btn-group mode\" data-toggle=\"buttons-radio\"></div> \
-		</div> \
-		<div class=\"viewbox\"> \
 			<div class=\"btn-group zoomcontrols\"> \
 				<button class=\"btn btn-mini zoomout\">-</button> \
 				<a class=\"btn btn-mini dropdown-toggle zoomlevelbtn\" data-toggle=\"dropdown\" href=\"#\"><span class=\"value\"></span><span class=\"caret\"></span></a> \
@@ -164,6 +181,8 @@ function makeMapControls(container, projections, minZoom, maxZoom, defaults) {
 				</div> \
 				<button class=\"btn btn-mini zoomin\">+</button> \
 			</div> \
+		</div> \
+		<div class=\"viewbox\"> \
 			<button type=\"button\" class=\"btn btn-mini centreview\">Centre</button> \
 			<div class=\"btn-group\"> \
 				<a class=\"btn btn-mini dropdown-toggle view\" data-toggle=\"dropdown\" href=\"#\">View<span class=\"caret\"></span></a> \
@@ -179,7 +198,11 @@ function makeMapControls(container, projections, minZoom, maxZoom, defaults) {
 	$.each({ toggle: "Toggle", drag: "Drag", pan: "Pan" }, function (key, value) {
 		$("<button class=\"btn btn-mini\" value=\"" + key + "\">" + value + "</button>").appendTo(modeElt);
 	});
-	modeElt.find("button[value=" + defaults.selectionMode + "]").button('toggle');
+	function updateSelMode() {
+		var defBtn = modeElt.find("button[value=" + defaults.selectionMode + "]");
+		defBtn.button('toggle');
+		defBtn.trigger('click');
+	}
 
 	var curZoom = defaults.zoomLevel;
 	var zoomBtnElt = container.find(".zoomlevelbtn");
@@ -252,6 +275,7 @@ function makeMapControls(container, projections, minZoom, maxZoom, defaults) {
 	});
 
 	return function () {
+		updateSelMode();
 		updateZoom();
 		updateProj();
 		updateViewChoices();
@@ -282,8 +306,7 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 
 	var outerElt = $("<div class=\"map\"></div>").appendTo(container);
 	var topBoxElt = $("<div class=\"topbox\"></div>").appendTo(outerElt);
-	var outerSvgElt = $("<svg class=\"outersvg\"></svg>").appendTo(outerElt);
-	var svgElt = $("<svg class=\"innersvg\" viewBox=\"" + viewBox.x + " " + viewBox.y + " " + viewBox.width + " " + viewBox.height + "\" preserveAspectRatio=\"xMidYMid meet\"></svg>").appendTo(outerSvgElt);
+	var svgElt = $("<svg viewBox=\"" + viewBox.x + " " + viewBox.y + " " + viewBox.width + " " + viewBox.height + "\" preserveAspectRatio=\"xMidYMid meet\"></svg>").appendTo(outerElt);
 	var loadingElt = makeLoadingIndicator().appendTo(outerElt);
 
 	var defaultSettings = {
@@ -299,52 +322,24 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 	var initControls = makeMapControls(topBoxElt, mapProjections, minZoom, maxZoom, defaultSettings);
 
 	fillElement(container, outerElt, 'vertical');
-	setupPanelled(outerElt, topBoxElt, outerSvgElt, 'vertical', 0, false);
-	var scaleSvg = dontScaleSvgParts(outerSvgElt, 'text,.tick');
+	setupPanelled(outerElt, topBoxElt, svgElt, 'vertical', 0, false);
 
 	var svg = jqueryToD3(svgElt);
 	var box = { x: viewBox.x + margins.left, y: viewBox.y + margins.top, width: viewBox.width - margins.left - margins.right, height: viewBox.height - margins.top - margins.bottom };
 
-/*
-	var draw = svg.append('g')
-		.attr('transform', "translate(" + box.x + "," + box.y + ")");
-
-	var scales = {
-		x: d3.scale.linear().range([0, box.width]),
-		y: d3.scale.linear().range([box.height, 0])
-	};
-	scales.x.domain([0, 1]);
-	scales.y.domain([0, 1]);
-	var axes = {
-		x: d3.svg.axis().scale(scales.x).orient('bottom'),
-		y: d3.svg.axis().scale(scales.y).orient('left')
-	};
-	draw.append('g')
-		.attr('class', "x axis " + "")
-		.attr('transform', "translate(0," + box.height + ")")
-		.call(axes.x);
-	draw.append('g')
-		.attr('class', "y axis " + "")
-		.call(axes.y);
-
-	makeDragSelector(draw, scales, "brush", function (extent) {
-		var a = extent;
-		var b = [
-			[scales.x(a[0][0]), scales.y(a[0][1])],
-			[scales.x(a[1][0]), scales.y(a[1][1])]
-		];
-		console.log("brush a " + a);
-		console.log("brush b " + b);
-	});
-*/
-
-	var clusterInfoQuery = new Query(globalQuery.backendUrl());
-	var detailLevelCnstr = new Constraint();
-	clusterInfoQuery.addConstraint(detailLevelCnstr);
 	var ownCnstrQuery = new Query(globalQuery.backendUrl());
 	var constraint = new Constraint();
+	globalQuery.addConstraint(constraint);
 	ownCnstrQuery.addConstraint(constraint);
 	var contextQuery = new Query(globalQuery.backendUrl(), 'setminus', globalQuery, ownCnstrQuery);
+	var clusterInfoQuery = new Query(globalQuery.backendUrl());
+
+	var initialWatcher = new ResultWatcher(function () {});
+	initialQuery.addResultWatcher(initialWatcher);
+	var contextWatcher = new ResultWatcher(function () {});
+	contextQuery.addResultWatcher(contextWatcher);
+	var clusterInfoWatcher = new ResultWatcher(function () {});
+	clusterInfoQuery.addResultWatcher(clusterInfoWatcher);
 
 	var mapData = null,
 	    clustersInfo = null,
@@ -357,21 +352,24 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 	var curState = null,
 	    curProj = null,
 	    panFactor = 1.0;
+	var selMode = null;
 	function update(quick) {
 		if (mapData == null || clustersInfo == null || initialCounts == null || contextCounts == null || projection == null || zoomLevel == null || viewChoices == null || pan == null) {
-			outerSvgElt.css('display', 'none');
+			svgElt.css('display', 'none');
 			loadingElt.css('display', '');
 		} else {
 			loadingElt.css('display', 'none');
-			outerSvgElt.css('display', '');
+			svgElt.css('display', '');
 			if (curProj == null) {
 				curProj = projection.proj();
 				curProj.translate([viewBox.x + viewBox.width / 2, viewBox.y + viewBox.height / 2]);
 			}
 			var totalScaleFactorChange = projection.scaleFactorChange * (zoomLevel - 1);
-			curProj.scale(viewBox.width * (projection.initialScaleFactor + totalScaleFactorChange));
+			var newScale = viewBox.width * (projection.initialScaleFactor + totalScaleFactorChange);
+			var oldScale = curProj.scale();
+			curProj.scale(newScale);
 			if (curState == null) {
-				svgElt.children().remove();
+				svgElt.find(".map").remove();
 				curState = {};
 				curState.group = svg.append("g");
 				curState.path = drawWorld(svg, curState.group, mapData, curProj);
@@ -380,6 +378,9 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 				curState.path.projection(curProj);
 			}
 			if (projection.panMode == 'translate') {
+				var f = newScale / oldScale;
+				pan = [pan[0] * f, pan[1] * f];
+				panFactor = 1.0;				
 				curState.group.attr("transform", "translate(" + pan[0] + "," + pan[1] + ")");
 			} else if (projection.panMode == 'rotate') {
 				panFactor = 0.7 / (0.85 * zoomLevel);
@@ -392,8 +393,9 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 				$.each(viewChoices, function (setting, choice) {
 					svg.select("." + setting).style('display', choice ? '' : 'none');
 				});
+				svgElt.find(".cluster").remove();
+				curState.clustersPath = drawClusters(svg, curState.group, curProj, clustersInfo, initialCounts, contextCounts);
 			}
-			//drawClusters(svg, curState.group, curProj, clustersInfo);
 		}
 	}
 	function resetProjection() {
@@ -401,25 +403,76 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 		curProj = null;
 	}
 
+	var clearElt = topBoxElt.find(".clear");
+	function updateSelection() {
+		if (clustersInfo != null) {
+			var ids = [];
+			for (var i = 0; i < clustersInfo.length; i++)
+				if (clustersInfo[i].selected)
+					ids.push(clustersInfo[i].id);
+			if (ids.length > 0) {
+				constraint.name("Map: " + ids.length + (ids.length == 1 ? " cluster" : " clusters") + " at detail level " + zoomLevel);
+				constraint.set({
+					type: 'mapclusters',
+					detaillevel: zoomLevel - 1,
+					ids: ids
+				});
+				clearElt.removeAttr('disabled');
+			} else {
+				constraint.clear();
+				clearElt.attr('disabled', 'disabled');
+			}
+			update();
+			globalQuery.update();
+		}
+	}
+	function selectAll(value) {
+		if (clustersInfo != null)
+			for (var i = 0; i < clustersInfo.length; i++)
+				clustersInfo[i].selected = value;
+		updateSelection();
+	}
+	clearElt.attr('disabled', 'disabled');
+
 	d3.json("map.json", function(error, incoming) {
 		mapData = incoming;
 		update();
 	});
 
 	topBoxElt.find(".selbox .clear").bind('click', function () {
-		console.log("clear selection");
+		selectAll(false);
+		updateSelection();
 	});
 	topBoxElt.find(".selbox .mode button").bind('click', function () {
-		console.log("selection mode " + $(this).val());
+		selMode = $(this).val();
 	});
-	topBoxElt.find(".viewbox .zoomlevel button").bind('click', function () {
-		zoomLevel = +$(this).val();
-		detailLevelCnstr.set({
-			type: 'mapclustersinfo',
-			detaillevel: zoomLevel
-		});
-		clusterInfoQuery.update();
-		update();
+	topBoxElt.find(".selbox .zoomlevel button").bind('click', function () {
+		var zoom = +$(this).val();
+		if (zoom != zoomLevel) {
+			zoomLevel = zoom;
+			clusterInfoWatcher.set({
+				clusters: {
+					type: 'mapclustersinfo',
+					detaillevel: zoomLevel - 1
+				}
+			});
+			initialWatcher.set({
+				counts: {
+					type: 'countbymapcluster',
+					detaillevel: zoomLevel - 1
+				}
+			});
+			contextWatcher.set({
+				counts: {
+					type: 'countbymapcluster',
+					detaillevel: zoomLevel - 1
+				}
+			});
+			clusterInfoQuery.update();
+			selectAll(false);
+			updateSelection();
+			update();
+		}
 	});
 	topBoxElt.find(".viewbox .projection button").bind('click', function () {
 		var name = $(this).val();
@@ -440,69 +493,76 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 		update();
 	});
 
-	var mouseDownAt = null,
-	    mouseOrigin = [0, 0];
+	var drag = d3.behavior.drag();
+	var mouseDownOnCluster = false;
 	pan = [0, 0];
-	svg.on('mousedown', function () {
-		mouseDownAt = d3.mouse(this);
-	}).on('mousemove', function () {
-		if (mouseDownAt != null) {
-			var at = d3.mouse(this);                                                                                                                                                                    
-			pan = [mouseOrigin[0] + (at[0] - mouseDownAt[0]) * panFactor, mouseOrigin[1] + (at[1] - mouseDownAt[1]) * panFactor];
-			update(true);
+	$(svg).bind('clickclusterdown', function (event, cluster) {
+		if (d3.event.button == 0)
+			mouseDownOnCluster = true;
+	});
+	$(svg).bind('clickclusterup', function (event, cluster) {
+		if (mouseDownOnCluster && selMode == 'toggle') {
+			cluster.selected = !(cluster.selected == true);
+			updateSelection();
 		}
 	});
 	d3.select(window).on('mouseup', function () {
-		if (mouseDownAt != null) {
-			mouseOrigin = [pan[0], pan[1]];
-			mouseDownAt = null;
-		}
+		mouseDownOnCluster = false;
 	});
+	makeDragPan(drag, function (movement) {
+		pan = movement;
+		update(true);
+	}, function () { return [pan[0], pan[1]]; }, function () { return panFactor; }, function () {
+		return (selMode == 'toggle' && !mouseDownOnCluster) || selMode == 'pan';
+	});
+	makeDragSelector(drag, svg, "dragselectextent", function (extent) {
+		for (var i = 0; i < clustersInfo.length; i++) {
+			var cluster = clustersInfo[i];
+			if (cluster.screenCentre != null) {
+				var x = cluster.screenCentre[0], y = cluster.screenCentre[1];
+				if (x >= extent[0][0] && y >= extent[0][1] && x <= extent[1][0] && y <= extent[1][1])
+					cluster.selected = true;
+			}
+		}
+		updateSelection();
+	}, function () {
+		return selMode == 'drag';
+	});
+	svg.call(drag);
 
-	clusterInfoQuery.onChange(function (ct) {
-		clustersInfo = null;
-		update();
-	});
-	clusterInfoQuery.onResult({
-		info: {
-			type: 'mapclustersinfo'
+	constraint.onChange(function (changeType) {
+		if (changeType == 'removed') {
+			selectAll(false);
+			updateSelection();
 		}
-	}, function (result) {
+	});
+	clusterInfoWatcher.setCallback(function (result) {
+		var zoomResult = result.clusters[zoomLevel - 1];
 		var clusters = [];
-		$.each(result.info[zoomLevel], function (id, cluster) {
+		for (var id in zoomResult) {
+			var cluster = zoomResult[id];
 			cluster.id = id;
 			clusters.push(cluster);
-		});
+		}
 		clustersInfo = clusters;
 		update();
 	});
-
-	initialQuery.onChange(function (ct) {
+	initialQuery.onChange(function () {
 		initialCounts = null;
 		update();
 	});
-	initialQuery.onResult({
-		counts: {
-			type: 'countbymapcluster',
-			detaillevel: zoomLevel
-		}
-	}, function (result) {
-		console.log("IQ", result);
-	});
-/*
-	contextQuery.onChange(function (ct) {
-		initialCounts = null;
+	initialWatcher.setCallback(function (result) {
+		initialCounts = result.counts.counts;
 		update();
 	});
-	contextQuery.onResult({
-		counts: {
-			type: 'countbymapcluster',
-			detaillevel: zoomLevel
-		}
-	}, function (result) {
-		console.log("CQ", result);
+	contextQuery.onChange(function () {
+		contextCounts = null;
+		update();
 	});
-*/
+	contextWatcher.setCallback(function (result) {
+		contextCounts = result.counts.counts;
+		update();
+	});
 
 	initControls();
 }

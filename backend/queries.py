@@ -73,13 +73,11 @@ def constraint_to_sdb_query(cnstr, settings):
     high = dates.year_key(cnstr['high'], settings.min_year, settings.year_key_digits)
     return "yearKey >= '%s' and yearKey <= '%s'" % (low, high)
   elif type == 'mapclusters':
-    detail_level = int(cnstr['detail'])
+    detail_level = int(cnstr['detaillevel'])
     ids = cnstr['ids']
-    return "mapClustering:%s:%i in (%s)" % (settings.clustering_name, detail_level, ",".join("'%i'" % (i) for i in ids))
+    return "`mapClustering:%s:%i` in (%s)" % (settings.clustering_name, detail_level, ",".join("'%s'" % (i) for i in ids))
   elif type == 'location':
     return "`locationText` = '%s'" % (cnstr['text'])
-  elif type == "mapclustersinfo":
-    return "detaillevel = '%s'" % (cnstr['detaillevel'])
   else:
     raise ValueError("unknown constraint type \"%s\"" % (type))
 
@@ -117,7 +115,6 @@ def generate_view(view, sdb_query, data_dom, cluster_dom, settings):
     return { 'counts': table }
   elif type == 'countbymapcluster':
     cluster_key = 'mapClustering:%s:%s' % (settings.clustering_name, view['detaillevel'])
-    print >> sys.stderr, 'KEY', cluster_key, view
     rs = sdbutils.select_all(data_dom, sdb_query, [cluster_key], needs_non_null=[cluster_key])
     return count_by(rs, lambda e: e[cluster_key])
   elif type == 'countbyyear':
@@ -127,14 +124,15 @@ def generate_view(view, sdb_query, data_dom, cluster_dom, settings):
     rs = sdbutils.select_all(data_dom, sdb_query, ['locationText'], needs_non_null=['locationText'])
     return count_by(rs, lambda e: e['locationText'])
   elif type == 'mapclustersinfo':
-    detail_levels = [int(dl) for dl in view['detaillevel']] if 'detaillevel' in view else []
     query_parts = [sdb_query, "clustering = '%s'" % (settings.clustering_name)]
+    if 'detaillevel' in view:
+      query_parts.append("detaillevel = '%s'" % (view['detaillevel']))
     sdb_query = " and ".join("(%s)" % (q) for q in query_parts if len(q) > 0)
     rs = sdbutils.select_all(cluster_dom, sdb_query, ['detaillevel', 'id', 'latitude', 'longitude'])
     response = {}
     for item in rs:
       response.setdefault(item['detaillevel'], {})
-      response[item['detaillevel']][item['id']] = { 'centre': (item['latitude'], item['longitude']) }
+      response[item['detaillevel']][item['id']] = { 'centre': (item['longitude'], item['latitude']) }
     return response
   else:
     raise ValueError("unknown view type \"%s\"" % (type))

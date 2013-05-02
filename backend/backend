@@ -58,6 +58,7 @@ def discover_year_range(data_dom):
 def serve(hostname, port, sdb, settings_dom):
   state = State()
   state.data_dom = None
+  state.cluster_dom = None
   state.settings = backend_settings.Settings(backend_settings.defaults)
   state.next_settings_update = -sys.maxint - 1
   query_settings = queries.QuerySettings()
@@ -73,8 +74,10 @@ def serve(hostname, port, sdb, settings_dom):
       backend_settings.update_settings_from_db(state.settings, backend_settings.defaults, settings_dom)
       state.next_settings_update = time.time() + state.settings.settings_timeout
       state.data_dom = sdbutils.get_domain(sdb, state.settings.data_domain_name)
+      state.cluster_dom = sdbutils.get_domain(sdb, state.settings.cluster_domain_name)
       apply_settings(state.settings)
       query_settings.min_year = query_settings.year_key_digits = None
+      query_settings.clustering_name = state.settings.clustering_name
     if query_settings.min_year is None or query_settings.year_key_digits is None:
       query_settings.min_year, query_settings.year_key_digits = discover_year_range(state.data_dom)
 
@@ -86,7 +89,7 @@ def serve(hostname, port, sdb, settings_dom):
       else:
         query = {}
       try:
-        response = json.dumps(queries.handle_query(query, state.data_dom, query_settings, body))
+        response = json.dumps(queries.handle_query(query, state.data_dom, state.cluster_dom, query_settings, body))
         #print >> sys.stderr, "response: %s" % (response)
         start_response("200 OK", [("Content-type", "application/json"), ("Access-Control-Allow-Origin", "*")])
         return [response]

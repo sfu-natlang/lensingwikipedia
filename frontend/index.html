@@ -24,14 +24,14 @@
 			</div>
 			<div class="selectorsarea">
 				<ul class="nav nav-pills" id="tabbar">
-					<li class="active"><a href="#facetstab" data-toggle="tab">Facets</a></li>
+					<li><a href="#facetstab" data-toggle="tab">Facets</a></li>
 					<li><a href="#timelinetab" data-toggle="tab">Timeline</a></li>
-					<li><a href="#maptab" data-toggle="tab">Map</a></li>
+					<li class="active"><a href="#maptab" data-toggle="tab">Map</a></li>
 				</ul>
 				<div class="tab-content">
-					<div class="tab-pane active" id="facetstab"></div>
+					<div class="tab-pane" id="facetstab"></div>
 					<div class="tab-pane" id="timelinetab"></div>
-					<div class="tab-pane" id="maptab"></div>
+					<div class="tab-pane active" id="maptab"></div>
 				</div>
 			</div>
 		</div>
@@ -131,9 +131,7 @@
 			setupSplitMakeElements($('#facetstab'), 'horizontal', facets);
 
 			setupTimeline($('#timelinetab'), initialQuery, globalQuery);
-/*
 			setupMap($('#maptab'), initialQuery, globalQuery, minMapZoom, maxMapZoom);
-*/
 
 			initialQuery.update();
 			globalQuery.update();

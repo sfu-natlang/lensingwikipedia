@@ -20,11 +20,11 @@
 	stroke: black;
 	shape-rendering: crispEdges;
 }
-.map .brush .extent {
+.map .dragselectextent {
 	fill: #3a87ad;
 	fill-opacity: .1;
-	stroke: black;
 	stroke-dasharray: 5,5;
+	stroke: #3a87ad;
 }
 
 /* Map style from d3 examples */
@@ -67,16 +67,24 @@
 
 /* Custom styles for our map visualizations */
 .map .cluster.initial {
+	fill: #aaaaaa;
+	fill-opacity: 0.25;
+}
+.map .cluster.context {
+	fill: #aaaaaa;
+	fill-opacity: 0.85;
+}
+.map .cluster.initial.selected {
 	fill: #3a87ad;
 	fill-opacity: 0.5;
 }
-.map .cluster.context {
+.map .cluster.context.selected {
 	fill: #3a87ad;
+	fill-opacity: 0.85;
 }
-.map .clustercount {
+.map .cluster.counttext {
 	fill: black;
 }
-
 
 .map .brush .extent {
 	stroke: #fff;

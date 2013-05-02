@@ -29,9 +29,13 @@ function dontScaleSvgParts(svg, eltPat, fixDelay) {
 	}
 
 	function unscaleAll() {
-		svg.find(eltPat).each(function () {
-			unscale(this);
-		});
+		try {
+			svg.find(eltPat).each(function () {
+				unscale(this);
+			});
+		} catch (e) {
+			console.log("warning: error scaling svg elements");
+		}
 	}
 	unscaleAll();
 
@@ -45,16 +49,69 @@ function dontScaleSvgParts(svg, eltPat, fixDelay) {
 	return unscaleAll;
 }
 
-function makeDragSelector(drawOn, scales, classStr, selectionCallback) {
-	var brush = d3.svg.brush()
-		.x(scales.x)
-		.y(scales.y);
-	var drawBrush = drawOn.append('g')
-		.attr('class', classStr);
-	drawBrush.call(brush)
-		.selectAll('rect');
-	brush.on('brushend', function () {
-		selectionCallback(brush.empty() ? null : brush.extent());
-		drawBrush.call(brush.clear());
+function makeDragPan(drag, doPan, getOrigin, getPanFactor, startPredicate) {
+	var mouseDownAt = null,
+	    mouseOrigin = [0, 0],
+	    pan = [0, 0],
+	    factor = 1.0,
+	    scale = 1.0;
+	drag.on('dragstart.pan', function () {
+		var at = d3.mouse(this);
+		if (startPredicate(at)) {
+			mouseOrigin = getOrigin();
+			factor = getPanFactor();
+			mouseDownAt = at;
+		}
+	}).on('drag.pan', function () {
+		if (mouseDownAt != null) {
+			var at = d3.mouse(this);
+			pan = [mouseOrigin[0] + (at[0] - mouseDownAt[0]) * factor, mouseOrigin[1] + (at[1] - mouseDownAt[1]) * factor];
+			doPan(pan);
+		}
+	}).on('dragend.pan', function () {
+		if (mouseDownAt != null)
+			mouseDownAt = null;
+	});
+}
+
+function makeDragSelector(drag, drawOn, classStr, selectionCallback, startPredicate) {
+	var extentBox = null;
+	var dragStart = null;
+	function getBox(event) {
+		var at = d3.mouse(event);
+		var d = [at[0] - dragStart[0], at[1] - dragStart[1]];
+		var p = [dragStart[0], dragStart[1]];
+		for (var i = 0; i < 2; i++)
+			if (d[i] < 0) {
+				p[i] += d[i];
+				d[i] = -d[i];
+			}
+		return [p, d];
+	}
+	drag.on('dragstart.dragselect', function () {
+		var at = d3.mouse(this);
+		if (startPredicate == null || startPredicate(at)) {
+			if (extentBox != null)
+				extentBox.remove();
+			dragStart = at;
+			extentBox = drawOn.append("rect")
+				.attr("x", dragStart[0])
+				.attr("y", dragStart[1])
+				.attr("width", 0)
+				.attr("height", 0)
+				.attr("class", classStr);
+		}
+	}).on('drag.dragselect', function () {
+		if (dragStart != null) {
+			var box = getBox(this);
+			extentBox.attr("x", box[0][0]).attr("y", box[0][1]).attr("width", box[1][0]).attr("height", box[1][1]);
+		}
+	}).on('dragend.dragselect', function () {
+		if (dragStart != null) {
+			var box = getBox(this);
+			selectionCallback([box[0], [box[0][0] + box[1][0], box[0][1] + box[1][1]]]);
+			dragStart = null;
+			extentBox.remove();
+		}
 	});
 }
