@@ -44,3 +44,17 @@ function dontScaleSvgParts(svg, eltPat, fixDelay) {
 
 	return unscaleAll;
 }
+
+function makeDragSelector(drawOn, scales, classStr, selectionCallback) {
+	var brush = d3.svg.brush()
+		.x(scales.x)
+		.y(scales.y);
+	var drawBrush = drawOn.append('g')
+		.attr('class', classStr);
+	drawBrush.call(brush)
+		.selectAll('rect');
+	brush.on('brushend', function () {
+		selectionCallback(brush.empty() ? null : brush.extent());
+		drawBrush.call(brush.clear());
+	});
+}
