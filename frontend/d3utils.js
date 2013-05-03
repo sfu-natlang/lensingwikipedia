@@ -115,3 +115,15 @@ function makeDragSelector(drag, drawOn, classStr, selectionCallback, startPredic
 		}
 	});
 }
+
+function makeDragEndWatcher(drag, onEnd) {
+	var startDrag = null;
+	drag.on('dragstart.watchend', function () {
+		startDrag = d3.mouse(this);
+	}).on('dragend.watchend', function () {
+		var at = d3.mouse(this);
+		if (at[0] != startDrag[0] || at[1] != startDrag[1])
+			onEnd();
+		startDrag = null;
+	});
+}

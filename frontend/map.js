@@ -514,7 +514,7 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 			updateSelection();
 		}
 	});
-	d3.select(window).on('mouseup', function () {
+	makeDragEndWatcher(drag, function () {
 		mouseDownOnCluster = false;
 	});
 	makeDragPan(drag, function (movement) {
