@@ -131,6 +131,7 @@ def generate_views(response, views, sdb_query, data_dom, cluster_dom, settings):
   views: The views as dictionary of JSON (as python objects) views, keyed by their IDs.
   sdb_query: The SimpleDB select expression for the current query.
   data_dom: The SimpleDB domain for the data.
+  cluster_dom: The SimpleDB domain for clustering information.
   settings: Settings for handling a query.
   """
 
@@ -169,6 +170,7 @@ def handle_query(query, data_dom, cluster_dom, settings, query_str=None):
   python objects) query.
   query: The query as JSON (as python objects).
   data_dom: The SimpleDB domain for the data.
+  cluster_dom: The SimpleDB domain for clustering information.
   settings: Settings for handling a query.
   query_str: A canonical (ie will be consistent between different requests for
     the same view) string for the whole query; if not given then one will be

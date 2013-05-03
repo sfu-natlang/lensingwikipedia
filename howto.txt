@@ -9,16 +9,19 @@ Uploading data
 
 Let's say that the local data is in a file called data.json and we want to put it in a SimpleDB domain called lensingwikipedia-demo-data. First we do the upload:
         upload -d lensingwikipedia-demo-data data.json
-The -d option makes upload delete any existing domain with the name and replace it with the new on. Now we need to do the clustering and add the cluster keys to the database (not that clustering actually shows up anywhere yet):
-        cluster lensingwikipedia-demo-data data.json
+The -d option makes upload delete any existing domain with the name and replace it with the new one
+
+Now we need to do the clustering and add the cluster keys to the database. This requires adding fields to the data domain and also storing the basic clustering information in another domain. Let's use lensingwikipedia-demo-data-clusters as the later. We do:
+        cluster -d lensingwikipedia-demo-data lensingwikipedia-demo-data-clusters data.json
+The -d option makes cluster delete any existing cluster information domain with the name and replace it with the new one. It will never delete the data domain.
 
 You can remove domains and clusterings with removedomain and removeclustering respectively. Do so with caution.
 
 Starting the backend
 --------------------
 
-The backend stores its settings in another SimpleDB domain, let's say lensingwikipedia-demo-backend-settings. The only thing we need to change from defaults is the name of the data domain:
-        backend-ctrl --data_domain_name=lensingwikipedia-demo-data lensingwikipedia-demo-backend-settings
+The backend stores its settings in another SimpleDB domain, let's say lensingwikipedia-demo-backend-settings. The only things we need to change from defaults are the name of the data domain and clusters domains:
+        backend-ctrl --data_domain_name=lensingwikipedia-demo-data --cluster_domain_name=lensingwikipedia-demo-data-clusters lensingwikipedia-demo-backend-settings
 Now we can run the backend:
         backend lensingwikipedia-demo-backend-settings
 If you need to change the port, use -p.
