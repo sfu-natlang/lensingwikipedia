@@ -139,7 +139,7 @@ function drawClusters(svg, group, proj, clusters, initialCounts, contextCounts) 
 		.attr("cx", function(c) { return c.screenCentre[0]; })
 		.attr("cy", function(c) { return c.screenCentre[1]; })
 		.attr("r", function(c) { return Math.sqrt(c.initialCount * countScale * proj.scale() / maxCount); })
-		.attr("class", function(c) { return "cluster initial " + cluster.id + (c.selected ? " selected" : ""); })
+		.attr("class", function(c) { return "cluster initial id" + c.id + (c.selected ? " selected" : ""); })
 		.on('mousedown', triggerDown)
 		.on('mouseup', triggerUp);
 	group.selectAll("cluster")
@@ -149,7 +149,7 @@ function drawClusters(svg, group, proj, clusters, initialCounts, contextCounts) 
 		.attr("cx", function(c) { return c.screenCentre[0]; })
 		.attr("cy", function(c) { return c.screenCentre[1]; })
 		.attr("r", function(c) { return Math.sqrt(c.contextCount * countScale * proj.scale() / maxCount); })
-		.attr("class", function(c) { return "cluster context " + cluster.id + (c.selected ? " selected" : ""); })
+		.attr("class", function(c) { return "cluster context id" + c.id + (c.selected ? " selected" : ""); })
 		.on('mousedown', triggerDown)
 		.on('mouseup', triggerUp);
 	group.selectAll("clustercount")
@@ -161,7 +161,7 @@ function drawClusters(svg, group, proj, clusters, initialCounts, contextCounts) 
 		.attr("dy", "0.35em")
 		.attr("text-anchor", 'middle')
 		.text(function (c) { return c.contextCount > 0 ? c.contextCount : ""; })
-		.attr("class", function (c) { return "cluster counttext " + cluster.id; })
+		.attr("class", function (c) { return "cluster counttext id" + c.id; })
 		.on('mousedown', triggerDown)
 		.on('mouseup', triggerUp);
 
@@ -406,6 +406,16 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 	var clearElt = topBoxElt.find(".clear");
 	function updateSelection() {
 		if (clustersInfo != null) {
+			if (curState.clustersPath == null)
+				update();
+			for (var i = 0; i < clustersInfo.length; i++) {
+				var cluster = clustersInfo[i];
+				if (cluster.selected != cluster.lastSelected) {
+					svg.selectAll(".cluster.id" + cluster.id).classed("selected", cluster.selected);
+				}
+				cluster.lastSelected = cluster.selected;
+			}
+
 			var ids = [];
 			for (var i = 0; i < clustersInfo.length; i++)
 				if (clustersInfo[i].selected)
@@ -422,7 +432,6 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 				constraint.clear();
 				clearElt.attr('disabled', 'disabled');
 			}
-			update();
 			globalQuery.update();
 		}
 	}
@@ -430,7 +439,6 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 		if (clustersInfo != null)
 			for (var i = 0; i < clustersInfo.length; i++)
 				clustersInfo[i].selected = value;
-		updateSelection();
 	}
 	clearElt.attr('disabled', 'disabled');
 
@@ -533,7 +541,7 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 	constraint.onChange(function (changeType) {
 		if (changeType == 'removed') {
 			selectAll(false);
-			updateSelection();
+			update();
 		}
 	});
 	clusterInfoWatcher.setCallback(function (result) {
