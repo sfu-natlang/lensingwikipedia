@@ -1,4 +1,4 @@
-function setupFacet(container, globalQuery, name, view, makeConstraint) {
+function setupFacet(container, globalQuery, name, field) {
 	var facetElt = $("<div class=\"facet\"></div>").appendTo(container);
 
 	var topBoxElt = $("<div class=\"topbox\"></div>").appendTo(facetElt);
@@ -49,9 +49,12 @@ function setupFacet(container, globalQuery, name, view, makeConstraint) {
 		contextQueryResultWatcher.enabled(value != null);
 		selectedValue = value;
 		if (value != null) {
-			var cnstrVal = makeConstraint(value);
 			constraint.name(name + ": " + value);
-			constraint.set(cnstrVal);
+			constraint.set({
+				type: 'fieldvalue',
+				field: field,
+				value: value
+			});
 			listBoxElt.addClass('selected');
 			globalQuery.update();
 		} else {
@@ -131,7 +134,10 @@ function setupFacet(container, globalQuery, name, view, makeConstraint) {
 			select(null);
 	});
 	globalQuery.onResult({
-		counts: view
+		counts: {
+			type: 'countbyfieldvalue',
+			field: field
+		}
 	}, function(result) {
 		if (!haveSelection()) {
 			setLoadingIndicator(false);
@@ -139,7 +145,10 @@ function setupFacet(container, globalQuery, name, view, makeConstraint) {
 		}
 	});
 	contextQueryResultWatcher.set({
-		counts: view
+		counts: {
+			type: 'countbyfieldvalue',
+			field: field
+		}
 	});
 	contextQueryResultWatcher.enabled(false);
 	contextQueryResultWatcher.setCallback(function(result) {

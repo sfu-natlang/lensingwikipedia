@@ -81,48 +81,16 @@
 
 			var facets = [
 				function(container) {
-					setupFacet(container, globalQuery, "Role (any arg)", {
-						type: 'countbyrole'
-					}, function makeConstraint(role) {
-						return {
-							type: 'role',
-							role: role
-						}
-					});
+					setupFacet(container, globalQuery, "Role (any arg)", "role");
 				},
 				function(container) {
-					setupFacet(container, globalQuery, "Role (arg 0)", {
-						type: 'countbyrole',
-						arg: 0
-					}, function makeConstraint(role) {
-						return {
-							type: 'role',
-							arg: 0,
-							role: role
-						}
-					});
+					setupFacet(container, globalQuery, "Role (arg 0)", "roleA0");
 				},
 				function(container) {
-					setupFacet(container, globalQuery, "Role (arg 1)", {
-						type: 'countbyrole',
-						arg: 1
-					}, function makeConstraint(role) {
-						return {
-							type: 'role',
-							arg: 1,
-							role: role
-						}
-					});
+					setupFacet(container, globalQuery, "Role (arg 1)", "roleA1");
 				},
 				function(container) {
-					setupFacet(container, globalQuery, "Location", {
-						type: 'countbylocation'
-					}, function makeConstraint(location) {
-						return {
-							type: 'location',
-							text: location
-						}
-					});
+					setupFacet(container, globalQuery, "Location", "locationText");
 				}
 			];
 			fillElement($('.tab-content'), $('#facetstab'), 'vertical');

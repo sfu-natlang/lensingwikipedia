@@ -43,8 +43,9 @@ For example this query will get the first page of descriptions with role "entity
         {
                 "constraints": {
                         "0": {
-                                "type": "role",
-                                "role": "entity_changing"
+                                "type": "fieldvalue",
+                                "field": "role",
+                                "value": "entity_changing"
                         }
                 },
                 "views": {
@@ -59,7 +60,8 @@ This one will get counts of all events by role:
                 },
                 "views": {
                         "0": {
-                                "type": "countbyrole"
+                                "type": "countbyfieldvalue",
+				"field": "role"
                         }
                 }
         }

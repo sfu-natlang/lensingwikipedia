@@ -40,19 +40,15 @@ num_initial_description_pages_to_cache = 10
 
 response_cache = cache.Complete()
 
-def count_by(sdb_result, key):
+def expand_field(field):
   """
-  Count items by the value of a specified key. Each value of a multiple-valued
-  field is counted.
+  Maps a requested field (which may be a pseudo-field) into a list of actual
+  database field names.
   """
-  table = {}
-  for item in sdb_result:
-    item_key = key(item)
-    values = item_key if isinstance(item_key, list) else [item_key]
-    for value in values:
-      table.setdefault(value, 0)
-      table[value] += 1
-  return { 'counts': table }
+  if field == 'role':
+    return ["roleA%i" % (an) for an in all_argument_numbers]
+  else:
+    return [field]
 
 def constraint_to_sdb_query(cnstr, settings):
   """
@@ -62,12 +58,9 @@ def constraint_to_sdb_query(cnstr, settings):
   """
 
   type = cnstr['type']
-  if type == 'role':
-    def part(arg_num, role):
-      return "roleA%i = '%s'" % (arg_num, role)
-    arg_nums = [int(cnstr['arg'])] if 'arg' in cnstr else all_argument_numbers
-    role = cnstr['role']
-    return " or ".join(part(an, cnstr['role']) for an in arg_nums)
+  if type == 'fieldvalue':
+    use_fields = expand_field(cnstr['field'])
+    return " or ".join("`%s` = '%s'" % (f, cnstr['value']) for f in use_fields)
   elif type == "timerange":
     low = dates.year_key(cnstr['low'], settings.min_year, settings.year_key_digits)
     high = dates.year_key(cnstr['high'], settings.min_year, settings.year_key_digits)
@@ -76,66 +69,95 @@ def constraint_to_sdb_query(cnstr, settings):
     detail_level = int(cnstr['detaillevel'])
     ids = cnstr['ids']
     return "`mapClustering:%s:%i` in (%s)" % (settings.clustering_name, detail_level, ",".join("'%s'" % (i) for i in ids))
-  elif type == 'location':
-    return "`locationText` = '%s'" % (cnstr['text'])
   else:
     raise ValueError("unknown constraint type \"%s\"" % (type))
 
-def generate_view(view, sdb_query, data_dom, cluster_dom, settings):
+def generate_field_counts(response, views, sdb_query, data_dom):
   """
-  Produces the JSON (as python objects) response for a single view request.
-  view: The view as JSON (as python objects).
-  sdb_query: The SimpleDB select expression for the current query.
-  data_dom: The SimpleDB domain for the data.
-  settings: Settings for handling a query.
+  Handles all the count by field value views for a query. All values of a
+  multiple-valued field are counted.
   """
 
-  # TODO: wherever possible this should do multiple views from a single database query
+  for view in views.itervalues():
+    view['_use_fields'] = expand_field(view['field'])
+  field_keys = set(f for v in views.itervalues() for f in v['_use_fields'])
+
+  for view_id, view in views.iteritems():
+    response[view_id] = { 'counts': {} }
+
+  for item in sdbutils.select_all(data_dom, sdb_query, field_keys, needs_non_null=field_keys, non_null_is_any=True):
+    for view_id, view in views.iteritems():
+      counts = response[view_id]['counts']
+      for field in view['_use_fields']:
+        if field in item:
+          values = item[field]
+          values = values if isinstance(values, list) else [values]
+          for value in values:
+            counts.setdefault(value, 0)
+            counts[value] += 1
+
+def handle_independent_view(view, sdb_query, data_dom, cluster_dom, settings):
+  """
+  Handles one of the views which is done on its own independent DB query.
+  """
 
   type = view['type']
   if type == 'descriptions':
     page_num = view['page'] if 'page' in view else 0
-    response = { 'more': True }
+    result = { 'more': True }
     def on_last_page():
-      response['more'] = False
+      result['more'] = False
     rs = sdbutils.select_all(data_dom, sdb_query, ['year', 'descriptionHtml'], paginated=(description_page_size, page_num), last_page_callback=on_last_page, needs_non_null=['yearKey'], order='yearKey', order_descending=True)
-    response['descriptions'] = [dict(e) for e in rs]
-    return response
-  elif type == 'countbyrole':
-    arg_nums = [int(view['arg'])] if 'arg' in view else all_argument_numbers
-    arg_keys = ["roleA%i" % (an) for an in arg_nums]
-    rs = sdbutils.select_all(data_dom, sdb_query, arg_keys)
-    table = {}
-    for item in rs:
-      for key in arg_keys:
-        if key in item:
-          role = item[key]
-          table.setdefault(role, 0)
-          table[role] += 1
-    return { 'counts': table }
-  elif type == 'countbymapcluster':
-    cluster_key = 'mapClustering:%s:%s' % (settings.clustering_name, view['detaillevel'])
-    rs = sdbutils.select_all(data_dom, sdb_query, [cluster_key], needs_non_null=[cluster_key])
-    return count_by(rs, lambda e: e[cluster_key])
-  elif type == 'countbyyear':
-    rs = sdbutils.select_all(data_dom, sdb_query, ['year'], needs_non_null=['year'])
-    return count_by(rs, lambda e: e['year'])
-  elif type == 'countbylocation':
-    rs = sdbutils.select_all(data_dom, sdb_query, ['locationText'], needs_non_null=['locationText'])
-    return count_by(rs, lambda e: e['locationText'])
+    result['descriptions'] = [dict(e) for e in rs]
+    return result
   elif type == 'mapclustersinfo':
     query_parts = [sdb_query, "clustering = '%s'" % (settings.clustering_name)]
     if 'detaillevel' in view:
       query_parts.append("detaillevel = '%s'" % (view['detaillevel']))
     sdb_query = " and ".join("(%s)" % (q) for q in query_parts if len(q) > 0)
     rs = sdbutils.select_all(cluster_dom, sdb_query, ['detaillevel', 'id', 'latitude', 'longitude'])
-    response = {}
+    result = {}
     for item in rs:
-      response.setdefault(item['detaillevel'], {})
-      response[item['detaillevel']][item['id']] = { 'centre': (item['longitude'], item['latitude']) }
-    return response
+      result.setdefault(item['detaillevel'], {})
+      result[item['detaillevel']][item['id']] = { 'centre': (item['longitude'], item['latitude']) }
+    return result
   else:
     raise ValueError("unknown view type \"%s\"" % (type))
+
+def generate_views(response, views, sdb_query, data_dom, cluster_dom, settings):
+  """
+  Produces the JSON (as python objects) response for the view requests.
+  response: Response JSON (as python objects) to put output in.
+  views: The views as dictionary of JSON (as python objects) views, keyed by their IDs.
+  sdb_query: The SimpleDB select expression for the current query.
+  data_dom: The SimpleDB domain for the data.
+  settings: Settings for handling a query.
+  """
+
+  # We defer all the count by field value views until the end so we can do them all on a single DB query. We also rewrite some other queries in terms of field value views.
+  field_count_views = {}
+
+  for view_id, view in views.iteritems():
+    type = view['type']
+    if type == 'countbyfieldvalue':
+      field_count_views[view_id] = view
+    elif type == 'countbymapcluster':
+      field_count_views[view_id] = {
+        'type': 'countbyfield',
+        'field': 'mapClustering:%s:%s' % (settings.clustering_name, view['detaillevel'])
+      }
+    elif type == 'countbyyear':
+      field_count_views[view_id] = {
+        'type': 'countbyfield',
+        'field': 'year'
+      }
+    else:
+      response[view_id] = handle_independent_view(view, sdb_query, data_dom, cluster_dom, settings)
+
+  if len(field_count_views) > 0:
+    generate_field_counts(response, field_count_views, sdb_query, data_dom)
+
+  return response
 
 def do_cache(query, view):
   return len(query['constraints']) == 0 \
@@ -159,8 +181,10 @@ def handle_query(query, data_dom, cluster_dom, settings, query_str=None):
   sdb_query = " and ".join("(%s)" % (handle_constraint(cid, c)) for cid, c in query['constraints'].iteritems())
 
   response = {}
+  needed_views = {}
+  views_to_cache = {}
   for view_id, view in query['views'].iteritems():
-    print >> sys.stderr, "handling view \"%s\" of type \"%s\"" % (view_id, view['type'])
+    method_str = None
     if do_cache(query, view):
       if query_str is None:
         query_str = json.dumps(query)
@@ -169,13 +193,20 @@ def handle_query(query, data_dom, cluster_dom, settings, query_str=None):
       cache_key = shaer.digest()
       view_response = response_cache.get(cache_key)
       if view_response is None:
-        print >> sys.stderr, "generating view for cache"
-        view_response = generate_view(view, sdb_query, data_dom, cluster_dom, settings)
-        response_cache[cache_key] = view_response
+        method_str = "generating view for cache"
+        views_to_cache[view_id] = cache_key
+        needed_views[view_id] = view
       else:
-        print >> sys.stderr, "using cache"
-      response[view_id] = view_response
+        method_str = "using cache"
+        response[view_id] = view_response
     else:
-      print >> sys.stderr, "generating view"
-      response[view_id] = generate_view(view, sdb_query, data_dom, cluster_dom, settings)
+      method_str = "generating view"
+      needed_views[view_id] = view
+    print >> sys.stderr, "handling view \"%s\" of type \"%s\": %s" % (view_id, view['type'], method_str)
+
+  generate_views(response, needed_views, sdb_query, data_dom, cluster_dom, settings)
+
+  for view_id, cache_key in views_to_cache.iteritems():
+    response_cache[cache_key] = response[view_id]
+
   return response
