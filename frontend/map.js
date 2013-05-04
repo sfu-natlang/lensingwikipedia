@@ -36,7 +36,7 @@ var mapProjections = {
 			return d3.geo.polyhedron.waterman()
 				.rotate([20, 0]);
 		}
-	},
+	}
 }
 
 function drawWorld(svg, group, worldData, projection) {

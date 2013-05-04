@@ -281,7 +281,6 @@ function Query(backendUrl, type, arg1, arg2) {
 	this._someResultWatcherChangedSinceUpdate = true;
 	this._resultWatchersChangedSinceUpdate = {};
 	this._resultWatchersUpdatePremptivelyAt = {};
-	this._constraintSetStr;
 
 	if (type == 'base')
 		this._setupBase();
