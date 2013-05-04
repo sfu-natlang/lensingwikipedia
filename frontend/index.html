@@ -49,24 +49,15 @@
 			var globalQuery = new Query(backendUrl);
 			setupSidebar($(".sidebar"), globalQuery);
 
-			var facets = [
-				function(container) {
-					setupFacet(container, globalQuery, "Role (any arg)", "role");
-				},
-				function(container) {
-					setupFacet(container, globalQuery, "Role (arg 0)", "roleA0");
-				},
-				function(container) {
-					setupFacet(container, globalQuery, "Role (arg 1)", "roleA1");
-				},
-				function(container) {
-					setupFacet(container, globalQuery, "Location", "locationText");
+			var facetMakers = $.map(facets, function (title, field) {
+				return function (container) {
+					setupFacet(container, globalQuery, title, field);
 				}
-			];
+			});
 			fillElement($('.tab-content'), $('#facetstab'), 'vertical');
 			fillElement($('.tab-content'), $('#timelinetab'), 'vertical');
 			fillElement($('.tab-content'), $('#maptab'), 'vertical');
-			setupSplitMakeElements($('#facetstab'), 'horizontal', facets);
+			setupSplitMakeElements($('#facetstab'), 'horizontal', facetMakers);
 
 			setupTimeline($('#timelinetab'), initialQuery, globalQuery);
 			setupMap($('#maptab'), initialQuery, globalQuery, minMapZoom, maxMapZoom);
