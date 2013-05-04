@@ -159,7 +159,7 @@ function setupTimeline(container, initialQuery, globalQuery) {
 
 	var outerElt = $("<div class=\"timeline\"></div>").appendTo(container);
 	var topBoxElt = $("<div class=\"topbox\"></div>").appendTo(outerElt);
-	var clearElt = $("<button type=\"button\" class=\"btn btn-block btn-mini btn-warning\">Clear selection</button></ul>").appendTo(topBoxElt);
+	var clearElt = $("<button type=\"button\" class=\"btn btn-block btn-mini btn-warning\" title=\"Clear the timeline selection.\">Clear selection</button></ul>").appendTo(topBoxElt);
 	var loadingElt = makeLoadingIndicator().appendTo(outerElt);
 	var outerSvgElt = $("<svg class=\"outersvg\"></svg>").appendTo(outerElt);
 	var svgElt = $("<svg class=\"innersvg\" viewBox=\"" + viewBox.x + " " + viewBox.y + " " + viewBox.width + " " + viewBox.height + "\" preserveAspectRatio=\"none\"></svg>").appendTo(outerSvgElt);

@@ -1,7 +1,7 @@
 function setupConstraintList(container, globalQuery) {
 	var outerElt = $("<div class=\"constraintslist\">").appendTo(container);
 
-	var clearAllElt = $("<button type=\"button\" class=\"btn btn-block btn-mini btn-warning\">Clear all constraints</button></ul>").appendTo(outerElt);
+	var clearAllElt = $("<button type=\"button\" class=\"btn btn-block btn-mini btn-warning\" title=\"Remove all current constraints.\">Clear all constraints</button></ul>").appendTo(outerElt);
 	var listElt = $("<ul></ul>").appendTo(outerElt);
 
 	function setClearEnabled(enabled) {
@@ -20,7 +20,7 @@ function setupConstraintList(container, globalQuery) {
 
 	function addConstraintElement(cnstr) {
 		var itemElt = $("<li></li>").appendTo(listElt);
-		var cnstrElt = $("<div class=\"alert alert-constraint\"></div>").appendTo(itemElt);
+		var cnstrElt = $("<div class=\"alert alert-constraint\" title=\"Click to remove this constraint.\"></div>").appendTo(itemElt);
 		$("<button type=\"button\" class=\"close\">&times;</button>").appendTo(cnstrElt);
 		var cnstrTextElt = $("<span></span>").appendTo(cnstrElt);
 		cnstrTextElt.append(cnstr.name());

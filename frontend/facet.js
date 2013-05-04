@@ -3,10 +3,10 @@ function setupFacet(container, globalQuery, name, field) {
 
 	var topBoxElt = $("<div class=\"topbox\"></div>").appendTo(facetElt);
 	$("<h1>" + name + "</h1>").appendTo(topBoxElt);
-	var clearElt = $("<button type=\"button\" class=\"btn btn-block btn-mini btn-warning\">Clear selection</button></ul>").appendTo(topBoxElt);
+	var clearElt = $("<button type=\"button\" class=\"btn btn-block btn-mini btn-warning\" title=\"Clear the facet selection.\">Clear selection</button></ul>").appendTo(topBoxElt);
 	var searchBoxElt = $("<form class=\"searchbox\"></form>").appendTo(topBoxElt);
-	var searchBtnElt = $("<button type=\"submit\" class=\"btn btn-primary btn-link\"></button>").appendTo(searchBoxElt);
-	var searchInputElt = $("<input type=\"text\" autocomplete=\"off\" data-provide=\"typeahead\"></input>").appendTo($("<div class=\"inputbox\"></div>").appendTo(searchBoxElt));
+	var searchBtnElt = $("<button type=\"submit\" class=\"btn btn-primary btn-link\" title=\"Search.\"></button>").appendTo(searchBoxElt);
+	var searchInputElt = $("<input type=\"text\" autocomplete=\"off\" data-provide=\"typeahead\" title=\"Enter search term here.\"></input>").appendTo($("<div class=\"inputbox\"></div>").appendTo(searchBoxElt));
 	var search = searchInputElt.typeahead();
 
 	var listBoxElt = $("<div class=\"listbox\"></div>").appendTo(facetElt);
@@ -82,8 +82,9 @@ function setupFacet(container, globalQuery, name, field) {
 		}
 		function addValue(value, count) {
 			var classStr = value == selectedValue ? " class=\"selected\"" : "";
-			var countStr =  count == null ? "" : " [" + count + "]";
-			var itemElt = $("<li" + classStr + ">" + value + countStr + "</li>").appendTo(listElt);
+			var bracketedCountStr =  count == null ? "" : " [" + count + "]";
+			var countStr =  count == null ? "no" : count;
+			var itemElt = $("<li" + classStr + " title=\"Value '" + value + "' is in " + countStr + " events under current constraints. Click to select it.\">" + value + bracketedCountStr + "</li>").appendTo(listElt);
 			itemElt.click(function() {
 				select(value);
 			});

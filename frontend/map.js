@@ -171,21 +171,21 @@ function drawClusters(svg, group, proj, clusters, initialCounts, contextCounts) 
 function makeMapControls(container, projections, minZoom, maxZoom, defaults) {
 	container.append(" \
 		<div class=\"selbox\"> \
-			<button type=\"button\" class=\"btn btn-mini btn-warning clear\">Clear selection</button> \
+			<button type=\"button\" class=\"btn btn-mini btn-warning clear\" title=\"Clear the map selection.\">Clear selection</button> \
 			<div class=\"btn-group mode\" data-toggle=\"buttons-radio\"></div> \
 			<div class=\"btn-group zoomcontrols\"> \
-				<button class=\"btn btn-mini zoomout\">-</button> \
+				<button class=\"btn btn-mini zoomout\" title=\"Zoom out.\">-</button> \
 				<a class=\"btn btn-mini dropdown-toggle zoomlevelbtn\" data-toggle=\"dropdown\" href=\"#\"><span class=\"value\"></span><span class=\"caret\"></span></a> \
 				<div class=\"dropdown-menu zoomlevelmenu\"> \
 					<div class=\"btn-group btn-group-vertical zoomlevel\" data-toggle=\"buttons-radio\"></div> \
 				</div> \
-				<button class=\"btn btn-mini zoomin\">+</button> \
+				<button class=\"btn btn-mini zoomin\" title=\"Zoom in.\">+</button> \
 			</div> \
 		</div> \
 		<div class=\"viewbox\"> \
-			<button type=\"button\" class=\"btn btn-mini centreview\">Centre</button> \
+			<button type=\"button\" class=\"btn btn-mini centreview\" title=\"Re-centre the view.\">Centre</button> \
 			<div class=\"btn-group\"> \
-				<a class=\"btn btn-mini dropdown-toggle view\" data-toggle=\"dropdown\" href=\"#\">View<span class=\"caret\"></span></a> \
+				<a class=\"btn btn-mini dropdown-toggle view\" data-toggle=\"dropdown\" href=\"#\" title=\"View settings.\">View<span class=\"caret\"></span></a> \
 				<div class=\"dropdown-menu viewsettingsmenu\"> \
 					<div class=\"btn-group btn-group-vertical projection\" data-toggle=\"buttons-radio\"></div> \
 					<ul class=\"viewchoices\"></ul> \
@@ -195,8 +195,13 @@ function makeMapControls(container, projections, minZoom, maxZoom, defaults) {
 	");
 
 	var modeElt = container.find(".selbox .mode");
-	$.each({ toggle: "Toggle", drag: "Drag", pan: "Pan" }, function (key, value) {
-		$("<button class=\"btn btn-mini\" value=\"" + key + "\">" + value + "</button>").appendTo(modeElt);
+	var inputModes = {
+		toggle: { title: "Toggle", desc: "Input mode to toggle selection on individual clusters." },
+		drag: { title: "Drag", desc: "Input mode to drag-select clusters." },
+		pan: { title: "Pan", desc: "Input mode to pan the view without changing the selection." }
+	};
+	$.each(inputModes, function (key, value) {
+		$("<button class=\"btn btn-mini\" value=\"" + key + "\" title=\"" + value.desc + "\">" + value.title + "</button>").appendTo(modeElt);
 	});
 	function updateSelMode() {
 		var defBtn = modeElt.find("button[value=" + defaults.selectionMode + "]");
@@ -208,7 +213,7 @@ function makeMapControls(container, projections, minZoom, maxZoom, defaults) {
 	var zoomBtnElt = container.find(".zoomlevelbtn");
 	var zoomElt = container.find(".zoomlevel");
 	$.each([1, 2, 3, 4, 5], function (key, value) {
-		$("<button class=\"btn btn-mini\" value=\"" + value + "\">" + value + "</button>").appendTo(zoomElt);
+		$("<button class=\"btn btn-mini\" value=\"" + value + "\" + title=\"Zoom level " + value + ".\">" + value + "</button>").appendTo(zoomElt);
 	});
 	zoomElt.find("button").bind('click', function () {
 		var value = $(this).val();
@@ -239,7 +244,7 @@ function makeMapControls(container, projections, minZoom, maxZoom, defaults) {
 
 	var projElt = container.find(".projection");
 	$.each(projections, function (key, proj) {
-		$("<button class=\"btn btn-mini\" value=\"" + key + "\">" + proj.name + "</button>").appendTo(projElt);
+		$("<button class=\"btn btn-mini\" value=\"" + key + "\" title=\"" + proj.longName + " projection.\">" + proj.name + "</button>").appendTo(projElt);
 	});
 	projElt.find("button").bind('click', function () {
 		$(this).button('toggle');
@@ -252,8 +257,12 @@ function makeMapControls(container, projections, minZoom, maxZoom, defaults) {
 	}
 
 	var choicesElt = container.find(".viewchoices");
-	$.each({ graticule: "Graticules", currentcountryboundary: "Current countries" }, function (key, name) {
-		$("<li><label class=\"checkbox\"><input type=\"checkbox\" value=\"" + key + "\">" + name + "</label></li>").appendTo(choicesElt);
+	var viewChoices = {
+		graticule: { title: "Graticules", desc: "Toggle graticule lines." },
+		currentcountryboundary: { title: "Current countries", desc: "Show boundaries of currently existing countries." }
+	};
+	$.each(viewChoices, function (key, value) {
+		$("<li><label class=\"checkbox\" title=\"" + value.desc + "\"><input type=\"checkbox\" value=\"" + key + "\">" + value.title + "</label></li>").appendTo(choicesElt);
 	});
 	// First pass to make the checkedness consistent
 	$.each(defaults.viewChoices, function (key, value) {
