@@ -1,0 +1,11 @@
+Web visualization frontend.
+
+The frontend interfaces with the backend by sending queries in a JSON format. See the backend documentation for details on these queries.
+
+Usage
+=====
+
+I've been using the frontend locally so far. Just open frontend/index.html as a file in a browser, or serve it locally, eg:
+        cd frontend/
+        python2 -m SimpleHTTPServer
+If you changed the port of the backend or are serving it on a different computer than the frontend, then edit config.js.

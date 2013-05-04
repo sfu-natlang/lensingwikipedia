@@ -1,0 +1,14 @@
+{
+	"constraints": {
+		"0": {
+			"type": "fieldvalue",
+			"field": "role",
+			"value": "entity_offering"
+		}
+	},
+	"views": {
+		"0": {
+			"type": "countbyyear"
+		}
+	}
+}

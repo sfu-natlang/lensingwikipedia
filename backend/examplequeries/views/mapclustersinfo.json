@@ -1,0 +1,10 @@
+{
+	"constraints": {
+	},
+	"views": {
+		"0": {
+			"type": "mapclustersinfo",
+			"detaillevel": 3
+		}
+	}
+}

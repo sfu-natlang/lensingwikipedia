@@ -1,0 +1,14 @@
+{
+	"constraints": {
+		"0": {
+			"type": "timerange",
+			"low": -206,
+			"high": 220
+		}
+	},
+	"views": {
+		"0": {
+			"type": "countbyyear"
+		}
+	}
+}

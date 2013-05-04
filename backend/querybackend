@@ -5,7 +5,7 @@ Usage: %s URL [QUERY-FILE]
 
 Arguments:
 URL         URL for the backend.
-DATA-FILE   File to read the query from. Standard input is used if not given.
+QUERY-FILE  File to read the query from. Standard input is used if not given.
 
 Sends a query from standard input or a file to the backend and prints the
 response. Parses the query and response JSON to validate them.

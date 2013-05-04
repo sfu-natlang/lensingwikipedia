@@ -1,12 +1,13 @@
 #!/usr/bin/env python2
 
 """
-Usage: %s [opts] DATA-DOMAIN CLUSTER-DOMAIN [DATA-FILE]
+Usage: %s [opts] DATA-DOMAIN CLUSTER-DOMAIN [QUERY-FILE]
 
 Arguments:
 DATA-DOMAIN     SimpleDB domain containing the data.
 CLUSTER-DOMAIN  SimpleDB domain containing the extra clustering information.
-DATA-FILE     File to read the query from. Standard input is used if not given.
+QUERY-FILE      File to read the query from. Standard input is used if not
+  given.
 
 Options:
 -c STRING Name of clustering to use.

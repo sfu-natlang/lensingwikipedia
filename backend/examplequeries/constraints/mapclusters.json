@@ -1,0 +1,14 @@
+{
+	"constraints": {
+		"0": {
+			"type": "mapclusters",
+			"detaillevel": 1,
+			"ids": [3, 10, 5]
+		}
+	},
+	"views": {
+		"0": {
+			"type": "countbyyear"
+		}
+	}
+}

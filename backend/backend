@@ -43,18 +43,6 @@ def apply_settings(settings):
   queries.num_initial_description_pages_to_cache = settings.num_initial_description_pages_to_cache
   queries.all_argument_numbers = settings.all_argument_numbers
 
-def discover_year_range(data_dom):
-  """
-  Work out the minimum year and year digit padding.
-  We just look at a single event and hope the data is consistent.
-  """
-  rs = data_dom.select("select `year`,`yearKey` from `%s` limit %i" % (data_dom.name, 1), max_items=1)
-  for item in rs:
-    year = int(item['year'])
-    year_key_digits = len(item['yearKey'])
-    min_year = year - int(item['yearKey'])
-    return min_year, year_key_digits
-
 def serve(hostname, port, sdb, settings_dom):
   state = State()
   state.data_dom = None
@@ -73,13 +61,13 @@ def serve(hostname, port, sdb, settings_dom):
       log_extra()
       backend_settings.update_settings_from_db(state.settings, backend_settings.defaults, settings_dom)
       state.next_settings_update = time.time() + state.settings.settings_timeout
-      state.data_dom = sdbutils.get_domain(sdb, state.settings.data_domain_name)
-      state.cluster_dom = sdbutils.get_domain(sdb, state.settings.cluster_domain_name)
+      state.data_dom = sdbutils.get_maybenew_domain(sdb, state.settings.data_domain_name)
+      state.cluster_dom = sdbutils.get_maybenew_domain(sdb, state.settings.cluster_domain_name)
       apply_settings(state.settings)
       query_settings.min_year = query_settings.year_key_digits = None
       query_settings.clustering_name = state.settings.clustering_name
     if query_settings.min_year is None or query_settings.year_key_digits is None:
-      query_settings.min_year, query_settings.year_key_digits = discover_year_range(state.data_dom)
+      query_settings.min_year, query_settings.year_key_digits = queries.discover_year_range(state.data_dom)
 
     try:
       if environ['REQUEST_METHOD'] == 'POST':
@@ -126,5 +114,5 @@ if __name__ == '__main__':
 
   print >> sys.stderr, "connecting to database"
   sdb = boto.connect_sdb()
-  settings_dom = sdbutils.get_domain(sdb, settings_dom_name)
+  settings_dom = sdbutils.get_maybenew_domain(sdb, settings_dom_name)
   serve(hostname, port, sdb, settings_dom)

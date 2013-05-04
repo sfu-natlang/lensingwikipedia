@@ -6,7 +6,7 @@ Usage: %s [opts] DATA-DOMAIN CLUSTER-DOMAIN [DATA-FILE]
 Arguments:
 DATA-DOMAIN     SimpleDB domain with the data to cluster.
 CLUSTER-DOMAIN  SimpleDB domain for extra cluster information.
-DATA-FILE     Local file to read data from. Ignored if -d is given. Standard
+DATA-FILE       Local file to read data from. Ignored if -d is given. Standard
   input is used if neither are given.
 
 Options:
@@ -26,7 +26,8 @@ Options:
 Clusters events and assigns the events to the clusters in the database. Each
 clustering (assignment of events to clusters) has a name which is used as part
 of the database field names. Each clustering has one or more detail levels, for
-which different distance thresholds can be set here.
+which different distance thresholds can be set here. The detail levels are
+numbered 0 through whatever number of thresholds is given.
 
 By default events are read from standard input or a file. When using this
 method, make sure that the input data is exactly the same that was uploaded
@@ -122,8 +123,8 @@ if __name__ == '__main__':
   use_database = '-b' in opts
 
   sdb = boto.connect_sdb()
-  data_dom = sdbutils.get_domain(sdb, data_domain_name, make_new=False)
-  cluster_dom = sdbutils.get_domain(sdb, cluster_domain_name, make_new=True, delete_old=do_delete)
+  data_dom = sdbutils.get_maybenew_domain(sdb, data_domain_name, make_new=False)
+  cluster_dom = sdbutils.get_maybenew_domain(sdb, cluster_domain_name, make_new=True, delete_old=do_delete)
 
   if use_database:
     update_clustering(clustering_name, data_dom, cluster_dom, thresholds, lambda: iter_events_from_db(data_dom, point_digits))

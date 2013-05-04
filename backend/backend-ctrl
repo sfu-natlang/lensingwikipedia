@@ -53,7 +53,7 @@ if __name__ == '__main__':
   show_all = '-a' in opts
 
   sdb = boto.connect_sdb()
-  settings_dom = sdbutils.get_domain(sdb, settings_dom_name)
+  settings_dom = sdbutils.get_maybenew_domain(sdb, settings_dom_name)
 
   if '-o' in opts:
     backend_settings.show_from_db(settings_dom, show_all=show_all)

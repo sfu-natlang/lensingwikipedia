@@ -9,7 +9,8 @@ CLUSTERING-NAME   Name of clustering.
 DETAIL-LEVELS     Detail levels to remove. Comma separated.
 
 Removes detail levels of a clustering (or the whole clustering, if given all its
-detail levels).
+detail levels) from a data domain. It doesn't remove the clustering information
+domain (use removedomain for that).
 """
 
 import sys

@@ -19,18 +19,6 @@ class QuerySettings:
     # Name of the clustering to use
     clustering_name = None
 
-def discover_year_range(data_dom):
-  """
-  Work out the minimum year and year digit padding.
-  We just look at a single event and hope the data is consistent.
-  """
-  rs = data_dom.select("select `year`,`yearKey` from `%s` limit %i" % (data_dom.name, 1), max_items=1)
-  for item in rs:
-    year = int(item['year'])
-    year_key_digits = len(item['yearKey']) + (1 if year >= 0 else 0)
-    min_year = year - int(item['yearKey'])
-    return min_year, year_key_digits
-
 # All possible predicate argument numbers
 all_argument_numbers = [0, 1]
 # Number of events on a page of descriptions
@@ -39,6 +27,18 @@ description_page_size = 10
 num_initial_description_pages_to_cache = 10
 
 response_cache = cache.Complete()
+
+def discover_year_range(data_dom):
+  """
+  Work out the minimum year and year digit padding.
+  We just look at a single event and hope the data is consistent.
+  """
+  rs = data_dom.select("select `year`,`yearKey` from `%s` limit %i" % (data_dom.name, 1), max_items=1)
+  for item in rs:
+    year = int(item['year'])
+    year_key_digits = len(item['yearKey'])
+    min_year = year - int(item['yearKey'])
+    return min_year, year_key_digits
 
 def expand_field(field):
   """
@@ -160,7 +160,12 @@ def generate_views(response, views, sdb_query, data_dom, cluster_dom, settings):
 
   return response
 
-def do_cache(query, view):
+def should_cache(query, view):
+  """
+  Predicate determining which views to cache.
+  query: The whole query being processed.
+  views: The particular view to consider caching.
+  """
   return len(query['constraints']) == 0 \
     and (int(view['page'] if 'page' in view else 0) < num_initial_description_pages_to_cache if view['type'] == "descriptions" else True)
 
@@ -187,7 +192,7 @@ def handle_query(query, data_dom, cluster_dom, settings, query_str=None):
   views_to_cache = {}
   for view_id, view in query['views'].iteritems():
     method_str = None
-    if do_cache(query, view):
+    if should_cache(query, view):
       if query_str is None:
         query_str = json.dumps(query)
       shaer = sha.new(query_str)

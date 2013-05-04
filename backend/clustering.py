@@ -18,18 +18,23 @@ def geo_cluster(iter_events, thresholds, add_event_to_cluster, set_cluster_info)
   Geographic clustering of points.
 
   This is implemented to keep as little as possible in memory and minimize
-  passes over the data.
+  passes over the data. Events and detail_levels are given by IDs which need to
+  be hashable but are otherwise arbitrary. Similarly cluster IDs are preduced to
+  represent clusters.
 
   iter_events: Function which takes no arguments and iterates over events, for
     each event yielding an arbitrary object representing the event, and a
     longitude-latitude coordinate for it.
-  set_cluster: Function which takes an event object (from iter_events()), a
-    detail level, and a cluster number and assigns the event to the cluster at
-    the specified detail level.
-  thresholds: Thresholds for distance to cluster centre used to decide when to add
-    a point to an existing cluster versus creating a new cluster. Given as a
-    dictionary where the keys are desired detail levels and values are the
-    corresponding threshold values.
+  thresholds: Thresholds for distance to cluster centre used to decide when to
+    add a point to an existing cluster versus creating a new cluster. Given as a
+    dictionary where the keys are IDs for the desired detail levels and values
+    are the corresponding threshold values.
+  add_event_to_cluster: Function which takes an event object (from
+    iter_events()), a detail level ID, and a cluster number and assigns the
+    event to the cluster at the specified detail level.
+  set_cluster_info: Function which takes a detail level ID, a cluster ID, and a
+    longitude-latitude pair and registers this information (presumably stores it
+    somewhere).
   """
 
   from math import atan2, sqrt, sin, cos, pi

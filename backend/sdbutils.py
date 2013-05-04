@@ -8,6 +8,11 @@ import cache
 pagination_cache = cache.FIFO(100)
 
 def _select_paginated(dom, pattern, order, fields, last_page_cb, page_size, page_num):
+  """
+  Select all results by page. Takes care of any repeated database requests
+  needed to get the requested information.
+  """
+
   # Here we use the counting trick suggested by
   # https://forums.aws.amazon.com/message.jspa?messageID=253237#253237 to skip
   # ahead to the right point, but we also keep a cache of next pointers to try
@@ -48,6 +53,10 @@ def _select_paginated(dom, pattern, order, fields, last_page_cb, page_size, page
     last_page_cb()
 
 def _select_all(dom, pattern, order, fields):
+  """
+  Select all results. Takes care of any repeated database requests needed to get
+  the requested information.
+  """
   query = "select %s from `%s` %s %s" % (fields, dom.name, pattern, order)
   next_token = None
   while True:
@@ -74,6 +83,9 @@ def select_all(dom, pattern=None, fields=['*'], needs_non_null=[], non_null_is_a
     must be non-null.
   paginated: Enables pagination and sets the page size and page number to fetch
     (given as a pair).
+  order: Key to sort on. Can only do lexicographical sort because that's what
+    SimpleDB gives us.
+  order_descending: If set, sort order is descending. Otherwise it is ascending.
   """
 
   where = []
@@ -92,7 +104,7 @@ def select_all(dom, pattern=None, fields=['*'], needs_non_null=[], non_null_is_a
   else:
     return _select_paginated(dom, pattern_str, order_str, fields_str, last_page_callback, *paginated)
 
-def get_domain(sdb, dom_name, make_new=True, delete_old=False):
+def get_maybenew_domain(sdb, dom_name, make_new=True, delete_old=False):
   """
   Gets a domain.
   make_new: Create the domain if it doesn't already exist.

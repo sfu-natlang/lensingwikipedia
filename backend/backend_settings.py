@@ -71,6 +71,10 @@ def update_db_from_settings(settings_dom, settings):
         settings_dom.delete_item(item)
 
 def update_settings_from_file(settings, input):
+  """
+  Reads in settings from a text file. Can be called on a file containing the
+  result from show_from_db() or show_from_settings().
+  """
   for line in input:
     i = line.index(':')
     setting = line[:i-1]
