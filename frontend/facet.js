@@ -161,14 +161,12 @@ function setupFacet(container, globalQuery, name, field) {
 		}
 	});
 	searchBoxElt.submit(function () {
-		if (!haveSelection()) {
-			var value = searchInputElt.val();
-			if (curData != null && value in curData) {
-				setSearchErrorStatus(false);
-				select(value, curData[value]);
-			} else
-				setSearchErrorStatus(true);
-		}
+		var value = searchInputElt.val();
+		if (curData != null && value in curData) {
+			setSearchErrorStatus(false);
+			select(value, curData[value]);
+		} else
+			setSearchErrorStatus(true);
 		return false;
 	});
 }
