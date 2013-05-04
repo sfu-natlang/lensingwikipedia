@@ -60,7 +60,7 @@ def constraint_to_sdb_query(cnstr, settings):
   type = cnstr['type']
   if type == 'fieldvalue':
     use_fields = expand_field(cnstr['field'])
-    return " or ".join("`%s` = '%s'" % (f, cnstr['value']) for f in use_fields)
+    return " or ".join("`%s` = '%s'" % (f, cnstr['value'].replace("'", "''")) for f in use_fields)
   elif type == "timerange":
     low = dates.year_key(cnstr['low'], settings.min_year, settings.year_key_digits)
     high = dates.year_key(cnstr['high'], settings.min_year, settings.year_key_digits)
