@@ -5,7 +5,16 @@ The frontend interfaces with the backend by sending queries in a JSON format. Se
 Usage
 =====
 
-I've been using the frontend locally so far. Just open frontend/index.html as a file in a browser, or serve it locally, eg:
-        cd frontend/
-        python2 -m SimpleHTTPServer
-If you changed the port of the backend or are serving it on a different computer than the frontend, then edit config.js.
+We assume here the backend is already running and has data. To set up the frontend, first copy config.def.js to config.js and edit it. Most importantly, change backendUrl to be the URL of your backend:
+	backendUrl = "http://example.net:1500";
+Change any other settings as needed, especially to match the data and the backend's settings. If you do not make your own config.js then the build process will copy config.def.js as it is, and assume that the backend is running locally.
+
+Now use make to run the build process. There are two main targets:
+	release -- Build the site with packed and minimized CSS and Javascript files. Outputs to out/.
+	devel -- Build the site with independent CSS and Javascript files. Useful for development and debugging. Outputs to devel/.
+
+By default make uses "closure" (from Google's Closure Compiler) for Javascript minimization and "csso" (from CSSO) for CSS minimization. You can change these by setting by creating a file called config.mk which sets variables MINJS and MINCSS respectively. Alternatively you can set these variables in the environment before calling make. If you don't want to do minimization for one or both components, set the relevant variable(s) to "cat". See the Makefile for details and other settings you can change.
+
+After building, serve the files from either out/ or devel/.
+
+Note that config.js and config.mk are intended to isolate basic settings as much as possible, so that anyone wanting to repeatedly build the website can configure these files once and leave them in place without risk of interference from updates to the source code.
