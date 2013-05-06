@@ -60,32 +60,10 @@ devel: $(addprefix $(DEVELOUT)/, $(LIBCSS) $(OWNCSS) $(LIBJS) $(OWNJS) $(FILES))
 config.js: config.def.js
 	cp $^ $@
 
-# Concatenated CSS and Javascript files and lists of the component filenames.
-$(SCRATCH)/lib.css.cat $(SCRATCH)/lib.css.list: $(LIBCSS)
-$(SCRATCH)/own.css.cat $(SCRATCH)/own.css.list: $(OWNCSS)
-$(SCRATCH)/lib.js.cat $(SCRATCH)/lib.js.list: $(LIBJS)
-$(SCRATCH)/own.js.cat $(SCRATCH)/own.js.list: $(OWNJS)
-$(SCRATCH)/%.cat $(SCRATCH)/%.list:
+# Substitute the CSS and Javascript include lists into the index file.
+$(RELEASEOUT)/index.html $(DEVELOUT)/index.html: %/index.html: $(SCRATCH)/%.css.list.html $(SCRATCH)/%.js.list.html index.html
 	@mkdir -p $(@D)
-	cat $^ > $(@D)/$*.cat
-	echo $^ | tr ' ' '\n' > $(@D)/$*.list
-$(SCRATCH)/%.list: $(SCRATCH)/%.cat
-
-# CSS and Javascript include lists formatted for inclusion in HTML.
-%.css.list.html: %.css.list
-	@mkdir -p $(@D)
-	awk '{ printf("\t\t<link rel=\"stylesheet\" type=\"text/css\" href=\"%s\">\n", $$0) }' $^ > $@
-%.js.list.html: %.js.list
-	@mkdir -p $(@D)
-	awk '{ printf("\t\t<script src=\"%s\"></script>\n", $$0) }' $^ > $@
-
-# For release we need only the packed CSS and Javascript files, while for devel we need the lists of individual files.
-$(SCRATCH)/$(RELEASEOUT).%.list:
-	@mkdir -p $(@D)
-	echo -e "lib.$*\nlw.$*" > $@
-$(SCRATCH)/$(DEVELOUT).%.list: $(SCRATCH)/lib.%.list $(SCRATCH)/own.%.list
-	@mkdir -p $(@D)
-	cat $^ > $@
+	awk "/{CSS}/ { system(\"cat $(SCRATCH)/$*.css.list.html\"); d=1 } /{JS}/ { system(\"cat $(SCRATCH)/$*.js.list.html\"); d=1 } !d { print } { d=0 }" index.html > $@
 
 # CSS and Javascript files for release output.
 $(RELEASEOUT)/lib.css: $(SCRATCH)/lib.css.cat libheader
@@ -101,15 +79,37 @@ $(RELEASEOUT)/lw.js: $(SCRATCH)/own.js.cat
 	@mkdir -p $(@D)
 	$(MINJS) $^ > $@
 
+# For release we need only the packed CSS and Javascript files, while for devel we need the lists of individual files.
+$(SCRATCH)/$(RELEASEOUT).%.list:
+	@mkdir -p $(@D)
+	echo -e "lib.$*\nlw.$*" > $@
+$(SCRATCH)/$(DEVELOUT).%.list: $(SCRATCH)/lib.%.list $(SCRATCH)/own.%.list
+	@mkdir -p $(@D)
+	cat $^ > $@
+
+# CSS and Javascript include lists formatted for inclusion in HTML.
+%.css.list.html: %.css.list
+	@mkdir -p $(@D)
+	awk '{ printf("\t\t<link rel=\"stylesheet\" type=\"text/css\" href=\"%s\">\n", $$0) }' $^ > $@
+%.js.list.html: %.js.list
+	@mkdir -p $(@D)
+	awk '{ printf("\t\t<script src=\"%s\"></script>\n", $$0) }' $^ > $@
+
+# Concatenated CSS and Javascript files and lists of the component filenames.
+$(SCRATCH)/lib.css.cat $(SCRATCH)/lib.css.list: $(LIBCSS)
+$(SCRATCH)/own.css.cat $(SCRATCH)/own.css.list: $(OWNCSS)
+$(SCRATCH)/lib.js.cat $(SCRATCH)/lib.js.list: $(LIBJS)
+$(SCRATCH)/own.js.cat $(SCRATCH)/own.js.list: $(OWNJS)
+$(SCRATCH)/%.cat $(SCRATCH)/%.list:
+	@mkdir -p $(@D)
+	cat $^ > $(@D)/$*.cat
+	echo $^ | tr ' ' '\n' > $(@D)/$*.list
+$(SCRATCH)/%.list: $(SCRATCH)/%.cat
+
 # Any extra files expected in output are copied directly.
 $(RELEASEOUT)/% $(DEVELOUT)/%: %
 	@mkdir -p $(@D)
 	cp $< $@
-
-# Substitute the include lists into the index file.
-$(RELEASEOUT)/index.html $(DEVELOUT)/index.html: %/index.html: $(SCRATCH)/%.css.list.html $(SCRATCH)/%.js.list.html index.html
-	@mkdir -p $(@D)
-	awk "/{CSS}/ { system(\"cat $(SCRATCH)/$*.css.list.html\"); d=1 } /{JS}/ { system(\"cat $(SCRATCH)/$*.js.list.html\"); d=1 } !d { print } { d=0 }" index.html > $@
 
 # Clean up intermediate build files but not the output.
 clean-intermediate:
