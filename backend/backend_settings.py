@@ -24,6 +24,8 @@ defaults.description_page_size = 25
 defaults.num_initial_description_pages_to_cache = 10
 defaults.pagination_cache_size = 100
 defaults.all_argument_numbers = [0, 1]
+defaults.fields_to_prime = []
+defaults.cluster_detail_levels_to_prime = []
 
 def parse_bool(string):
   return string == 'true' or string == 'True'
@@ -39,10 +41,14 @@ parse_settings = {
   'num_initial_description_pages_to_cache': int,
   'description_page_size': int,
   'pagination_cache_size': int,
-  'all_argument_numbers': lambda s: s.split(',')
+  'all_argument_numbers': lambda s: s.split(','),
+  'fields_to_prime': lambda s: s.split(','),
+  'cluster_detail_levels_to_prime': lambda s: [int(dl) for dl in s.split(',')]
 }
 parse_from_db = {
-  'all_argument_numbers': lambda i: [int(an) for an in i]
+  'all_argument_numbers': lambda i: [int(an) for an in i],
+  'fields_to_prime': lambda i: i,
+  'cluster_detail_levels_to_prime': lambda i: [int(dl) for dl in i]
 }
 
 def update_settings_from_db(settings, default_settings, settings_dom):

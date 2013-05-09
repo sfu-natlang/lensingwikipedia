@@ -49,6 +49,10 @@ class Querier:
     settings.setdefault('year_key_digits', None)
     # Name of the clustering to use
     settings.setdefault('clustering_name', None)
+    # Names of fields to prime the cache with
+    settings.setdefault('fields_to_prime', [])
+    # Clustering detail levels to prime the cache with
+    settings.setdefault('cluster_detail_levels_to_prime', [])
 
     for key, value in settings.iteritems():
       setattr(self, key, value)
@@ -62,6 +66,24 @@ class Querier:
         self.min_year = min_year
       if self.year_key_digits is None:
         self.year_key_digits = year_key_digits
+
+  def queries_to_prime(self):
+    """
+    Generator for all queries to prime caches with.
+    """
+    def views_for_initial():
+      for field in self.fields_to_prime:
+        yield { 'type': 'countbyfieldvalue', 'field': field }
+      for detail_level in self.cluster_detail_levels_to_prime:
+        yield { 'type': 'countbymapcluster', 'detaillevel': detail_level }
+      yield { 'type': 'countbyyear' }
+      yield { 'type': 'descriptions' }
+      for page_num in range(self.num_initial_description_pages_to_cache):
+        yield { 'type': 'descriptions', 'page': page_num }
+      yield { 'type': 'mapclustersinfo' }
+      for detail_level in self.cluster_detail_levels_to_prime:
+        yield { 'type': 'mapclustersinfo', 'detaillevel': detail_level }
+    yield { 'constraints': {}, 'views': dict((i, v) for i, v in enumerate(views_for_initial())) }
 
   def expand_field(self, field):
     """
@@ -233,3 +255,10 @@ class Querier:
       self.response_cache[cache_key] = response[view_id]
 
     return response
+
+  def prime(self):
+    """
+    Primes the querier by self-submitting queries that will get cached.
+    """
+    for query in self.queries_to_prime():
+      self.handle(query)

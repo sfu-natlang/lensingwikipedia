@@ -37,7 +37,9 @@ def make_querier(settings):
     description_page_size = settings.description_page_size,
     num_initial_description_pages_to_cache = settings.num_initial_description_pages_to_cache,
     all_argument_numbers = settings.all_argument_numbers,
-    clustering_name = settings.clustering_name
+    clustering_name = settings.clustering_name,
+    fields_to_prime = settings.fields_to_prime,
+    cluster_detail_levels_to_prime = settings.cluster_detail_levels_to_prime
   )
   querier.description_paginator.cache.set_max_size(settings.pagination_cache_size)
   return querier
@@ -59,6 +61,9 @@ def serve(hostname, port, sdb, settings_dom):
       if state.settings.data_domain_name != old_data_dom_name or state.settings.cluster_domain_name != old_cluster_dom_name or state.settings.reset_always or state.settings.reset_next:
         print >> sys.stderr, "resetting"
         state.querier = make_querier(state.settings)
+        print >> sys.stderr, "priming"
+        state.querier.prime()
+        print >> sys.stderr, "priming complete"
         if state.settings.reset_next:
           changed_settings = backend_settings.Settings()
           changed_settings.reset_next = False
