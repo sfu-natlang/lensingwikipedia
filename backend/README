@@ -44,6 +44,8 @@ Once these settings are set, then we can run the backend on this settings domain
         backend lensingwikipedia-demo-backend-settings
 If you need to change the port, use -p.
 
+Note that the settings domain is an IPC mechanism for controlling the backend at runtime, not a configuration file associated with the data. In general each instance of the backend should have its own settings domain.
+
 Backend behaviour and configuration
 -----------------------------------
 
