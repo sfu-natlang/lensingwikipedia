@@ -15,6 +15,8 @@ class Settings:
 # Default settings for the backend
 defaults = Settings()
 defaults.settings_timeout = 60 * 60
+defaults.reset_always = False
+defaults.reset_next = False
 defaults.data_domain_name = None
 defaults.cluster_domain_name = None
 defaults.clustering_name = 'default'
@@ -23,9 +25,14 @@ defaults.num_initial_description_pages_to_cache = 10
 defaults.pagination_cache_size = 100
 defaults.all_argument_numbers = [0, 1]
 
+def parse_bool(string):
+  return string == 'true' or string == 'True'
+
 # How to parse the settings
 parse_settings = {
   'settings_timeout': int,
+  'reset_always': parse_bool,
+  'reset_next': parse_bool,
   'data_domain_name': str,
   'cluster_domain_name': str,
   'clustering_name': str,

@@ -30,6 +30,18 @@ default_port = 1500
 class State:
   pass
 
+def make_querier(settings):
+  querier = queries.Querier(
+    data_dom = sdbutils.get_maybenew_domain(sdb, settings.data_domain_name),
+    cluster_dom = sdbutils.get_maybenew_domain(sdb, settings.cluster_domain_name),
+    description_page_size = settings.description_page_size,
+    num_initial_description_pages_to_cache = settings.num_initial_description_pages_to_cache,
+    all_argument_numbers = settings.all_argument_numbers,
+    clustering_name = settings.clustering_name
+  )
+  querier.description_paginator.cache.set_max_size(settings.pagination_cache_size)
+  return querier
+
 def serve(hostname, port, sdb, settings_dom):
   state = State()
   state.settings = backend_settings.Settings(backend_settings.defaults)
@@ -42,17 +54,16 @@ def serve(hostname, port, sdb, settings_dom):
 
     if time.time() >= state.next_settings_update:
       print >> sys.stderr, "updating settings"
+      old_data_dom_name, old_cluster_dom_name = state.settings.data_domain_name, state.settings.cluster_domain_name
       backend_settings.update_settings_from_db(state.settings, backend_settings.defaults, settings_dom)
+      if state.settings.data_domain_name != old_data_dom_name or state.settings.cluster_domain_name != old_cluster_dom_name or state.settings.reset_always or state.settings.reset_next:
+        print >> sys.stderr, "resetting"
+        state.querier = make_querier(state.settings)
+        if state.settings.reset_next:
+          changed_settings = backend_settings.Settings()
+          changed_settings.reset_next = False
+          backend_settings.update_db_from_settings(settings_dom, changed_settings)
       state.next_settings_update = time.time() + state.settings.settings_timeout
-      state.querier = queries.Querier(
-        data_dom = sdbutils.get_maybenew_domain(sdb, state.settings.data_domain_name),
-        cluster_dom = sdbutils.get_maybenew_domain(sdb, state.settings.cluster_domain_name),
-        description_page_size = state.settings.description_page_size,
-        num_initial_description_pages_to_cache = state.settings.num_initial_description_pages_to_cache,
-        all_argument_numbers = state.settings.all_argument_numbers,
-        clustering_name = state.settings.clustering_name
-      )
-      state.querier.description_paginator.cache.set_max_size(state.settings.pagination_cache_size)
 
     try:
       if environ['REQUEST_METHOD'] == 'POST':

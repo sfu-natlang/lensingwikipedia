@@ -44,13 +44,25 @@ Once these settings are set, then we can run the backend on this settings domain
         backend lensingwikipedia-demo-backend-settings
 If you need to change the port, use -p.
 
-The backend loads the settings from the settings domain when it starts, and subsequently at the first query it handles after each time a timeout period expires. The timeout period is also loaded as a setting and thus can be changed at runtime. The caches are also cleared each time the settings are reloaded. This system allows the data to be changed without restarting the backend.
+Configuring the backend
+-----------------------
+
+The backend loads the settings from the settings domain when it starts, and subsequently at the first query it handles after each time a timeout period expires. The timeout period is also loaded as a setting and thus can be changed at runtime.
+
+After the settings are loaded, the backend may also reset its query handling and clear all caches (thereby ensuring that any new data in the data domain is reflected in responses to queries). This occurs if one of the following is the case:
+- The name of the data domain has changed.
+- The name of the clustering information domain has changed.
+- The setting reset_always is set to true.
+- The setting reset_next is set to true.
+The distinction between reset_always and reset_next is that the former is a regular setting, while the later is a special flag which the backend reads and then resets to false if it was true. Thus the former indicates that the caches will always be cleared on a settings load, while the later indicates that the caches will be cleared on the next settings load but not on future settings loads unless requested again.
 
 The backend settings are:
 	data_domain_name -- name of the data domain
 	cluster_domain_name -- name of the clustering information domain
 	clustering_name -- name of the clustering to use for cluster requests
-	settings_timeout -- timeout between settings reload, in seconds
+	settings_timeout -- timeout between settings reloads, in seconds
+	reset_always -- always clear caches after loading settings
+	reset_next -- clear caches after the next settings load (special flag, see above)
 	description_page_size -- number of events in a page of description results
 	num_initial_description_pages_to_cache -- number of pages of description results for the initial (empty) view to cache
 	pagination_cache_size -- number of SimpleDB next pointers to store for paginated results
