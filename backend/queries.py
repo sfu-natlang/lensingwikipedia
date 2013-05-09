@@ -188,14 +188,11 @@ class Querier:
     return len(query['constraints']) == 0 \
       and (int(view['page'] if 'page' in view else 0) < self.num_initial_description_pages_to_cache if view['type'] == "descriptions" else True)
 
-  def handle(self, query, query_str=None):
+  def handle(self, query):
     """
     Produces a JSON (as python objects) response for a query given as a JSON (as
     python objects) query.
     query: The query as JSON (as python objects).
-    query_str: A canonical (ie will be consistent between different requests for
-      the same view) string for the whole query; if not given then one will be
-      generated as needed.
     """
 
     def handle_constraint(cnstr_id, cnstr):
@@ -203,15 +200,18 @@ class Querier:
       return self.constraint_to_sdb_query(cnstr)
     sdb_query = " and ".join("(%s)" % (handle_constraint(cid, c)) for cid, c in query['constraints'].iteritems())
 
+    # This is inefficient but works to generate cache keys
+    cnstrs_shaer = sha.new()
+    for cnstr in query['constraints']:
+      cnstrs_shaer.update(json.dumps(cnstr))
+
     response = {}
     needed_views = {}
     views_to_cache = {}
     for view_id, view in query['views'].iteritems():
       method_str = None
       if self.should_cache(query, view):
-        if query_str is None:
-          query_str = json.dumps(query)
-        shaer = sha.new(query_str)
+        shaer = cnstrs_shaer.copy()
         shaer.update(json.dumps(view))
         cache_key = shaer.digest()
         view_response = self.response_cache.get(cache_key)

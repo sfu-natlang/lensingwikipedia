@@ -77,7 +77,7 @@ def serve(hostname, port, sdb, settings_dom):
           start_response("404 Not Found", [])
           return ["Could not handle query; server may be reloading data."]
         else:
-          response = json.dumps(state.querier.handle(query, body))
+          response = json.dumps(state.querier.handle(query))
           #print >> sys.stderr, "response: %s" % (response)
           start_response("200 OK", [("Content-type", "application/json"), ("Access-Control-Allow-Origin", "*")])
           return [response]
