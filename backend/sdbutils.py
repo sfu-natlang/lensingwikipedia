@@ -3,54 +3,7 @@ Utilities for SimpleDB with Boto, to cover common cases in queries.
 """
 
 import boto
-import cache
-
-pagination_cache = cache.FIFO(100)
-
-def _select_paginated(dom, pattern, order, fields, last_page_cb, page_size, page_num):
-  """
-  Select all results by page. Takes care of any repeated database requests
-  needed to get the requested information.
-  """
-
-  # Here we use the counting trick suggested by
-  # https://forums.aws.amazon.com/message.jspa?messageID=253237#253237 to skip
-  # ahead to the right point, but we also keep a cache of next pointers to try
-  # to resume previous queries directly when possible.
-
-  # First we skip to the start of the page
-  pos = page_num * page_size
-  next_token = pagination_cache.get((pattern, fields, page_size, pos))
-  if next_token is None:
-    # Use the counting trick to skip ahead if we don't already have a next pointer for the position
-    num_skipped = 0
-    next_token = None
-    while num_skipped < pos:
-      skip_now = pos
-      rs = dom.select("select count(*) from `%s` %s %s limit %i" % (dom.name, pattern, order, skip_now), next_token=next_token, max_items=skip_now)
-      for i, item in enumerate(rs):
-        # I'm not sure why we can't break on the first item, but this seems to be how it works
-        if i > 0:
-          break
-        num_skipped += int(item['Count'])
-      next_token = rs.next_token
-      if next_token == None:
-        # If we got to the end of the possible results then stop
-        if last_page_cb is not None:
-          last_page_cb()
-        return
-
-  # Now we can do the real query, starting from the next token
-  rs = dom.select("select %s from `%s` %s %s limit %i" % (fields, dom.name, pattern, order, page_size), next_token=next_token, max_items=page_size)
-  for item in rs:
-    yield item
-    pos += 1
-  next_token = rs.next_token
-
-  if next_token is not None:
-    pagination_cache[pattern, fields, page_size, pos] = next_token
-  elif last_page_cb is not None:
-    last_page_cb()
+import caching
 
 def _select_all(dom, pattern, order, fields):
   """
@@ -67,6 +20,62 @@ def _select_all(dom, pattern, order, fields):
     if next_token == None:
       return
 
+class QueryPaginator:
+  """
+  Paginator which works with results that can be paginated directly be SimpleDB.
+  """
+
+  def __init__(self, cache=None, default_page_size=None):
+    self.cache = caching.FIFO(100) if cache is None else cache
+    self.default_page_size = default_page_size
+
+  def select(self, dom, pattern, order, fields, last_page_cb, page_num, page_size=None):
+    """
+    Select all results by page. Takes care of any repeated database requests
+    needed to get the requested information.
+    """
+
+    # Here we use the counting trick suggested by
+    # https://forums.aws.amazon.com/message.jspa?messageID=253237#253237 to skip
+    # ahead to the right point, but we also keep a cache of next pointers to try
+    # to resume previous queries directly when possible.
+
+    if page_size is None: page_size = self.default_page_size
+
+    # First we skip to the start of the page
+    pos = page_num * page_size
+    next_token = self.cache.get((pattern, fields, page_size, pos))
+    if next_token is None:
+      # Use the counting trick to skip ahead if we don't already have a next pointer for the position
+      num_skipped = 0
+      next_token = None
+      while num_skipped < pos:
+        skip_now = pos
+        rs = dom.select("select count(*) from `%s` %s %s limit %i" % (dom.name, pattern, order, skip_now), next_token=next_token, max_items=skip_now)
+        for i, item in enumerate(rs):
+          # I'm not sure why we can't break on the first item, but this seems to be how it works
+          if i > 0:
+            break
+          num_skipped += int(item['Count'])
+        next_token = rs.next_token
+        if next_token == None:
+          # If we got to the end of the possible results then stop
+          if last_page_cb is not None:
+            last_page_cb()
+          return
+
+    # Now we can do the real query, starting from the next token
+    rs = dom.select("select %s from `%s` %s %s limit %i" % (fields, dom.name, pattern, order, page_size), next_token=next_token, max_items=page_size)
+    for item in rs:
+      yield item
+      pos += 1
+    next_token = rs.next_token
+
+    if next_token is not None:
+      self.cache[pattern, fields, page_size, pos] = next_token
+    elif last_page_cb is not None:
+      last_page_cb()
+
 def select_all(dom, pattern=None, fields=['*'], needs_non_null=[], non_null_is_any=False, paginated=None, last_page_callback=None, order=None, order_descending=False):
   """
   Select with commonly used options. Should guarantee finding all matches even
@@ -81,8 +90,8 @@ def select_all(dom, pattern=None, fields=['*'], needs_non_null=[], non_null_is_a
   non_null_is_any: If set then needs_non_null is interpreted to indicate than
     any of the given fields can be non-null. Otherwise all of the given fields
     must be non-null.
-  paginated: Enables pagination and sets the page size and page number to fetch
-    (given as a pair).
+  paginated: Enables pagination and sets the page number and page size to fetch
+    (given as a pair). TODO
   order: Key to sort on. Can only do lexicographical sort because that's what
     SimpleDB gives us.
   order_descending: If set, sort order is descending. Otherwise it is ascending.
@@ -102,7 +111,12 @@ def select_all(dom, pattern=None, fields=['*'], needs_non_null=[], non_null_is_a
   if paginated is None:
     return _select_all(dom, pattern_str, order_str, fields_str)
   else:
-    return _select_paginated(dom, pattern_str, order_str, fields_str, last_page_callback, *paginated)
+    if len(paginated) == 3:
+      paginator, page_num, page_size = paginated
+    else:
+      paginator, page_num = paginated
+      page_size = None
+    return paginator.select(dom, pattern_str, order_str, fields_str, last_page_callback, page_num, page_size)
 
 def get_maybenew_domain(sdb, dom_name, make_new=True, delete_old=False):
   """
