@@ -38,23 +38,27 @@ Starting the backend
 
 The backend stores its settings in another SimpleDB domain, let's say lensingwikipedia-demo-backend-settings. The only settings that don't have defaults are the name of the data domain and clusters domains:
         backend-ctrl --data_domain_name=lensingwikipedia-demo-data --cluster_domain_name=lensingwikipedia-demo-data-clusters lensingwikipedia-demo-backend-settings
-Additionally if you didn't name your clustering "default" then also set clustering_name.
+Additionally if you didn't name your clustering "default" then also set clustering_name. You will also likely want to see fields_to_prime and cluster_detail_levels_to_prime so that caches can be primed in advance (see below).
 
 Once these settings are set, then we can run the backend on this settings domain.
         backend lensingwikipedia-demo-backend-settings
 If you need to change the port, use -p.
 
-Configuring the backend
------------------------
+Backend behaviour and configuration
+-----------------------------------
 
-The backend loads the settings from the settings domain when it starts, and subsequently at the first query it handles after each time a timeout period expires. The timeout period is also loaded as a setting and thus can be changed at runtime.
+The backend loads the settings from the settings domain when it starts, and reloads them each time a timeout period expires. The timeout period is also loaded as a setting and thus can be changed at runtime.
 
 After the settings are loaded, the backend may also reset its query handling and clear all caches (thereby ensuring that any new data in the data domain is reflected in responses to queries). This occurs if one of the following is the case:
 - The name of the data domain has changed.
 - The name of the clustering information domain has changed.
 - The setting reset_always is set to true.
 - The setting reset_next is set to true.
-The distinction between reset_always and reset_next is that the former is a regular setting, while the later is a special flag which the backend reads and then resets to false if it was true. Thus the former indicates that the caches will always be cleared on a settings load, while the later indicates that the caches will be cleared on the next settings load but not on future settings loads unless requested again.
+The distinction between reset_always and reset_next is that the former is a regular setting, while the later is a special flag which the backend reads and then resets to false if it was true. Thus the former indicates that the caches will always be reset on a settings load, while the later indicates that the caches will be reset on the next settings load but not on future settings loads unless requested again.
+
+After clearing the caches the backend primes them with commonly accessed queries. The _to_prime settings control which views are primed.
+
+Settings loading and cache priming are done in a background thread so that the backend can (in the main thread) always respond to queries immediately. The change to new settings and new caches occurs on the first request after both are available and ready to use.
 
 The backend settings are:
 	data_domain_name -- name of the data domain
@@ -67,6 +71,8 @@ The backend settings are:
 	num_initial_description_pages_to_cache -- number of pages of description results for the initial (empty) view to cache
 	pagination_cache_size -- number of SimpleDB next pointers to store for paginated results
 	all_argument_numbers -- list of all role arguments, given to backend-ctrl as a comma-separated list
+	fields_to_prime -- list of all field names to prime the caches with, given to backend-ctrl as a comma-separated list
+	cluster_detail_levels_to_prime -- list of clustering detail levels to prime the caches with, given to backend-ctrl as a comma-separated list
 
 See backend_settings.py for the defaults defaults, which are used if a setting is not set in the settings domain. To unset a setting (and therefore revert to the default), give it an empty value, eg:
 	backend-ctrl --description_page_size= lensingwikipedia-demo-backend-setting
@@ -223,4 +229,8 @@ Pagination directly to SimpleDB is easy, since SimpleDB queries return a next po
 
 We cache all initial (empty constraint) view results. The predicate should_cache() in queries.py determines which views need result caching, so the scope of this caching can be expanded easily if desired.
 
-All caches are cleared at the timeout when the backend reloads its settings, so that if the data changed we get the current version.
+All caches are cleared at the timeout when the backend reloads its settings, so that if the data changed we get the current version. The caches are initially primed by auto-submitting common queries. The queries_to_prime() function in queries.py generates the queries for priming.
+
+Caches are controlled by being isolated in a query handler (Querier in queries.py) object. This allows a complete reset of the query handling state (for resetting caches) by creating a new query handler.
+
+The backend uses a single background thread which handles settings loading, creating new query handlers (to reset the caches), and waits on the timeout between settings loads. This thread sends settings and query handler changes to the main thread through a thread-safe queue.

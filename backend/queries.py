@@ -21,6 +21,7 @@ def discover_year_range(data_dom):
     year_key_digits = len(item['yearKey'])
     min_year = year - int(item['yearKey'])
     return min_year, year_key_digits
+  assert False
 
 class Querier:
   """

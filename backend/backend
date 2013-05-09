@@ -18,6 +18,8 @@ import json
 import time
 import datetime
 import traceback
+import threading
+import Queue
 import boto
 import wsgiref
 import wsgiref.simple_server
@@ -44,31 +46,74 @@ def make_querier(settings):
   querier.description_paginator.cache.set_max_size(settings.pagination_cache_size)
   return querier
 
+def clear_queue(queue):
+  while True:
+    try:
+      x = queue.get_nowait()
+    except Queue.Empty:
+      return
+
+def settings_watcher(exit_event, change_queue):
+  settings = backend_settings.defaults
+  running = True
+
+  while running:
+    change = State()
+
+    print >> sys.stderr, "updating settings"
+    new_settings = backend_settings.Settings(settings)
+    backend_settings.update_settings_from_db(new_settings, backend_settings.defaults, settings_dom)
+    change.settings = new_settings
+
+    if new_settings.data_domain_name != settings.data_domain_name or new_settings.cluster_domain_name != settings.cluster_domain_name or new_settings.reset_always or new_settings.reset_next:
+      if new_settings.reset_next:
+        changed_settings = backend_settings.Settings()
+        changed_settings.reset_next = False
+        backend_settings.update_db_from_settings(settings_dom, changed_settings)
+      print >> sys.stderr, "resetting"
+      querier = make_querier(new_settings)
+      print >> sys.stderr, "priming"
+      querier.prime()
+      print >> sys.stderr, "priming complete"
+      change.querier = querier
+    else:
+      change.querier = None
+
+    if change_queue.full():
+      clear_queue(change_queue)
+    change_queue.put(change)
+
+    settings = new_settings
+    running = not exit_event.wait(settings.settings_timeout)
+
 def serve(hostname, port, sdb, settings_dom):
   state = State()
-  state.settings = backend_settings.Settings(backend_settings.defaults)
-  state.next_settings_update = -sys.maxint - 1
+  state.settings = None
   state.querier = None
+
+  change_queue = Queue.LifoQueue(1)
+  exit_event = threading.Event()
+  change_thread = threading.Thread(target=settings_watcher, args=(exit_event, change_queue))
+  change_queue.daemon = True
+  change_thread.start()
 
   def app(environ, start_response):
     print >> sys.stderr
     print >> sys.stderr, "request at %s" % (str(datetime.datetime.now()))
 
-    if time.time() >= state.next_settings_update:
-      print >> sys.stderr, "updating settings"
-      old_data_dom_name, old_cluster_dom_name = state.settings.data_domain_name, state.settings.cluster_domain_name
-      backend_settings.update_settings_from_db(state.settings, backend_settings.defaults, settings_dom)
-      if state.settings.data_domain_name != old_data_dom_name or state.settings.cluster_domain_name != old_cluster_dom_name or state.settings.reset_always or state.settings.reset_next:
-        print >> sys.stderr, "resetting"
-        state.querier = make_querier(state.settings)
-        print >> sys.stderr, "priming"
-        state.querier.prime()
-        print >> sys.stderr, "priming complete"
-        if state.settings.reset_next:
-          changed_settings = backend_settings.Settings()
-          changed_settings.reset_next = False
-          backend_settings.update_db_from_settings(settings_dom, changed_settings)
-      state.next_settings_update = time.time() + state.settings.settings_timeout
+    need_update = state.settings is None or state.querier is None
+    if not change_queue.empty() or need_update:
+      try:
+        change = change_queue.get(block=need_update)
+        if change.settings is not None:
+          print >> sys.stderr, "using new settings"
+          state.settings = change.settings
+        if change.querier is not None:
+          print >> sys.stderr, "using new querier"
+          state.querier = change.querier
+      except Queue.Empty:
+        # It's ok if there are no changes
+        pass
 
     try:
       if environ['REQUEST_METHOD'] == 'POST':
@@ -97,9 +142,13 @@ def serve(hostname, port, sdb, settings_dom):
     start_response("404 Not Found", [])
     return ["Could not handle query."]
 
-  httpd = wsgiref.simple_server.make_server(hostname, port, app)
-  print >> sys.stderr, "serving"
-  httpd.serve_forever()
+  try:
+    httpd = wsgiref.simple_server.make_server(hostname, port, app)
+    print >> sys.stderr, "serving"
+    httpd.serve_forever()
+  except:
+    exit_event.set()
+    raise
 
 if __name__ == '__main__':
   import getopt
