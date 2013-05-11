@@ -8,37 +8,23 @@ Uploading data
 
 The first step is putting the basic data from the data preparation step into the database. The input is a local data file where each line of the file is a JSON object for a single event.
 
-Let's say that the local data file is called data.json and we want to put it in a SimpleDB domain called lensingwikipedia-demo-data. First we do the upload:
+Let's say that the local data file is called data.json and we want to put it in a SimpleDB domain called lensingwikipedia-demo-data. First we do the main upload:
         upload -d lensingwikipedia-demo-data data.json
 The -d option makes upload delete any existing domain with the name and replace it with the new one.
 
-Events in the database are identified by integers which are the indices in the input data. The intention is that any upload will replace a domain or create a new one. It is possible to change or add to an existing domain using -a (and possibly -i to control the initial index), but this must be done carefully so that the indices match up with what is already in the domain.
+Next we need to assign references points to all events, which we do with the cluster program:
+	cluster lensingwikipedia-demo-data data.json
+
+Events in the database are identified by integers which are the indices in the input data. The intention is that any upload will replace a domain or create a new one. It is possible to change or add to an existing domain using upload -a (and possibly -i to control the initial index), but this must be done carefully so that the indices match up with what is already in the domain. Similarly the indices to the cluster program (also controlled by -i) must match up.
 
 You can remove the data by removing the domain, such as with the removedomain program. Do so with caution.
-
-Clustering
-----------
-
-If we want to use the map view we also need to do clustering. This requires adding fields to the data domain (cluster IDs for each event) and also storing the basic clustering information (ie centre points) in another domain. Let's use lensingwikipedia-demo-data-clusters as the later. We do:
-        cluster -d lensingwikipedia-demo-data lensingwikipedia-demo-data-clusters data.json
-The -d option makes cluster delete any existing cluster information domain with the name and replace it with the new one. It will never delete the data domain. The cluster program can alternatively read events directly from the database instead of a file, but this may be a bad idea. See the program for more information.
-
-Clusterings have names (set with the -c option) so that it is possible to keep more than one clustering in the same domains (the cluster name is used as part of the names of fields added to the data domain, and is a field in the clustering information domain). This may be useful if experimenting with different thresholds or numbers of detail levels on the same data. Clusterings have different detail levels with different clustering thresholds, which you can set with -t. Events can be in more than one cluster (if they have multiple geographic points which go to different clusters).
-
-The cluster program adds to the clustering fields in the data domain, but it doesn't clear them first. Therefore if replacing a clustering without replacing the data, first remove the clustering from the data domain:
-	removeclustering lensingwikipedia-demo-data default 0,1,2,3,4
-Here "default" is the name of the clustering and "0,1,2,3,4" is a list of the detail levels for it. After using removeclustering either remove the whole clustering information domain or run cluster with the -d option when doing the new clustering.
-
-As with the basic data upload, it is possible to add to an existing clustering by using -i to control the initial index, but this must be done carefully so that the indices match. Additionally, remember that the cluster program will add to but not clear the fields in the data domain.
-
-You can remove a clustering by running removeclustering to remove the data domain fields and additionally removing the entire clustering information domain, such as with the removedomain program. Do so with caution.
 
 Starting the backend
 --------------------
 
-The backend stores its settings in another SimpleDB domain, let's say lensingwikipedia-demo-backend-settings. The only settings that don't have defaults are the name of the data domain and clusters domains:
-        backend-ctrl --data_domain_name=lensingwikipedia-demo-data --cluster_domain_name=lensingwikipedia-demo-data-clusters lensingwikipedia-demo-backend-settings
-Additionally if you didn't name your clustering "default" then also set clustering_name. You will also likely want to see fields_to_prime and cluster_detail_levels_to_prime so that caches can be primed in advance (see below).
+The backend stores its settings in another SimpleDB domain, let's say lensingwikipedia-demo-backend-settings. The only setting that doesn't have a default is the name of the data domain:
+        backend-ctrl --data_domain_name=lensingwikipedia-demo-data lensingwikipedia-demo-backend-settings
+You will also likely want to set fields_to_prime so that caches can be primed in advance (see below).
 
 Once these settings are set, then we can run the backend on this settings domain.
         backend lensingwikipedia-demo-backend-settings
@@ -53,7 +39,6 @@ The backend loads the settings from the settings domain when it starts, and relo
 
 After the settings are loaded, the backend may also reset its query handling and clear all caches (thereby ensuring that any new data in the data domain is reflected in responses to queries). This occurs if one of the following is the case:
 - The name of the data domain has changed.
-- The name of the clustering information domain has changed.
 - The setting reset_always is set to true.
 - The setting reset_next is set to true.
 The distinction between reset_always and reset_next is that the former is a regular setting, while the later is a special flag which the backend reads and then resets to false if it was true. Thus the former indicates that the caches will always be reset on a settings load, while the later indicates that the caches will be reset on the next settings load but not on future settings loads unless requested again.
@@ -64,8 +49,6 @@ Settings loading and cache priming are done in a background thread so that the b
 
 The backend settings are:
 	data_domain_name -- name of the data domain
-	cluster_domain_name -- name of the clustering information domain
-	clustering_name -- name of the clustering to use for cluster requests
 	settings_timeout -- timeout between settings reloads, in seconds
 	reset_always -- always clear caches after loading settings
 	reset_next -- clear caches after the next settings load (special flag, see above)
@@ -74,7 +57,6 @@ The backend settings are:
 	pagination_cache_size -- number of SimpleDB next pointers to store for paginated results
 	all_argument_numbers -- list of all role arguments, given to backend-ctrl as a comma-separated list
 	fields_to_prime -- list of all field names to prime the caches with, given to backend-ctrl as a comma-separated list
-	cluster_detail_levels_to_prime -- list of clustering detail levels to prime the caches with, given to backend-ctrl as a comma-separated list
 
 See backend_settings.py for the defaults defaults, which are used if a setting is not set in the settings domain. To unset a setting (and therefore revert to the default), give it an empty value, eg:
 	backend-ctrl --description_page_size= lensingwikipedia-demo-backend-setting
@@ -84,7 +66,7 @@ Testing queries
 ---------------
 
 For testing, we can run a query directly against the database (without the backend, but using the same code):
-        querydb lensingwikipedia-demo-data lensingwikipedia-demo-data-clusters query.json
+        querydb lensingwikipedia-demo-data query.json
 Or we can run a query through the backend:
         querybackend http://localhost:1500 query.json
 
@@ -105,14 +87,10 @@ The principles used in preparing data for the database are:
 - Fields which have compound information (ie are not a simple value or list of simple values) are flatted by packing things into strings or lists of strings.
 - Relevant information from fields with compound information is extracted into flat lists for efficient querying.
 
-Clustering
-----------
+Reference points
+----------------
 
-The clustering is stored across both the main data domain and the clustering information domain. See the cluster program source and queries.py for details.
-
-A field is added to the data domain for each (cluster name, detail level) pair, with the field name being a combination of the two. This field contains the list of IDs for the clusters the event is in, and allows queries to efficiently constrain results to particular clusters.
-
-The clustering information domain stores per-cluster specifics, especially centre points. Other fields allow lookup by name and detail level.
+Reference points are assigned to each event based on the event's geographic coordinates. These are currently produced with a clustering algorithm, but they could also be produced by eg rounding coordinates or snapping to some grid. What constitutes an appropriate choice of reference points is determined by how the frontend uses them. Reference points are longitude-latitude points as strings with the two coordinates separated by a comma.
 
 Queries
 =======
@@ -123,7 +101,7 @@ A query is a JSON object with the following format:
 		"views": /* dictionary of views keyed by ID */
 	}
 
-A response is a dictionary of results keyed by view ID. The value for each ID is the result for the corresponding view. Each result is a JSON structure, with the details depending on the view. Except for the special "mapclustersinfo" view, the results are based only on the events in the database which match all of the constraints.
+A response is a dictionary of results keyed by view ID. The value for each ID is the result for the corresponding view. Each result is a JSON structure, with the details depending on the view. The results are based only on the events in the database which match all of the constraints.
 
 Years are given as integers, where negative indicates BCE and positive indicates CE.
 
@@ -150,10 +128,10 @@ For details see queries.py, especially constraint_to_sdb_query().
 		"high": /* upper bound year (inclusive, and see year format above) */
 	}
 
-### Constrain to events in particular map clusters:
+### Constrain to events in particular reference points:
 	{
-		"type": "mapclusters",
-		"ids": /* list of cluster IDs to match */
+		"type": "referencepoints",
+		"points": /* list of reference points to match */
 	}
 
 Views and results
@@ -171,14 +149,13 @@ result:
 		"counts": /* dictionary of counts keyed by map cluster ID */
 	}
 
-### Get counts of events by map cluster:
+### Get counts of events by map reference point:
 	{
-		"type": "countbymapcluster",
-		"detaillevel": /* detail level to query */
+		"type": "countbymapreferencepoint"
 	}
 result:
 	{
-		"counts": /* dictionary of counts keyed by map cluster ID */
+		"counts": /* dictionary of counts keyed by reference point */
 	}
 
 ### Get counts of events by year:
@@ -206,21 +183,6 @@ where each element corresponds to a particular event and has the format:
 		"descriptionHtml": /* HTML-formatted description */
 	}
 This view is paginated (see above).
-
-### Get information about map clusters:
-	{
-		"type": "mapclustersinfo",
-		"detaillevel": /* optional; detail level to get clusters for, if not given then all clusters at all detail levels are returned */
-	}
-result:
-	/* dictionary keyed by detail level */
-where the value for each detail level value is:
-	/* dictionary keyed by cluster ID */
-and finally the value for each cluster ID is:
-	{
-		"centre": /* two-element list where the first element is longitude and the second is latitude */
-	}
-This is a special view for which the result is independent of any constraints.
 
 Miscellaneous design notes
 ==========================

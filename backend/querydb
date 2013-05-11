@@ -1,16 +1,14 @@
 #!/usr/bin/env python2
 
 """
-Usage: %s [opts] DATA-DOMAIN CLUSTER-DOMAIN [QUERY-FILE]
+Usage: %s [opts] DATA-DOMAIN [QUERY-FILE]
 
 Arguments:
 DATA-DOMAIN     SimpleDB domain containing the data.
-CLUSTER-DOMAIN  SimpleDB domain containing the extra clustering information.
 QUERY-FILE      File to read the query from. Standard input is used if not
   given.
 
 Options:
--c STRING Name of clustering to use.
 -a INTS   List of all predicate argument numbers. Comma separated.
 
 Runs a query from standard input or a file directly against the database.
@@ -27,8 +25,8 @@ if __name__ == '__main__':
   import getopt
 
   try:
-    opts, args = getopt.getopt(sys.argv[1:], "c:")
-    if len(args) not in [2, 3]:
+    opts, args = getopt.getopt(sys.argv[1:], "")
+    if len(args) not in [1, 2]:
       raise getopt.GetoptError("wrong number of positional arguments")
     opts = dict(opts)
   except getopt.GetoptError:
@@ -36,8 +34,6 @@ if __name__ == '__main__':
     sys.exit(1)
 
   data_dom_name = args[0]
-  cluster_dom_name = args[1]
-  clustering_name = opts['-c'] if '-c' in opts else 'default'
   all_arg_nums = [int(an) for an in opts['-a'].split(',')] if '-a' in opts else None
 
   if all_arg_nums is not None:
@@ -45,14 +41,12 @@ if __name__ == '__main__':
 
   sdb = boto.connect_sdb()
   data_dom = sdb.get_domain(data_dom_name)
-  cluster_dom = sdb.get_domain(cluster_dom_name)
-  input = open(args[2]) if len(args) > 2 else sys.stdin
+  input = open(args[1]) if len(args) > 1 else sys.stdin
   query = json.load(input)
   input.close()
 
   query_settings = queries.QuerySettings()
   query_settings.min_year, query_settings.year_key_digits = queries.discover_year_range(data_dom)
-  query_settings.clustering_name = clustering_name
 
-  response = queries.handle_query(query, data_dom, cluster_dom, query_settings)
+  response = queries.handle_query(query, data_dom, query_settings)
   json.dump(response, sys.stdout, sort_keys=True, indent=4)

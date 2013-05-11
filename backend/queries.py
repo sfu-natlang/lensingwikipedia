@@ -46,8 +46,6 @@ class Querier:
     settings.setdefault('min_year', None)
     # Number of digits in a year key (for sorting)
     settings.setdefault('year_key_digits', None)
-    # Name of the clustering to use
-    settings.setdefault('clustering_name', None)
     # Names of fields to prime the cache with
     settings.setdefault('fields_to_prime', [])
 
@@ -102,10 +100,9 @@ class Querier:
       low = dates.year_key(cnstr['low'], self.min_year, self.year_key_digits)
       high = dates.year_key(cnstr['high'], self.min_year, self.year_key_digits)
       return "yearKey >= '%s' and yearKey <= '%s'" % (low, high)
-    elif type == 'mapclusters':
-      detail_level = int(cnstr['detaillevel'])
-      ids = cnstr['ids']
-      return "`mapClustering:%s:%i` in (%s)" % (self.clustering_name, detail_level, ",".join("'%s'" % (i) for i in ids))
+    elif type == 'referencepoints':
+      points = cnstr['points']
+      return "`referencepoints` in (%s)" % (",".join("'%s'" % (p) for p in points))
     else:
       raise ValueError("unknown constraint type \"%s\"" % (type))
 
@@ -168,7 +165,7 @@ class Querier:
       elif type == 'countbyreferencepoint':
         field_count_views[view_id] = {
           'type': 'countbyfield',
-          'field': 'referencePoints'
+          'field': 'referencepoints'
         }
       elif type == 'countbyyear':
         field_count_views[view_id] = {

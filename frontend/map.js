@@ -100,72 +100,85 @@ function drawWorld(svg, group, worldData, projection) {
 	return path;
 }
 
-function drawClusters(svg, group, proj, clusters, initialCounts, contextCounts) {
-	var maxCount = 0;
-	for (var i = 0; i < clusters.length; i++) {
-		var cluster = clusters[i];
-		cluster.initialCount = initialCounts[cluster.id] || 0;
-		cluster.contextCount = contextCounts[cluster.id] || 0;
-		if (cluster.initialCount > maxCount)
-			maxCount = cluster.initialCount;
-		if (cluster.contextCount > maxCount)
-			maxCount = cluster.contextCount;
+function uniqClassForMarker(pointStr) {
+	return "p" + pointStr.replace(/[.,]/g, '_');
+}
+
+function drawMarkers(svg, group, proj, initialCounts, contextCounts) {
+	var points = {};
+	var allCounts = [initialCounts, contextCounts];
+	for (var i = 0; i < allCounts.length; i++) {
+		var counts = allCounts[i];
+		for (var pointStr in counts)
+			points[pointStr] = pointStr.split(",");
 	}
 
+	var maxCount = 0;
+	for (var pointStr in points) {
+		if (initialCounts[pointStr] > maxCount)
+			maxCount = initialCounts[pointStr];
+		if (contextCounts[pointStr] > maxCount)
+			maxCount = contextCounts[pointStr];
+	}
+
+	var toDraw = [];
+	var screenPoints = {};
 	var path = d3.geo.path().projection(proj);
-	var toDraw = clusters.filter(function (cluster) {
-		// We use a path to determine visibility, since the projection function can't determine if a point shouldn't be draw (eg in a orthographic projection)
-		var screenCentre = path({ type: "Point", coordinates: cluster.centre });
-		if (screenCentre != undefined) {
-			cluster.screenCentre = proj(cluster.centre);
-			return true;
-		} else
-			return false;
-	});
+	for (var pointStr in points) {
+		var point = points[pointStr];
+		var screenPoint = path({ type: "Point", coordinates: point });
+		if (screenPoint != undefined) {
+			toDraw.push(pointStr);
+			screenPoints[pointStr] = proj(point);
+		}
+	}
 
 	// Custom events to communicate clicks
-	function triggerDown(cluster) {
-		$(svg).trigger('clickclusterdown', [cluster]);
+	function triggerDown(pointStr) {
+		$(svg).trigger('clickmarkerdown', [pointStr]);
 	}
-	function triggerUp(cluster) {
-		$(svg).trigger('clickclusterup', [cluster]);
+	function triggerUp(pointStr) {
+		$(svg).trigger('clickmarkerup', [pointStr]);
 	}
 
 	var countScale = 10.81;
-	group.selectAll("cluster")
+	group.selectAll("marker")
 		.data(toDraw)
 		.enter()
 		.append("circle")
-		.attr("cx", function(c) { return c.screenCentre[0]; })
-		.attr("cy", function(c) { return c.screenCentre[1]; })
-		.attr("r", function(c) { return Math.sqrt(c.initialCount * countScale * proj.scale() / maxCount); })
-		.attr("class", function(c) { return "cluster initial id" + c.id + (c.selected ? " selected" : ""); })
+		.attr("cx", function(p) { return screenPoints[p][0]; })
+		.attr("cy", function(p) { return screenPoints[p][1]; })
+		.attr("r", function(p) { return initialCounts.hasOwnProperty(p) ? Math.sqrt(initialCounts[p] * countScale * proj.scale() / maxCount) : 0; })
+		.attr("class", function(p) { return "marker initial " + uniqClassForMarker(p); })
 		.on('mousedown', triggerDown)
 		.on('mouseup', triggerUp);
-	group.selectAll("cluster")
+	group.selectAll("marker")
 		.data(toDraw)
 		.enter()
 		.append("circle")
-		.attr("cx", function(c) { return c.screenCentre[0]; })
-		.attr("cy", function(c) { return c.screenCentre[1]; })
-		.attr("r", function(c) { return Math.sqrt(c.contextCount * countScale * proj.scale() / maxCount); })
-		.attr("class", function(c) { return "cluster context id" + c.id + (c.selected ? " selected" : ""); })
+		.attr("cx", function(p) { return screenPoints[p][0]; })
+		.attr("cy", function(p) { return screenPoints[p][1]; })
+		.attr("r", function(p) { return contextCounts.hasOwnProperty(p) ? Math.sqrt(contextCounts[p] * countScale * proj.scale() / maxCount) : 0; })
+		.attr("class", function(p) { return "marker context " + uniqClassForMarker(p); })
 		.on('mousedown', triggerDown)
 		.on('mouseup', triggerUp);
-	group.selectAll("clustercount")
+	group.selectAll("markercount")
 		.data(toDraw)
 		.enter()
 		.append("text")
-		.attr("x", function(c) { return c.screenCentre[0]; })
-		.attr("y", function(c) { return c.screenCentre[1]; })
+		.attr("x", function(p) { return screenPoints[p][0]; })
+		.attr("y", function(p) { return screenPoints[p][1]; })
 		.attr("dy", "0.35em")
 		.attr("text-anchor", 'middle')
-		.text(function (c) { return c.contextCount > 0 ? c.contextCount : ""; })
-		.attr("class", function (c) { return "cluster counttext id" + c.id; })
+		.text(function (p) { return contextCounts[p] > 0 ? contextCounts[p] : ""; })
+		.attr("class", function(p) { return "marker counttext " + uniqClassForMarker(p); })
 		.on('mousedown', triggerDown)
 		.on('mouseup', triggerUp);
 
-	return path;
+	return {
+		path: path,
+		screenPoints: screenPoints
+	}
 }
 
 function makeMapControls(container, projections, minZoom, maxZoom, defaults) {
@@ -173,6 +186,8 @@ function makeMapControls(container, projections, minZoom, maxZoom, defaults) {
 		<div class=\"selbox\"> \
 			<button type=\"button\" class=\"btn btn-mini btn-warning clear\" title=\"Clear the map selection.\">Clear selection</button> \
 			<div class=\"btn-group mode\" data-toggle=\"buttons-radio\"></div> \
+		</div> \
+		<div class=\"viewbox\"> \
 			<div class=\"btn-group zoomcontrols\"> \
 				<button class=\"btn btn-mini zoomout\" title=\"Zoom out.\">-</button> \
 				<a class=\"btn btn-mini dropdown-toggle zoomlevelbtn\" data-toggle=\"dropdown\" href=\"#\"><span class=\"value\"></span><span class=\"caret\"></span></a> \
@@ -181,8 +196,6 @@ function makeMapControls(container, projections, minZoom, maxZoom, defaults) {
 				</div> \
 				<button class=\"btn btn-mini zoomin\" title=\"Zoom in.\">+</button> \
 			</div> \
-		</div> \
-		<div class=\"viewbox\"> \
 			<button type=\"button\" class=\"btn btn-mini centreview\" title=\"Re-centre the view.\">Centre</button> \
 			<div class=\"btn-group\"> \
 				<a class=\"btn btn-mini dropdown-toggle view\" data-toggle=\"dropdown\" href=\"#\" title=\"View settings.\">View<span class=\"caret\"></span></a> \
@@ -196,8 +209,8 @@ function makeMapControls(container, projections, minZoom, maxZoom, defaults) {
 
 	var modeElt = container.find(".selbox .mode");
 	var inputModes = {
-		toggle: { title: "Toggle", desc: "Input mode to toggle selection on individual clusters." },
-		drag: { title: "Drag", desc: "Input mode to drag-select clusters." },
+		toggle: { title: "Toggle", desc: "Input mode to toggle selection on individual markers." },
+		drag: { title: "Drag", desc: "Input mode to drag-select markers." },
 		pan: { title: "Pan", desc: "Input mode to pan the view without changing the selection." }
 	};
 	$.each(inputModes, function (key, value) {
@@ -341,17 +354,8 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 	globalQuery.addConstraint(constraint);
 	ownCnstrQuery.addConstraint(constraint);
 	var contextQuery = new Query(globalQuery.backendUrl(), 'setminus', globalQuery, ownCnstrQuery);
-	var clusterInfoQuery = new Query(globalQuery.backendUrl());
-
-	var initialWatcher = new ResultWatcher(function () {});
-	initialQuery.addResultWatcher(initialWatcher);
-	var contextWatcher = new ResultWatcher(function () {});
-	contextQuery.addResultWatcher(contextWatcher);
-	var clusterInfoWatcher = new ResultWatcher(function () {});
-	clusterInfoQuery.addResultWatcher(clusterInfoWatcher);
 
 	var mapData = null,
-	    clustersInfo = null,
 	    initialCounts = null,
 	    contextCounts = null,
 	    projection = null,
@@ -361,9 +365,61 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 	var curState = null,
 	    curProj = null,
 	    panFactor = 1.0;
-	var selMode = null;
+	var selMode = null,
+	    allPointStrs = {};
+	var selection = {};
+
+	var clearElt = topBoxElt.find(".clear");
+	var lastSelection = {};
+	function updateSelection(dontChangeConstraint) {
+		if (initialCounts != null && contextCounts != null) {
+			if (curState.markersPath == null)
+				update();
+
+			var newSelection = {};
+			var allCounts = [initialCounts, contextCounts];
+			for (var pointStr in allPointStrs) {
+				if (!newSelection.hasOwnProperty(pointStr) && selection[pointStr] != lastSelection[pointStr])
+					svg.selectAll(".marker." + uniqClassForMarker(pointStr)).classed("selected", selection[pointStr]);
+				newSelection[pointStr] = selection[pointStr];
+			}
+			lastSelection = newSelection;
+
+			var selPointStrs = [];
+			for (var pointStr in selection)
+				if (selection[pointStr])
+						selPointStrs.push(pointStr);
+
+			if (selPointStrs.length > 0)
+				clearElt.removeAttr('disabled');
+			else
+				clearElt.attr('disabled', 'disabled');
+
+			if (!dontChangeConstraint) {
+				if (selPointStrs.length > 0) {
+					constraint.name("Map: " + selPointStrs.length + (selPointStrs.length == 1 ? " marker" : " markers"));
+					constraint.set({
+						type: 'referencepoints',
+						points: selPointStrs
+					});
+				} else
+					constraint.clear();
+				globalQuery.update();
+			}
+		}
+	}
+	function selectAll(value) {
+		if (initialCounts != null && contextCounts != null) {
+			for (var pointStr in initialCounts)
+				selection[pointStr] = value;
+			for (var pointStr in contextCounts)
+				selection[pointStr] = value;
+		}
+	}
+	clearElt.attr('disabled', 'disabled');
+
 	function update(quick) {
-		if (mapData == null || clustersInfo == null || initialCounts == null || contextCounts == null || projection == null || zoomLevel == null || viewChoices == null || pan == null) {
+		if (mapData == null || initialCounts == null || contextCounts == null || projection == null || zoomLevel == null || viewChoices == null || pan == null) {
 			svgElt.css('display', 'none');
 			loadingElt.css('display', '');
 		} else {
@@ -402,54 +458,19 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 				$.each(viewChoices, function (setting, choice) {
 					svg.select("." + setting).style('display', choice ? '' : 'none');
 				});
-				svgElt.find(".cluster").remove();
-				curState.clustersPath = drawClusters(svg, curState.group, curProj, clustersInfo, initialCounts, contextCounts);
+				svgElt.find(".marker").remove();
+				var ret = drawMarkers(svg, curState.group, curProj, initialCounts, contextCounts);
+				curState.markersPath = ret.path;
+				curState.screenPoints = ret.screenPoints;
 			}
+			lastSelection = {};
+			updateSelection(true);
 		}
 	}
 	function resetProjection() {
 		pan = [0, 0];
 		curProj = null;
 	}
-
-	var clearElt = topBoxElt.find(".clear");
-	function updateSelection() {
-		if (clustersInfo != null) {
-			if (curState.clustersPath == null)
-				update();
-			for (var i = 0; i < clustersInfo.length; i++) {
-				var cluster = clustersInfo[i];
-				if (cluster.selected != cluster.lastSelected) {
-					svg.selectAll(".cluster.id" + cluster.id).classed("selected", cluster.selected);
-				}
-				cluster.lastSelected = cluster.selected;
-			}
-
-			var ids = [];
-			for (var i = 0; i < clustersInfo.length; i++)
-				if (clustersInfo[i].selected)
-					ids.push(clustersInfo[i].id);
-			if (ids.length > 0) {
-				constraint.name("Map: " + ids.length + (ids.length == 1 ? " cluster" : " clusters") + " at detail level " + zoomLevel);
-				constraint.set({
-					type: 'mapclusters',
-					detaillevel: zoomLevel - 1,
-					ids: ids
-				});
-				clearElt.removeAttr('disabled');
-			} else {
-				constraint.clear();
-				clearElt.attr('disabled', 'disabled');
-			}
-			globalQuery.update();
-		}
-	}
-	function selectAll(value) {
-		if (clustersInfo != null)
-			for (var i = 0; i < clustersInfo.length; i++)
-				clustersInfo[i].selected = value;
-	}
-	clearElt.attr('disabled', 'disabled');
 
 	d3.json("map.json", function(error, incoming) {
 		mapData = incoming;
@@ -463,31 +484,10 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 	topBoxElt.find(".selbox .mode button").bind('click', function () {
 		selMode = $(this).val();
 	});
-	topBoxElt.find(".selbox .zoomlevel button").bind('click', function () {
+	topBoxElt.find(".viewbox .zoomlevel button").bind('click', function () {
 		var zoom = +$(this).val();
 		if (zoom != zoomLevel) {
 			zoomLevel = zoom;
-			clusterInfoWatcher.set({
-				clusters: {
-					type: 'mapclustersinfo',
-					detaillevel: zoomLevel - 1
-				}
-			});
-			initialWatcher.set({
-				counts: {
-					type: 'countbymapcluster',
-					detaillevel: zoomLevel - 1
-				}
-			});
-			contextWatcher.set({
-				counts: {
-					type: 'countbymapcluster',
-					detaillevel: zoomLevel - 1
-				}
-			});
-			clusterInfoQuery.update();
-			selectAll(false);
-			updateSelection();
 			update();
 		}
 	});
@@ -511,34 +511,33 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 	});
 
 	var drag = d3.behavior.drag();
-	var mouseDownOnCluster = false;
+	var mouseDownOnMarker = false;
 	pan = [0, 0];
-	$(svg).bind('clickclusterdown', function (event, cluster) {
+	$(svg).bind('clickmarkerdown', function (event, pointStr) {
 		if (d3.event.button == 0)
-			mouseDownOnCluster = true;
+			mouseDownOnMarker = true;
 	});
-	$(svg).bind('clickclusterup', function (event, cluster) {
-		if (mouseDownOnCluster && selMode == 'toggle') {
-			cluster.selected = !(cluster.selected == true);
+	$(svg).bind('clickmarkerup', function (event, pointStr) {
+		if (mouseDownOnMarker && selMode == 'toggle') {
+			selection[pointStr] = !(selection[pointStr] == true);
 			updateSelection();
 		}
 	});
 	makeDragEndWatcher(drag, function () {
-		mouseDownOnCluster = false;
+		mouseDownOnMarker = false;
 	});
 	makeDragPan(drag, function (movement) {
 		pan = movement;
 		update(true);
 	}, function () { return [pan[0], pan[1]]; }, function () { return panFactor; }, function () {
-		return (selMode == 'toggle' && !mouseDownOnCluster) || selMode == 'pan';
+		return (selMode == 'toggle' && !mouseDownOnMarker) || selMode == 'pan';
 	});
 	makeDragSelector(drag, svg, "dragselectextent", function (extent) {
-		for (var i = 0; i < clustersInfo.length; i++) {
-			var cluster = clustersInfo[i];
-			if (cluster.screenCentre != null) {
-				var x = cluster.screenCentre[0], y = cluster.screenCentre[1];
+		for (var pointStr in allPointStrs) {
+			if (curState.screenPoints != null) {
+				var x = curState.screenPoints[pointStr][0], y = curState.screenPoints[pointStr][1];
 				if (x >= extent[0][0] && y >= extent[0][1] && x <= extent[1][0] && y <= extent[1][1])
-					cluster.selected = true;
+					selection[pointStr] = true;
 			}
 		}
 		updateSelection();
@@ -550,33 +549,34 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 	constraint.onChange(function (changeType) {
 		if (changeType == 'removed') {
 			selectAll(false);
-			update();
+			updateSelection(true);
 		}
-	});
-	clusterInfoWatcher.setCallback(function (result) {
-		var zoomResult = result.clusters[zoomLevel - 1];
-		var clusters = [];
-		for (var id in zoomResult) {
-			var cluster = zoomResult[id];
-			cluster.id = id;
-			clusters.push(cluster);
-		}
-		clustersInfo = clusters;
-		update();
 	});
 	initialQuery.onChange(function () {
 		initialCounts = null;
 		update();
 	});
-	initialWatcher.setCallback(function (result) {
+	initialQuery.onResult({
+		counts: {
+			type: 'countbyreferencepoint'
+		}
+	}, function (result) {
 		initialCounts = result.counts.counts;
+		for (var pointStr in initialCounts)
+			allPointStrs[pointStr] = true;
 		update();
 	});
 	contextQuery.onChange(function () {
 		contextCounts = null;
+		for (var pointStr in contextCounts)
+			allPointStrs[pointStr] = true;
 		update();
 	});
-	contextWatcher.setCallback(function (result) {
+	contextQuery.onResult({
+		counts: {
+			type: 'countbyreferencepoint'
+		}
+	}, function (result) {
 		contextCounts = result.counts.counts;
 		update();
 	});

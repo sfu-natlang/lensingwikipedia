@@ -38,7 +38,6 @@ def make_querier(settings):
     description_page_size = settings.description_page_size,
     num_initial_description_pages_to_cache = settings.num_initial_description_pages_to_cache,
     all_argument_numbers = settings.all_argument_numbers,
-    clustering_name = settings.clustering_name,
     fields_to_prime = settings.fields_to_prime
   )
   querier.description_paginator.cache.set_max_size(settings.pagination_cache_size)

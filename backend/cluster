@@ -1,13 +1,12 @@
 #!/usr/bin/env python2
 
 """
-Usage: %s [opts] DATA-DOMAIN CLUSTER-DOMAIN [DATA-FILE]
+Usage: %s [opts] DATA-DOMAIN [DATA-FILE]
 
 Arguments:
 DATA-DOMAIN     SimpleDB domain with the data to cluster.
-CLUSTER-DOMAIN  SimpleDB domain for extra cluster information.
-DATA-FILE       Local file to read data from. Ignored if -d is given. Standard
-  input is used if neither are given.
+DATA-FILE       Local file to read data from. Standard input is used if not
+  given.
 
 Options:
   -i INT    Event ID offset.
@@ -15,27 +14,8 @@ Options:
   -D        Do dummy clustering; find cluster sizes and centres but don't
     upload to the database.
 
-TODO
-
-Clusters events and assigns the events to the clusters in the database. Each
-clustering (assignment of events to clusters) has a name which is used as part
-of the database field names. Each clustering has one or more detail levels, for
-which different distance thresholds can be set here. The detail levels are
-numbered 0 through whatever number of thresholds is given.
-
-By default events are read from standard input or a file. When using this
-method, make sure that the input data is exactly the same that was uploaded
-(including order). Otherwise the wrong events may be assigned in the database.
-
-Alternatively, events can be read from database. This method doesn't require
-local data and removes the possibility of assigning to the wrong events, but it
-requires much more overhead in bandwidth and database activity.
-
-Note that since the clustering algorithm is greedy and the database does not
-return events in any specific order, you may get different clustering results
-depending on which method you use. Additionally the database may have lower
-precision on the coordinates than local data, but this can be corrected by
-using the -p option.
+Creates reference points for events by clustering them in geographic spherical
+coordinates. The clustering is greedy and sensitive to input order.
 """
 
 import sys
@@ -49,6 +29,10 @@ class Cluster:
     self.count = 0
 
 def geo_cluster(events, threshold, assign_event_to_clusters):
+  """
+  Raviish clustering on geographic (spherical coordinate) points.
+  """
+
   from math import atan2, sqrt, sin, cos, pi
   deg_to_rad = pi / 180.0
 
@@ -131,7 +115,7 @@ def update_clustering(data_dom, threshold, iter_events, do_dummy):
     print >> sys.stderr, "event %i: %s" % (event_id, ' '.join(point_vals))
     if not do_dummy:
       item = data_dom.get_item(event_id)
-      item['referencePoints'] = point_vals
+      item['referencepoints'] = point_vals
       item.save()
   clusters = geo_cluster(iter_events, threshold, assign_event_to_clusters)
   for i, cluster in enumerate(clusters):

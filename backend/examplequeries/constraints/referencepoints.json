@@ -1,9 +1,8 @@
 {
 	"constraints": {
 		"0": {
-			"type": "mapclusters",
-			"detaillevel": 1,
-			"ids": [3, 10, 5]
+			"type": "referencepoints",
+			"points": ["-76.284346,38.235554", "33.700000,-13.950000"]
 		}
 	},
 	"views": {
