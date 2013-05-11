@@ -4,7 +4,7 @@ minMapZoom = 1;
 maxMapZoom = 5;
 facets = {
 	"role": "Role (any arg)",
-	"roleA0": "Role (arg 0)",
-	"roleA1": "Role (arg 1)",
+	"personText": "Person",
+	"currentCountryText": "Current country",
 	"locationText": "Location"
 };

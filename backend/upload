@@ -62,6 +62,11 @@ def make_location_list(event):
   other_locs = set(event['locations']) if 'locations' in event else set()
   return list(wiki_locs | other_locs)
 
+def make_country_list(event):
+  wiki_countries = set(ii['country'] for it, ii in event['wiki_info'].iteritems() if 'country' in ii)
+  other_countries = set(ii['country'] for it, ii in event['locations'].iteritems() if 'country' in ii)
+  return list(wiki_countries | other_countries)
+
 def format_location(item):
   item_text, item_info = item
   i, j = item_info.get('span') or ['.', '.']
@@ -75,6 +80,10 @@ def format_wiki_info_item(item):
   latitude = str(item_info['latitude']) if 'latitude' in item_info else '.'
   longitude = str(item_info['longitude']) if 'longitude' in item_info else '.'
   return "%s %s %s %i %i %s" % (item_info['url'], latitude, longitude, i, j, item_text)
+
+def format_person(item):
+  item_text, span = item
+  return "%i %i %s" % (span[0], span[1], item_text)
 
 def clip_html(html, max_len):
   """
@@ -105,10 +114,14 @@ def prepare_event(event, min_year, year_key_digits):
   Modifies an event for uploading.
   """
   event['locationText'] = make_location_list(event)
+  event['currentCountryText'] = make_country_list(event)
   event['descriptionHtml'] = make_html_description(event)
   if 'locations' in event:
     event['locations'] = [format_location(p) for p in event['locations'].iteritems()]
   event['wiki_info'] = [format_wiki_info_item(p) for p in event['wiki_info'].iteritems()]
+  if 'person' in event:
+    event['personText'] = event['person'].keys()
+    event['person'] = [format_person(p) for p in event['person'].iteritems()]
   clip_field(event, 'description')
   clip_field(event, 'descriptionTokenized')
   clip_field(event, 'descriptionHtml', html=True)
