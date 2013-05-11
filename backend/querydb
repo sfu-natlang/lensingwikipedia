@@ -13,12 +13,13 @@ Options:
 
 Runs a query from standard input or a file directly against the database.
 Doesn't need the backend, but should produce the same result that the
-backend would produce.
+backend would produce (with some settings at defaults).
 """
 
 import sys
 import json
 import boto
+import sdbutils
 import queries
 
 if __name__ == '__main__':
@@ -40,13 +41,14 @@ if __name__ == '__main__':
     queries.all_argument_numbers = all_arg_nums
 
   sdb = boto.connect_sdb()
-  data_dom = sdb.get_domain(data_dom_name)
   input = open(args[1]) if len(args) > 1 else sys.stdin
   query = json.load(input)
   input.close()
 
-  query_settings = queries.QuerySettings()
-  query_settings.min_year, query_settings.year_key_digits = queries.discover_year_range(data_dom)
+  querier = queries.Querier(
+    data_dom = sdbutils.get_maybenew_domain(sdb, data_dom_name, make_new=False),
+    all_argument_numbers = all_arg_nums
+  )
 
-  response = queries.handle_query(query, data_dom, query_settings)
+  response = querier.handle(query)
   json.dump(response, sys.stdout, sort_keys=True, indent=4)
