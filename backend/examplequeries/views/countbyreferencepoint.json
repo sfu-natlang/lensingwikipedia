@@ -3,8 +3,7 @@
 	},
 	"views": {
 		"0": {
-			"type": "countbymapcluster",
-			"detaillevel": 1
+			"type": "countbyreferencepoint"
 		}
 	}
 }

@@ -10,18 +10,12 @@ DATA-FILE       Local file to read data from. Ignored if -d is given. Standard
   input is used if neither are given.
 
 Options:
-  -b        Use database instead of local input.
-  -d        Delete and replace the existing cluster information domain, if there
-    is one. The data domain is never deleted here.
   -i INT    Event ID offset.
-  -c STRING Name of clustering to set (will be used as part of database field
-    names).
-  -t FLOATS List of thresholds for each detail level in increasing order of
-    detail. Comma separated.
-  -p INT    Number of digits after the decimal place to use for points when
-    clustering. The database may store coordinates at lower precision than the
-    input file, so set this at or below the database precision for consistency
-    if planning to cluster from the input data and the database.
+  -t FLOAT  Distance threshold for choosing when to start new clusters.
+  -D        Do dummy clustering; find cluster sizes and centres but don't
+    upload to the database.
+
+TODO
 
 Clusters events and assigns the events to the clusters in the database. Each
 clustering (assignment of events to clusters) has a name which is used as part
@@ -48,64 +42,107 @@ import sys
 import ioutils
 import boto
 import sdbutils
-import clustering
 
-default_thresholds = [0.25, 0.2, 0.15, 0.1, 0.05]
+class Cluster:
+  def __init__(self):
+    self.centre = [0.0, 0.0]
+    self.count = 0
 
-def iter_events_from_file(path, first_id, point_digits):
+def geo_cluster(events, threshold, assign_event_to_clusters):
+  from math import atan2, sqrt, sin, cos, pi
+  deg_to_rad = pi / 180.0
+
+  def dist(a, b):
+    # Vincenty formula, following the d3 implementation.
+    dl = (b[0] - a[0]) * deg_to_rad
+    p0, p1 = a[1] * deg_to_rad, b[1] * deg_to_rad
+    sin_dl, cos_dl = sin(dl), cos(dl)
+    sin_p0, cos_p0 = sin(p0), cos(p0)
+    sin_p1, cos_p1 = sin(p1), cos(p1)
+    return atan2(sqrt((cos_p1 * sin_dl)**2 + (cos_p0 * sin_p1 - sin_p0 * cos_p1 * cos_dl)**2), sin_p0 * sin_p1 + cos_p0 * cos_p1 * cos_dl)
+
+  def updateAvgGeoPoint(avg, sample, count):
+    """
+    Update a running average of geo points, compensating for the fact that they
+    may wrap around the antimeridian.
+    """
+    if count > 0:
+      lon_changes = [0.0, 360.0, -360.0]
+      lon = sample[0] + min(lon_changes, key=lambda dl: abs(sample[0] + dl - avg[0]))
+      sample = (lon, sample[1])
+      for i in range(2):
+        avg[i] = (avg[i] * (count - 1) + sample[i]) / count
+    else:
+      for i in range(2):
+        avg[i] = sample[i]
+    if avg[0] > 180:
+      avg[0] -= 360.0
+    elif avg[0] < -1280:
+      avg[0] += 360.0
+
+  clusters = []
+  event_clusters = {}
+
+  for i, (event, points) in enumerate(events):
+    print >> sys.stderr, "clustering event number %i" % (i)
+
+    for point in points:
+      closest = None
+      closest_dist = float('inf')
+      for cluster in clusters:
+        cluster_dist = dist(point, cluster.centre)
+        if cluster_dist < closest_dist:
+          closest = cluster
+          closest_dist = cluster_dist
+
+      if closest_dist > threshold:
+        closest = Cluster()
+        clusters.append(closest)
+
+      event_clusters.setdefault(event, set())
+      if closest not in event_clusters[event]:
+        event_clusters[event].add(closest)
+        closest.count += 1
+      updateAvgGeoPoint(closest.centre, point, closest.count)
+
+  for event, clusters_for_event in event_clusters.iteritems():
+    assign_event_to_clusters(event, clusters_for_event)
+
+  return clusters
+
+def iter_events_from_file(input, first_id):
   def get_points(event):
     def points_from(items):
-      return set((i['latitude'], i['longitude']) for i in items.itervalues() if 'latitude' in i and 'longitude' in i)
+      return set((float(i['longitude']), float(i['latitude'])) for i in items.itervalues() if 'latitude' in i and 'longitude' in i)
     points = points_from(event['wiki_info'])
     if 'locations' in event:
       points |= points_from(event['locations'])
-    return tuple((round(float(lon), point_digits), round(float(lat), point_digits)) for (lat, lon) in points)
+    return points
   import json
-  with open(path) as file:
-    for id, line in enumerate(file):
-      event = json.loads(line)
-      points = get_points(event)
-      if len(points) > 0:
-        yield id, points
+  for id, line in enumerate(input):
+    event = json.loads(line)
+    points = get_points(event)
+    if len(points) > 0:
+      yield id, points
 
-def iter_events_from_db(data_dom, point_digits):
-  def point_set(item, field, i, j):
-    if field in item:
-      values = item[field]
-      if values.__class__ != list:
-        values = [values]
-      return set((float(p[i]), float(p[j])) for l in values for p in [l.split()] if p[i] != '.' and p[j] != '.')
-    else:
-      return set()
-      print 'location points', item.name, points
-      return points
-  for item in sdbutils.select_all(data_dom, None, ['wiki_info', 'locations']):
-    points = point_set(item, 'wiki_info', 1, 2) | point_set(item, 'locations', 0, 1)
-    yield item.name, points
-
-def update_clustering(clustering_name, data_dom, cluster_dom, thresholds, iter_events):
-  def add_event_to_cluster(id, cluster_id, detail):
-    item = data_dom.get_item(id)
-    item.add_value('mapClustering:%s:%i' % (clustering_name, detail), cluster_id)
-    item.save()
-  nextCluster = [0]
-  def set_cluster_info(detail_level, cluster_id, cluster_centre):
-    cluster_dom.put_attributes("%s%i" % (clustering_name, nextCluster[0]), {
-      'clustering': clustering_name,
-      'detaillevel': detail_level,
-      'id': cluster_id,
-      'latitude': cluster_centre[1],
-      'longitude': cluster_centre[0]
-    })
-    nextCluster[0] += 1
-  all_centres = clustering.geo_cluster(iter_events, thresholds, add_event_to_cluster, set_cluster_info)
+def update_clustering(data_dom, threshold, iter_events, do_dummy):
+  def assign_event_to_clusters(event_id, clusters):
+    point_vals = ["%f,%f" % (c.centre[0], c.centre[1]) for c in clusters]
+    print >> sys.stderr, "event %i: %s" % (event_id, ' '.join(point_vals))
+    if not do_dummy:
+      item = data_dom.get_item(event_id)
+      item['referencePoints'] = point_vals
+      item.save()
+  clusters = geo_cluster(iter_events, threshold, assign_event_to_clusters)
+  for i, cluster in enumerate(clusters):
+    print >> sys.stderr, "cluster %i: %f,%f %i" % (i, cluster.centre[0], cluster.centre[1], cluster.count)
 
 if __name__ == '__main__':
   import getopt
 
   try:
-    opts, args = getopt.getopt(sys.argv[1:], "i:dbc:t:")
-    if len(args) not in [2, 3]:
+    opts, args = getopt.getopt(sys.argv[1:], "i:t:D")
+    if len(args) not in [1, 2]:
       raise getopt.GetoptError("wrong number of positional arguments")
     opts = dict(opts)
   except getopt.GetoptError:
@@ -113,24 +150,18 @@ if __name__ == '__main__':
     sys.exit(1)
 
   data_domain_name = args[0]
-  cluster_domain_name = args[1]
-  input_path = args[2] if len(args) > 2 else None
-  thresholds = dict((i, float(t)) for i, t in enumerate(opts['-t'].split(',') if '-t' in opts else default_thresholds))
+  input_path = args[1] if len(args) > 1 else None
+  threshold = float(opts['-t']) if '-t' in opts else 0.25
   first_id = int(opts['-i']) if '-i' in opts else 0
-  point_digits = int(opts['-p']) if '-p' in opts else 6
-  clustering_name = opts['-c'] if '-c' in opts else 'default'
-  do_delete = '-d' in opts
-  use_database = '-b' in opts
+  do_dummy = '-D' in opts
 
   sdb = boto.connect_sdb()
   data_dom = sdbutils.get_maybenew_domain(sdb, data_domain_name, make_new=False)
-  cluster_dom = sdbutils.get_maybenew_domain(sdb, cluster_domain_name, make_new=True, delete_old=do_delete)
 
-  if use_database:
-    update_clustering(clustering_name, data_dom, cluster_dom, thresholds, lambda: iter_events_from_db(data_dom, point_digits))
-  elif input_path is None:
-    # If reading from standard input then we save to a temp file so avoid keeping all the data in memory at once
-    with ioutils.cache_input(sys.stdin) as cached_input_path:
-      update_clustering(clustering_name, data_dom, cluster_dom, thresholds, lambda: iter_events_from_file(cached_input_path, first_id, point_digits))
+  if input_path is not None:
+    with open(input_path) as input:
+      iter_events = iter_events_from_file(input, first_id)
+      update_clustering(data_dom, threshold, iter_events, do_dummy)
   else:
-    update_clustering(clustering_name, data_dom, cluster_dom, thresholds, lambda: iter_events_from_file(input_path, first_id, point_digits))
+    iter_events = iter_events_from_file(sys.stdin, first_id)
+    update_clustering(data_dom, threshold, iter_events, do_dummy)

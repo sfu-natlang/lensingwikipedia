@@ -35,13 +35,11 @@ class State:
 def make_querier(settings):
   querier = queries.Querier(
     data_dom = sdbutils.get_maybenew_domain(sdb, settings.data_domain_name),
-    cluster_dom = sdbutils.get_maybenew_domain(sdb, settings.cluster_domain_name),
     description_page_size = settings.description_page_size,
     num_initial_description_pages_to_cache = settings.num_initial_description_pages_to_cache,
     all_argument_numbers = settings.all_argument_numbers,
     clustering_name = settings.clustering_name,
-    fields_to_prime = settings.fields_to_prime,
-    cluster_detail_levels_to_prime = settings.cluster_detail_levels_to_prime
+    fields_to_prime = settings.fields_to_prime
   )
   querier.description_paginator.cache.set_max_size(settings.pagination_cache_size)
   return querier
@@ -65,7 +63,7 @@ def settings_watcher(exit_event, change_queue):
     backend_settings.update_settings_from_db(new_settings, backend_settings.defaults, settings_dom)
     change.settings = new_settings
 
-    if new_settings.data_domain_name != settings.data_domain_name or new_settings.cluster_domain_name != settings.cluster_domain_name or new_settings.reset_always or new_settings.reset_next:
+    if new_settings.data_domain_name != settings.data_domain_name or new_settings.reset_always or new_settings.reset_next:
       if new_settings.reset_next:
         changed_settings = backend_settings.Settings()
         changed_settings.reset_next = False

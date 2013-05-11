@@ -36,8 +36,6 @@ class Querier:
 
     # SimpleDB domain for main data
     assert 'data_dom' in settings
-    # SimpleDB domain for cluster information
-    assert 'cluster_dom' in settings
     # All possible predicate argument numbers
     settings.setdefault('all_argument_numbers', [0, 1])
     # Number of events on a page of descriptions
@@ -52,8 +50,6 @@ class Querier:
     settings.setdefault('clustering_name', None)
     # Names of fields to prime the cache with
     settings.setdefault('fields_to_prime', [])
-    # Clustering detail levels to prime the cache with
-    settings.setdefault('cluster_detail_levels_to_prime', [])
 
     for key, value in settings.iteritems():
       setattr(self, key, value)
@@ -75,15 +71,11 @@ class Querier:
     def views_for_initial():
       for field in self.fields_to_prime:
         yield { 'type': 'countbyfieldvalue', 'field': field }
-      for detail_level in self.cluster_detail_levels_to_prime:
-        yield { 'type': 'countbymapcluster', 'detaillevel': detail_level }
       yield { 'type': 'countbyyear' }
+      yield { 'type': 'countbyreferencepoint' }
       yield { 'type': 'descriptions' }
       for page_num in range(self.num_initial_description_pages_to_cache):
         yield { 'type': 'descriptions', 'page': page_num }
-      yield { 'type': 'mapclustersinfo' }
-      for detail_level in self.cluster_detail_levels_to_prime:
-        yield { 'type': 'mapclustersinfo', 'detaillevel': detail_level }
     yield { 'constraints': {}, 'views': dict((i, v) for i, v in enumerate(views_for_initial())) }
 
   def expand_field(self, field):
@@ -155,17 +147,6 @@ class Querier:
       rs = sdbutils.select_all(self.data_dom, sdb_query, ['year', 'descriptionHtml'], paginated=(self.description_paginator, page_num), last_page_callback=on_last_page, needs_non_null=['yearKey'], order='yearKey', order_descending=True)
       result['descriptions'] = [dict(e) for e in rs]
       return result
-    elif type == 'mapclustersinfo':
-      query_parts = [sdb_query, "clustering = '%s'" % (self.clustering_name)]
-      if 'detaillevel' in view:
-        query_parts.append("detaillevel = '%s'" % (view['detaillevel']))
-      sdb_query = " and ".join("(%s)" % (q) for q in query_parts if len(q) > 0)
-      rs = sdbutils.select_all(self.cluster_dom, sdb_query, ['detaillevel', 'id', 'latitude', 'longitude'])
-      result = {}
-      for item in rs:
-        result.setdefault(item['detaillevel'], {})
-        result[item['detaillevel']][item['id']] = { 'centre': (item['longitude'], item['latitude']) }
-      return result
     else:
       raise ValueError("unknown view type \"%s\"" % (type))
 
@@ -177,17 +158,17 @@ class Querier:
     sdb_query: The SimpleDB select expression for the current query.
     """
 
-    # We defer all the count by field value views until the end so we can do them all on a single DB query. We also rewrite some other queries in terms of field value views.
+    # We defer all the count by field value views until the end so we can do them all on a single DB query. We also rewrite some other queries in terms of field value views (these get separate query types since they might need special handling later).
     field_count_views = {}
 
     for view_id, view in views.iteritems():
       type = view['type']
       if type == 'countbyfieldvalue':
         field_count_views[view_id] = view
-      elif type == 'countbymapcluster':
+      elif type == 'countbyreferencepoint':
         field_count_views[view_id] = {
           'type': 'countbyfield',
-          'field': 'mapClustering:%s:%s' % (self.clustering_name, view['detaillevel'])
+          'field': 'referencePoints'
         }
       elif type == 'countbyyear':
         field_count_views[view_id] = {
