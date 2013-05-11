@@ -22,7 +22,7 @@ defaults.description_page_size = 25
 defaults.num_initial_description_pages_to_cache = 10
 defaults.pagination_cache_size = 100
 defaults.all_argument_numbers = [0, 1]
-defaults.fields_to_prime = []
+defaults.fields_to_prime = ["role", "locationText", "personText", "currentCountryText"]
 
 def parse_bool(string):
   return string == 'true' or string == 'True'
