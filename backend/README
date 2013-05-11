@@ -146,7 +146,7 @@ For details see queries.py, especially generate_views().
 	}
 result:
 	{
-		"counts": /* dictionary of counts keyed by map cluster ID */
+		"counts": /* dictionary of counts keyed by field value */
 	}
 
 ### Get counts of events by map reference point:
