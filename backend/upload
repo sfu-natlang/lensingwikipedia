@@ -9,6 +9,8 @@ DATA-FILE     Local data file. Uses standard input if not given.
 
 Options:
   -d      Delete and replace the existing domain, if there is one.
+  -a      Add to an existing domain. Event items with the same index are
+    replaced, and event items with new indices are added.
   -i INT  Event ID index offset.
   -y INTS Range of valid years (negatives being BCE dates) for padding year
     values. Colon separated.
@@ -121,13 +123,17 @@ def upload(input, dom_name, first_id, min_year, max_year, do_delete):
   if do_delete:
     try:
       sdb.delete_domain(dom_name)
-      print >> sys.stderr, "removing old domain"
+      print >> sys.stderr, "removing existing domain"
     except boto.exception.SDBResponseError:
-      print >> sys.stderr, "no old domain"
+      print >> sys.stderr, "no existing domain"
   else:
     try:
       dom = sdb.get_domain(dom_name)
-      print >> sys.stderr, "using existing domain"
+      if do_add:
+        print >> sys.stderr, "adding to existing domain"
+      else:
+        print >> sys.stderr, "domain already exists"
+        sys.exit(1)
     except boto.exception.SDBResponseError:
       pass
   if dom is None:
@@ -144,7 +150,7 @@ if __name__ == '__main__':
   import getopt
 
   try:
-    opts, args = getopt.getopt(sys.argv[1:], "i:dy:")
+    opts, args = getopt.getopt(sys.argv[1:], "i:day:")
     if len(args) not in [1, 2]:
       raise getopt.GetoptError("wrong number of positional arguments")
     opts = dict(opts)
@@ -154,6 +160,7 @@ if __name__ == '__main__':
 
   first_id = int(opts['-i']) if '-i' in opts else 0
   do_delete = '-d' in opts
+  do_add = '-a' in opts
   min_year, max_year = [int(y) for y in opts['-y'].split(':')] if '-y' in opts else (-1000000, 1000000)
   dom_name = args[0]
   input = open(args[1]) if len(args) > 1 else sys.stdin

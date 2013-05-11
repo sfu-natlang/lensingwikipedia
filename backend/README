@@ -12,7 +12,7 @@ Let's say that the local data file is called data.json and we want to put it in 
         upload -d lensingwikipedia-demo-data data.json
 The -d option makes upload delete any existing domain with the name and replace it with the new one.
 
-Events in the database are identified by integers which are the indices in the input data. The intention is that any upload will replace a domain or create a new one. It is possible to change or add to an existing domain using -i (and no -d) to control the initial index, but this must be done carefully so that the indices match up with what is already in the domain.
+Events in the database are identified by integers which are the indices in the input data. The intention is that any upload will replace a domain or create a new one. It is possible to change or add to an existing domain using -a (and possibly -i to control the initial index), but this must be done carefully so that the indices match up with what is already in the domain.
 
 You can remove the data by removing the domain, such as with the removedomain program. Do so with caution.
 
