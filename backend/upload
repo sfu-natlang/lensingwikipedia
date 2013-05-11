@@ -140,7 +140,7 @@ def upload(input, dom_name, first_id, min_year, max_year, do_delete):
     print >> sys.stderr, "creating new domain"
     dom = sdb.create_domain(dom_name)
 
-  for i, line in enumerate(input):
+  for i, line in enumerate(input, first_id):
     event = json.loads(line)
     print >> sys.stderr, "uploading event %i" % (i)
     prepare_event(event, min_year, year_key_digits)

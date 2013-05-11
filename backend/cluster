@@ -119,7 +119,7 @@ def iter_events_from_file(input, first_id):
       points |= points_from(event['locations'])
     return points
   import json
-  for id, line in enumerate(input):
+  for id, line in enumerate(input, first_id):
     event = json.loads(line)
     points = get_points(event)
     if len(points) > 0:
