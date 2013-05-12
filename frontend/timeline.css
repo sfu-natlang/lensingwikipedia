@@ -30,7 +30,6 @@
 .timeline .axis path, .timeline .axis line {
 	fill: none;
 	stroke: black;
-	shape-rendering: crispEdges;
 }
 .timeline .brush .extent {
 	fill: #3a87ad;
