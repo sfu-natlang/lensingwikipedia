@@ -536,7 +536,7 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 		for (var pointStr in allPointStrs) {
 			if (curState.screenPoints != null) {
 				var x = curState.screenPoints[pointStr][0], y = curState.screenPoints[pointStr][1];
-				if (x >= extent[0][0] && y >= extent[0][1] && x <= extent[1][0] && y <= extent[1][1])
+				if (x >= extent[0][0] - pan[0] && y >= extent[0][1] - pan[1] && x <= extent[1][0] - pan[0] && y <= extent[1][1] - pan[1])
 					selection[pointStr] = true;
 			}
 		}
