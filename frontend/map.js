@@ -583,5 +583,17 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 		update();
 	});
 
+	function onMouseWheel(event) {
+		var dir = event.wheelDelta != null ? event.wheelDelta : -event.detail;
+		if (dir != 0 ) {
+			var btnClass = dir < 0 ? ".zoomout" : ".zoomin";
+			topBoxElt.find(".viewbox " + btnClass).trigger('click');
+		}
+	}
+	if (window.addEventListener) {
+		document.addEventListener('DOMMouseScroll', onMouseWheel, false);
+	}
+	document.onmousewheel = onMouseWheel;
+
 	initControls();
 }
