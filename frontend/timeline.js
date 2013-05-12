@@ -140,6 +140,12 @@ function drawTimeline(svg, detailBox, selectBox, data, initialBrushExtent, brush
 		.selectAll('rect')
 		.attr('y', -2)
 		.attr('height', selectBox.height + 6);
+	detailPlot.draw.append('text')
+		.attr('class', "y axislabel")
+		.attr('x', 0)
+		.attr('y', -6)
+		.style('text-anchor', 'middle')
+		.text("Num. events");
 
 	return function() { d3.select('g.brush').call(brush.clear()); onBrush(); };
 }
@@ -150,7 +156,7 @@ function setupTimeline(container, initialQuery, globalQuery) {
 	var viewBox = { x: 0, y : 0, width: 1024, height: 768 };
 	// Margins for the main graphs (but not for the axes and axes labels,
 	// which go in the margin space).
-	var margins = { left: 50, right: 30, top: 20, bottom: 35, between: 40 };
+	var margins = { left: 50, right: 30, top: 40, bottom: 35, between: 40 };
 	// Vertical size of the detail area as a fraction of the total.
 	var split = 0.6;
 	// Delay before updating the query after a selection change (to avoid
