@@ -510,7 +510,7 @@ Query.prototype.update = function(postponeFinish) {
 		if (!$.isEmptyObject(resultWatchersToUpdate)) {
 			var queryJson = "{\"constraints\":" + query._getConstraintsJSON() + ",\"views\":" + query._getViewsJSON(resultWatchersToUpdate) + "}";
 			//console.log("Q", query._id, queryJson);
-			var post = $.post(query._backendUrl, queryJson, 'json');
+			var post = $.post(query._backendUrl, queryJson, null, 'json');
 			query._someConstraintChangedSinceUpdate = false;
 			query._someResultWatcherChangedSinceUpdate = false;
 			query._resultWatchersChangedSinceUpdate = {};
