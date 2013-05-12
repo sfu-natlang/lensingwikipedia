@@ -146,6 +146,11 @@ function drawTimeline(svg, detailBox, selectBox, data, initialBrushExtent, brush
 		.attr('y', -6)
 		.style('text-anchor', 'middle')
 		.text("Num. events");
+	detailPlot.draw.append('text')
+		.attr('class', "instructions")
+		.attr('transform', "translate(" + (detailBox.width / 2) + "," + (detailBox.height / 2) + ")")
+		.style('text-anchor', 'middle')
+		.text("Drag below to select");
 
 	return function() { d3.select('g.brush').call(brush.clear()); onBrush(); };
 }
@@ -210,6 +215,7 @@ function setupTimeline(container, initialQuery, globalQuery) {
 			if (lastSelection != null)
 				globalQuery.update();
 			if (isSelection) {
+				$('.instructions').css('display', '');
 				$('.bar.detail.initial').css('display', 'none');
 				$('.bar.detail.context').css('display', 'none');
 				$('.axis.detail').children().css('fill-opacity', '0.25');
@@ -241,6 +247,7 @@ function setupTimeline(container, initialQuery, globalQuery) {
 				}, updateDelay);
 			}
 			if (!isSelection) {
+				$('.instructions').css('display', 'none');
 				$('.bar.detail').css('display', '');
 				$('.axis.detail').children().css('fill-opacity', '');
 				$('.axis.detail').children().css('stroke-opacity', '');
