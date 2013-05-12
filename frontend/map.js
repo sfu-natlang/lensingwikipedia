@@ -533,14 +533,16 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 		return (selMode == 'toggle' && !mouseDownOnMarker) || selMode == 'pan';
 	});
 	makeDragSelector(drag, svg, "dragselectextent", function (extent) {
-		for (var pointStr in allPointStrs) {
-			if (curState.screenPoints != null) {
-				var x = curState.screenPoints[pointStr][0], y = curState.screenPoints[pointStr][1];
-				if (x >= extent[0][0] - pan[0] && y >= extent[0][1] - pan[1] && x <= extent[1][0] - pan[0] && y <= extent[1][1] - pan[1])
-					selection[pointStr] = true;
-			}
+		if (curState.screenPoints != null) {
+			var offset = projection.panMode == 'translate' ? pan : [0, 0];
+			for (var pointStr in allPointStrs)
+				if (curState.screenPoints.hasOwnProperty(pointStr)) {
+					var x = curState.screenPoints[pointStr][0], y = curState.screenPoints[pointStr][1];
+					if (x >= extent[0][0] - offset[0] && y >= extent[0][1] - offset[1] && x <= extent[1][0] - offset[0] && y <= extent[1][1] - offset[1])
+						selection[pointStr] = true;
+				}
+			updateSelection();
 		}
-		updateSelection();
 	}, function () {
 		return selMode == 'drag';
 	});
