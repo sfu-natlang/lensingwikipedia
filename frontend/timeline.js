@@ -83,8 +83,19 @@ function drawPlot(svg, box, data, classStr, matchScales, clipId) {
 		scales.x.domain(d3.extent(data, function (s) { return s.date; }));
 		scales.y.domain([0, d3.max(data, function (s) { return s.count; })]);
 	}
+	function xTickFormater(date) {
+		var year = date.getFullYear();
+		if (year > 0) {
+			return "" + year + "CE";
+		} else if (year < 0) {
+			return "" + (-year) + "BCE";
+		} else {
+			// !
+			return "0";
+		}
+	}
 	var axes = {
-		x: d3.svg.axis().scale(scales.x).orient('bottom'),
+		x: d3.svg.axis().scale(scales.x).orient('bottom').tickFormat(xTickFormater),
 		y: d3.svg.axis().scale(scales.y).orient('left')
 	};
 	var updatePlot = drawCounts(data, box, draw, scales, classStr, clipId);
