@@ -39,6 +39,7 @@
 .facet .searchbox button {
 	float: right;
 	width: 20px;
+	min-height: 25px;
 	margin: 0;
 	padding: 2px 8px 2px 8px;
 	background-image: url("search.png");

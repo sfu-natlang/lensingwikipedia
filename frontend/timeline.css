@@ -8,6 +8,7 @@
 	padding: 0 10px 0 10px;
 }
 .timeline svg {
+	width: 100%;
 	margin: 0;
 	padding: 0;
 }
