@@ -320,8 +320,7 @@ function saveSettingsCookie(name, value) {
 }
 
 function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
-	// The view space for SVG; this doesn't have to correspond to screen units
-	// (since we're using preserveAspectRatio).
+	// The view space for SVG; this doesn't have to correspond to screen units.
 	var viewBox = { x: 0, y : 0, width: 1024, height: 768 };
 	// Margins for the map.
 	var margins = { left: 10, right: 10, top: 10, bottom: 10, between: 10 };

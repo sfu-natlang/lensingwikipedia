@@ -156,16 +156,13 @@ function drawTimeline(svg, detailBox, selectBox, data, initialBrushExtent, brush
 }
 
 function setupTimeline(container, initialQuery, globalQuery) {
-	// The view space for SVG; this doesn't have to correspond to screen units
-	// (since we're using preserveAspectRatio).
+	// The view space for SVG; this doesn't have to correspond to screen units.
 	var viewBox = { x: 0, y : 0, width: 1024, height: 768 };
-	// Margins for the main graphs (but not for the axes and axes labels,
-	// which go in the margin space).
+	// Margins for the main graphs (but not for the axes and axes labels, which go in the margin space).
 	var margins = { left: 50, right: 30, top: 40, bottom: 35, between: 40 };
 	// Vertical size of the detail area as a fraction of the total.
 	var split = 0.6;
-	// Delay before updating the query after a selection change (to avoid
-	// sending queries to the backend at each mouse movement).
+	// Delay before updating the query after a selection change (to avoid sending queries to the backend at each mouse movement).
 	var updateDelay = 500;
 
 	var outerElt = $("<div class=\"timeline\"></div>").appendTo(container);
@@ -215,11 +212,11 @@ function setupTimeline(container, initialQuery, globalQuery) {
 			if (lastSelection != null)
 				globalQuery.update();
 			if (isSelection) {
-				$('.instructions').css('display', '');
-				$('.bar.detail.initial').css('display', 'none');
-				$('.bar.detail.context').css('display', 'none');
-				$('.axis.detail').children().css('fill-opacity', '0.25');
-				$('.axis.detail').children().css('stroke-opacity', '0.25');
+				svgElt.find('.instructions').css('display', '');
+				svgElt.find('.bar.detail.initial').css('display', 'none');
+				svgElt.find('.bar.detail.context').css('display', 'none');
+				svgElt.find('.axis.detail').children().css('fill-opacity', '0.25');
+				svgElt.find('.axis.detail').children().css('stroke-opacity', '0.25');
 			}
 		} else {
 			setClearEnabled(true);
@@ -247,10 +244,10 @@ function setupTimeline(container, initialQuery, globalQuery) {
 				}, updateDelay);
 			}
 			if (!isSelection) {
-				$('.instructions').css('display', 'none');
-				$('.bar.detail').css('display', '');
-				$('.axis.detail').children().css('fill-opacity', '');
-				$('.axis.detail').children().css('stroke-opacity', '');
+				svgElt.find('.instructions').css('display', 'none');
+				svgElt.find('.bar.detail').css('display', '');
+				svgElt.find('.axis.detail').children().css('fill-opacity', '');
+				svgElt.find('.axis.detail').children().css('stroke-opacity', '');
 			}
 		}
 		lastSelection = selection;
