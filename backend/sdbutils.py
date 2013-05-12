@@ -8,12 +8,12 @@ import caching
 def _select_all(dom, pattern, order, fields):
   """
   Select all results. Takes care of any repeated database requests needed to get
-  the requested information.
+  the requested information (boto may already do that, but I'm not sure).
   """
   query = "select %s from `%s` %s %s" % (fields, dom.name, pattern, order)
   next_token = None
   while True:
-    rs = dom.select(query)
+    rs = dom.select(query, next_token=next_token)
     for item in rs:
       yield item
     next_token = rs.next_token
