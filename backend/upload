@@ -121,7 +121,7 @@ def prepare_event(event, min_year, year_key_digits):
   event['locationText'] = make_location_list(event)
   event['currentCountryText'] = make_country_list(event)
   if 'person' in event:
-    event['personText'] = event['person'].keys()
+    event['personText'] = list(set(event['person'].iterkeys()))
 
   # Reformat structured data to lists of strings.
   if 'locations' in event:
