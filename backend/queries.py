@@ -122,13 +122,10 @@ class Querier:
     for item in sdbutils.select_all(self.data_dom, sdb_query, field_keys, needs_non_null=field_keys, non_null_is_any=True):
       for view_id, view in views.iteritems():
         counts = response[view_id]['counts']
-        for field in view['_use_fields']:
-          if field in item:
-            values = item[field]
-            values = values if isinstance(values, list) else [values]
-            for value in values:
-              counts.setdefault(value, 0)
-              counts[value] += 1
+        values = set(v for f in view['_use_fields'] if f in item for v in (item[f] if isinstance(item[f], list) else [item[f]]))
+        for value in values:
+          counts.setdefault(value, 0)
+          counts[value] += 1
 
   def handle_independent_view(self, view, sdb_query):
     """
