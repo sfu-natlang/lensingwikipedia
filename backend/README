@@ -211,7 +211,7 @@ Duplicated items in SimpleDB query results
 SimpleDB has an interesting behaviour where it sometimes decides to return some items more than once in the same query results. For example, say I run these to queries which differ only by one condition:
         dom.select("select `personText`,`referencepoints`,`year` from `test1` where ((`personText` is not null) or (`referencepoints` is not null))")
         dom.select("select `personText`,`referencepoints`,`year` from `test1` where ((`personText` is not null) or (`referencepoints` is not null) or (`year` is not null))")
-The result for the first query won't have any duplicate items, but the result for the second will. This example shows once for the first query and twice for the second, for example:
+The result for the first query won't have any duplicate items, but the result for the second will. This item shows up once for the first query and twice for the second, for example:
         {u'personText': u'Vidkun Quisling', u'referencepoints': u'5.962572,46.935778', u'year': u'1945'}
 I believe that duplicated items are expected in the case of sorting on a multiple-valued attribute, but that is not the case here.
 
