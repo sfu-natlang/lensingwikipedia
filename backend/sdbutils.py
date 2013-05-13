@@ -8,14 +8,19 @@ import caching
 def _select_all(dom, pattern, order, fields):
   """
   Select all results. Takes care of any repeated database requests needed to get
-  the requested information (boto may already do that, but I'm not sure).
+  the requested information (boto may already do that, but I'm not sure). Also
+  protects against duplicated items in results.
   """
   query = "select %s from `%s` %s %s" % (fields, dom.name, pattern, order)
   next_token = None
+  # Note: we maintain a set of all items (by name ID) we have seen because SimpleDB sometimes returns the same item more than once. See notes in the readme. Having to do this seems inefficient. If there are performance issues it may be best to check which queries actually need it and enable it only for them.
+  seen = set()
   while True:
     rs = dom.select(query, next_token=next_token)
     for item in rs:
-      yield item
+      if item.name not in seen:
+        yield item
+        seen.add(item.name)
     next_token = rs.next_token
     if next_token == None:
       return
@@ -23,6 +28,9 @@ def _select_all(dom, pattern, order, fields):
 class QueryPaginator:
   """
   Paginator which works with results that can be paginated directly be SimpleDB.
+
+  This paginator doesn't provide any protection against duplicated items in
+  results.
   """
 
   def __init__(self, cache=None, default_page_size=None):

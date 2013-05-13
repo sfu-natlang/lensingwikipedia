@@ -184,12 +184,13 @@ where each element corresponds to a particular event and has the format:
 	}
 This view is paginated (see above).
 
-Miscellaneous design notes
-==========================
+Other design notes
+==================
+
+Miscellaneous 
+-------------
 
 The backend is designed to have no per-client state. Caching is used in limited cases where being stateless is a potential performance issue.
-
-Pagination directly to SimpleDB is easy, since SimpleDB queries return a next pointer which can be used to continue the query. However, providing this through the backend without identifying clients is not as trivial. The solution involves counting to skip ahead to the desired starting point in a query, but caching next points so that this is generally not necessary. See sdbutils.py for details and reference(s).
 
 We cache all initial (empty constraint) view results. The predicate should_cache() in queries.py determines which views need result caching, so the scope of this caching can be expanded easily if desired.
 
@@ -198,3 +199,22 @@ All caches are cleared at the timeout when the backend reloads its settings, so 
 Caches are controlled by being isolated in a query handler (Querier in queries.py) object. This allows a complete reset of the query handling state (for resetting caches) by creating a new query handler.
 
 The backend uses a single background thread which handles settings loading, creating new query handlers (to reset the caches), and waits on the timeout between settings loads. This thread sends settings and query handler changes to the main thread through a thread-safe queue.
+
+Pagination
+----------
+
+Pagination directly to SimpleDB is easy, since SimpleDB queries return a next pointer which can be used to continue the query. However, providing this through the backend without identifying clients is not as trivial. The solution involves counting to skip ahead to the desired starting point in a query, but caching next points so that this is generally not necessary. See sdbutils.py for details and reference(s).
+
+Duplicated items in SimpleDB query results
+------------------------------------------
+
+SimpleDB has an interesting behaviour where it sometimes decides to return some items more than once in the same query results. For example, say I run these to queries which differ only by one condition:
+        dom.select("select `personText`,`referencepoints`,`year` from `test1` where ((`personText` is not null) or (`referencepoints` is not null))")
+        dom.select("select `personText`,`referencepoints`,`year` from `test1` where ((`personText` is not null) or (`referencepoints` is not null) or (`year` is not null))")
+The result for the first query won't have any duplicate items, but the result for the second will. This example shows once for the first query and twice for the second, for example:
+        {u'personText': u'Vidkun Quisling', u'referencepoints': u'5.962572,46.935778', u'year': u'1945'}
+I believe that duplicated items are expected in the case of sorting on a multiple-valued attribute, but that is not the case here.
+
+Because of this behaviour, for non-paginated queries our DB query sending code in sdbutils.py keeps track of which items it has seen and ensures that each is visited only once. However, this isn't done for paginated results since it would be more complicated to get consistent results there and our paginated queries don't seem to have this behaviour.
+
+Checking for duplicated items when receiving them may be inefficient. It would perhaps be better to only do this on queries that really need it. Multiple items seem to occur particularly in queries with several "is not null" conditions (as in the above example), which we currently use for counting by value. An alternative would be to remove all "is not null" conditions from such queries. The DB would then return some items which are irrelevant (in that they don't have any of the fields we are counting on), but it isn't clear that this is worse for either bandwidth or processing time then the DB sending some duplicated items. Additionally, we may be able to reasonably expect that most items will have the fields.
