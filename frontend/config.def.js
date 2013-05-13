@@ -3,7 +3,7 @@ baseWikipediaUrl = "https://en.wikipedia.org";
 minMapZoom = 1;
 maxMapZoom = 5;
 facets = {
-	"role": "Role (any arg)",
+	"role": "Role",
 	"personText": "Person",
 	"currentCountryText": "Current country",
 	"locationText": "Location"
