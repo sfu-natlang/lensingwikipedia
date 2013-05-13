@@ -113,18 +113,29 @@ def prepare_event(event, min_year, year_key_digits):
   """
   Modifies an event for uploading.
   """
+
+  # Pre-format description.
+  event['descriptionHtml'] = make_html_description(event)
+
+  # Make flat lists of the needed parts of structured data. These should probably be lists of unique items for sensible queries.
   event['locationText'] = make_location_list(event)
   event['currentCountryText'] = make_country_list(event)
-  event['descriptionHtml'] = make_html_description(event)
+  if 'person' in event:
+    event['personText'] = event['person'].keys()
+
+  # Reformat structured data to lists of strings.
   if 'locations' in event:
     event['locations'] = [format_location(p) for p in event['locations'].iteritems()]
   event['wiki_info'] = [format_wiki_info_item(p) for p in event['wiki_info'].iteritems()]
   if 'person' in event:
-    event['personText'] = event['person'].keys()
     event['person'] = [format_person(p) for p in event['person'].iteritems()]
+
+  # Clip text fields to length.
   clip_field(event, 'description')
   clip_field(event, 'descriptionTokenized')
   clip_field(event, 'descriptionHtml', html=True)
+
+  # Add key for numeric sorting.
   event['yearKey'] = dates.year_key(int(event['year']), min_year, year_key_digits)
 
 def upload(input, dom_name, first_id, min_year, max_year, do_delete):
