@@ -101,8 +101,15 @@ class Querier:
       high = dates.year_key(cnstr['high'], self.min_year, self.year_key_digits)
       return "yearKey >= '%s' and yearKey <= '%s'" % (low, high)
     elif type == 'referencepoints':
-      points = cnstr['points']
-      return "`referencepoints` in (%s)" % (",".join("'%s'" % (p) for p in points))
+      # SimpleDB only allows up to 20 comparisons on a single attribute (see https://forums.aws.amazon.com/thread.jspa?threadID=40439; I'm not sure where this is in the official documentation). However, using this dummy field hack gets around that for some reason. See http://blog.yslin.tw/2012/03/simpledb-too-many-value-tests-per.html. Here we do the hack by splitting the values into smaller groups and interspersing "in" conditions on these groups with "is not null" conditions on a dummy field. However, this only works up to the point where we hit the predicate limit (also around 20).
+      def split_list(list, part_size):
+        i = 0
+        while i < len(list):
+          j = i + part_size
+          yield list[i:j]
+          i = j
+      points = split_list(cnstr['points'], 20)
+      return "(%s)" % (" or `_dummy_` is not null or ".join("`referencepoints` in (%s)" % (",".join("'%s'" % (p) for p in points_part)) for points_part in points))
     else:
       raise ValueError("unknown constraint type \"%s\"" % (type))
 
