@@ -207,7 +207,7 @@ class Querier:
 
     # This is inefficient but works to generate cache keys
     cnstrs_shaer = sha.new()
-    for cnstr in query['constraints']:
+    for cnstr in query['constraints'].iteritems():
       cnstrs_shaer.update(json.dumps(cnstr))
 
     response = {}
