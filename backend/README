@@ -151,7 +151,7 @@ result:
 
 ### Get counts of events by map reference point:
 	{
-		"type": "countbymapreferencepoint"
+		"type": "countbyreferencepoint"
 	}
 result:
 	{

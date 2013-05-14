@@ -168,12 +168,12 @@ class Querier:
         field_count_views[view_id] = view
       elif type == 'countbyreferencepoint':
         field_count_views[view_id] = {
-          'type': 'countbyfield',
+          'type': 'countbyfieldvalue',
           'field': 'referencepoints'
         }
       elif type == 'countbyyear':
         field_count_views[view_id] = {
-          'type': 'countbyfield',
+          'type': 'countbyfieldvalue',
           'field': 'year'
         }
       else:
