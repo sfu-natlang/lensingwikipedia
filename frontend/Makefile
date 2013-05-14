@@ -6,7 +6,7 @@ ifndef MINCSS
 	MINCSS=csso
 endif
 ifndef MINJS
-	MINJS=closure
+	MINJS=uglifyjs
 endif
 
 # Extra files to include in the output.
