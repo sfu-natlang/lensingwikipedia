@@ -2,16 +2,15 @@ var mapClipId = 0;
 var mapSphereId = 0;
 
 var mapProjections = {
-	hobodyer: {
+	winkel3: {
 		name: "Flat",
-		longName: "Hobo-Dyer",
+		longName: "Winkel Tripel",
 		moveType: 'pan',
 		initialScaleFactor: 0.20,
 		scaleFactorChange: 0.3,
 		panMode: 'translate',
 		proj: function() {
-			return d3.geo.cylindricalEqualArea()
-				.parallel(37.5);
+			return d3.geo.winkel3();
 		}
 	},
 	orthographic: {
