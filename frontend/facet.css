@@ -76,3 +76,12 @@
 .facet .listbox ul li.selected:hover {
 	background-color: gray;
 }
+
+.facet .buttonbox {
+	text-align: center;
+	margin: 0;
+	padding: 0;
+}
+.facet .listbox button {
+	margin: 0em auto 1em auto;
+}

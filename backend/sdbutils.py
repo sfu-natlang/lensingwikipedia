@@ -98,8 +98,11 @@ def select_all(dom, pattern=None, fields=['*'], needs_non_null=[], non_null_is_a
   non_null_is_any: If set then needs_non_null is interpreted to indicate than
     any of the given fields can be non-null. Otherwise all of the given fields
     must be non-null.
-  paginated: Enables pagination and sets the page number and page size to fetch
-    (given as a pair). TODO
+  paginated: Set pagination on this query. Can either by a (paginator, page
+    number, page size) tuple or a (paginator, page number) tuple. If the later
+    then the paginator will use its default page size.
+  last_page_callback: Function of no arguments to call when at the last page of
+    results for a paginated query.
   order: Key to sort on. Can only do lexicographical sort because that's what
     SimpleDB gives us.
   order_descending: If set, sort order is descending. Otherwise it is ascending.

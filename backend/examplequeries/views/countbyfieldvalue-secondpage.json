@@ -1,0 +1,11 @@
+{
+	"constraints": {
+	},
+	"views": {
+		"0": {
+			"type": "countbyfieldvalue",
+			"field": "locationText",
+			"page": 1
+		}
+	}
+}

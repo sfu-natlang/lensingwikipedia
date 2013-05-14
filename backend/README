@@ -53,8 +53,12 @@ The backend settings are:
 	reset_always -- always clear caches after loading settings
 	reset_next -- clear caches after the next settings load (special flag, see above)
 	description_page_size -- number of events in a page of description results
+	count_by_field_value_page_size -- number of events in a page of count by field value results
+	count_by_year_page_size -- number of events in a page of count by year results
+	count_by_referencepoint_page_size -- number of events in a page of count by reference point results
 	num_initial_description_pages_to_cache -- number of pages of description results for the initial (empty) view to cache
-	pagination_cache_size -- number of SimpleDB next pointers to store for paginated results
+	query_pagination_cache_size -- number of SimpleDB next pointers to store for results which are paginated by the databse
+	result_pagination_cache_size -- number of results to cache for results which are paginated by the backend
 	all_argument_numbers -- list of all role arguments, given to backend-ctrl as a comma-separated list
 	fields_to_prime -- list of all field names to prime the caches with, given to backend-ctrl as a comma-separated list
 
@@ -105,7 +109,7 @@ A response is a dictionary of results keyed by view ID. The value for each ID is
 
 Years are given as integers, where negative indicates BCE and positive indicates CE.
 
-The event description view type is paginated. The view has a page attribute which sets the page number (starting from zero). The number of items per page is determined by the backend. The result contains details for this number of events, or as many are available to match the constraints if less than a full page is available. The result also has an attribute indicating whether more pages are available. Submitting a query with the same constraints and the same view except for a changed page number will fetch subsequent pages.
+Some view types are paginated (see the code and the design notes below for details) or can optionally be paginated. These views have a page attribute which sets the page number, starting from zero. The number of items per page is determined by the backend. The result contains details for this number of events, or as many are available to match the constraints if less than a full page is available. The result also has a "more" attribute indicating whether more pages are available. Submitting a query with the same constraints and the same view except for a changed page number will fetch subsequent pages. If a view type is strictly paginated then it will assume a page number of zero if no page number is given. If it is optionally paginated it will paginate only if a page number is given, and otherwise will return all possible results.
 
 See examplequeries/ for examples.
 
@@ -142,47 +146,56 @@ For details see queries.py, especially generate_views().
 ### Get counts of events by value of a particular field:
 	{
 		"type": "countbyfieldvalue",
-		"field": /* name of field to count on */
+		"field": /* name of field to count on */,
+		"page": /* optional; page number, defaults to 0 if not given */
 	}
 result:
 	{
-		"counts": /* dictionary of counts keyed by field value */
+		"counts": /* dictionary of count pairs, each of which is a value and an integer count */,
+		"more": /* boolean flag indicating if there are more pages available */
 	}
+This view is always paginated.
 
 ### Get counts of events by map reference point:
 	{
-		"type": "countbyreferencepoint"
+		"type": "countbyreferencepoint",
+		"page": /* optional; page number, no pagination if not given */
 	}
 result:
 	{
-		"counts": /* dictionary of counts keyed by reference point */
+		"counts": /* dictionary of count pairs, each of which is a value and an integer count */,
+		"more": /* boolean flag indicating if there are more pages available, set only if pagination is enabled */
 	}
+This view is optionally paginated.
 
 ### Get counts of events by year:
 	{
-		"type": "countbyyear"
+		"type": "countbyyear",
+		"page": /* optional; page number, no pagination if not given */
 	}
 result:
 	{
-		"counts": /* dictionary of counts keyed by year (see year format above) */
+		"counts": /* dictionary of count pairs, each of which is a value and an integer count */,
+		"more": /* boolean flag indicating if there are more pages available, set only if pagination is enabled */
 	}
+This view is optionally paginated.
 
 ### Get descriptive details of events:
 	{
 		"type": "descriptions",
-		"page": /* optional; page number starting from 0, if not given then defaults to 0 */
+		"page": /* optional; page number, defaults to 0 if not given */
 	}
 result:
 	{
 		"descriptions": /* list of event details */,
-		"more": /* boolean indicating if there are more pages available for this view */
+		"more": /* boolean flag indicating if there are more pages available for this view */
 	}
 where each element corresponds to a particular event and has the format:
 	{
 		"year": /* year (see year format above) */,
 		"descriptionHtml": /* HTML-formatted description */
 	}
-This view is paginated (see above).
+This view is always paginated.
 
 Other design notes
 ==================
@@ -203,7 +216,9 @@ The backend uses a single background thread which handles settings loading, crea
 Pagination
 ----------
 
-Pagination directly to SimpleDB is easy, since SimpleDB queries return a next pointer which can be used to continue the query. However, providing this through the backend without identifying clients is not as trivial. The solution involves counting to skip ahead to the desired starting point in a query, but caching next points so that this is generally not necessary. See sdbutils.py for details and reference(s).
+For some queries (the descriptions view) we can have SimpleDB do pagination for us. Pagination directly to SimpleDB is easy, since SimpleDB queries return a next pointer which can be used to continue the query. However, providing this through the backend without identifying clients is not as trivial. The solution involves counting to skip ahead to the desired starting point in a query, but caching next points so that this is generally not necessary. See sdbutils.py for details and reference(s). In the code this type of pagination tends to be called "query pagination".
+
+For other queries (all the count views) there is no way to have SimpleDB do the pagination. For these views we get all results from the DB, do counting, and clip to the desired page size. We cache the unclipped results so that this isn't horribly inefficient. It should be efficient enough as long as the cache is large enough relative to the number of users. In the code this type of pagination tends to be called "result pagination".
 
 Duplicated items in SimpleDB query results
 ------------------------------------------
@@ -215,7 +230,7 @@ The result for the first query won't have any duplicate items, but the result fo
         {u'personText': u'Vidkun Quisling', u'referencepoints': u'5.962572,46.935778', u'year': u'1945'}
 I believe that duplicated items are expected in the case of sorting on a multiple-valued attribute, but that is not the case here.
 
-Because of this behaviour, for non-paginated queries our DB query sending code in sdbutils.py keeps track of which items it has seen and ensures that each is visited only once. However, this isn't done for paginated results since it would be more complicated to get consistent results there and our paginated queries don't seem to have this behaviour.
+Because of this behaviour, for non-paginated DB queries our DB query sending code in sdbutils.py keeps track of which items it has seen and ensures that each is visited only once. However, this isn't done for results which are paginated by the DB since it would be more complicated to get consistent results there and our DB paginated queries don't seem to have this behaviour. Result pagination on the backend has the fix.
 
 Checking for duplicated items when receiving them may be inefficient. It would perhaps be better to only do this on queries that really need it. Multiple items seem to occur particularly in queries with several "is not null" conditions (as in the above example), which we currently use for counting by value. An alternative would be to remove all "is not null" conditions from such queries. The DB would then return some items which are irrelevant (in that they don't have any of the fields we are counting on), but it isn't clear that this is worse for either bandwidth or processing time then the DB sending some duplicated items. Additionally, we may be able to reasonably expect that most items will have the fields.
 

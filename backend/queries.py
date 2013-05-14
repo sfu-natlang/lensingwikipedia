@@ -1,5 +1,13 @@
 """
 Query (frontend to backend) handling.
+
+Note: There are two kinds of pagination we can do for results. Query pagination
+lets the database deal with pagination for us, with the backend only having to
+cache next pointers. Result pagination is done on the backend, with the database
+returning complete unpaginated results and the backend clipping them to get the
+desired page (with some caching to be less wasteful). The later is used for
+cases (counting by values) where we have to process the results from the
+database in such a way that it can't do pagination for us.
 """
 
 import sys
@@ -39,9 +47,19 @@ class Querier:
     # All possible predicate argument numbers
     settings.setdefault('all_argument_numbers', [0, 1])
     # Number of events on a page of descriptions
-    settings.setdefault('description_page_size', 10)
+    settings.setdefault('description_page_size', 25)
+    # Number of events on a page of count by field value results
+    settings.setdefault('count_by_field_value_page_size', 50)
+    # Number of events on a page of count by year results
+    settings.setdefault('count_by_year_page_size', 50)
+    # Number of events on a page of count by reference point results
+    settings.setdefault('count_by_referencepoint_page_size', 50)
     # Number of pages of the initial (empty conditional) query to cache
     settings.setdefault('num_initial_description_pages_to_cache', 10)
+    # Size of the cache for query pagination (next pointers for results the DB can paginate)
+    settings.setdefault('query_pagination_cache_size', 100)
+    # Size of the cache for result pagination (cached results for pagination done on the backend)
+    settings.setdefault('result_pagination_cache_size', 100)
     # Minimum possible year
     settings.setdefault('min_year', None)
     # Number of digits in a year key (for sorting)
@@ -54,6 +72,8 @@ class Querier:
 
     self.response_cache = caching.Complete()
     self.description_paginator = sdbutils.QueryPaginator(default_page_size=self.description_page_size)
+    self.description_paginator.cache.set_max_size(self.query_pagination_cache_size)
+    self.results_pagination_cache = caching.FIFO(self.result_pagination_cache_size)
 
     if self.min_year is None or self.year_key_digits is None:
       min_year, year_key_digits = discover_year_range(self.data_dom)
@@ -134,6 +154,11 @@ class Querier:
           counts.setdefault(value, 0)
           counts[value] += 1
 
+    for view_id, view in views.iteritems():
+      counts = response[view_id]['counts'].items()
+      counts.sort(key=lambda (v, c): c, reverse=True)
+      response[view_id]['counts'] = counts
+
   def handle_independent_view(self, view, sdb_query):
     """
     Handles one of the views which is done on its own independent DB query.
@@ -193,51 +218,28 @@ class Querier:
     return len(query['constraints']) == 0 \
       and (int(view['page'] if 'page' in view else 0) < self.num_initial_description_pages_to_cache if view['type'] == "descriptions" else True)
 
-  def handle(self, query):
+  def how_to_paginate_results(self, query, view):
     """
-    Produces a JSON (as python objects) response for a query given as a JSON (as
-    python objects) query.
-    query: The query as JSON (as python objects).
+    Function determining which views to paginate the results from at the
+    backend. Views which can be paginated by the DB should do that instead (in
+    their view handling code) since that is more efficient. Returns a (attribute
+    name, page size) pair if the view should be paginated. Otherwise returns
+    None.
+    query: The whole query being processed.
+    views: The particular view to consider caching.
     """
-
-    def handle_constraint(cnstr_id, cnstr):
-      print >> sys.stderr, "handling constraint \"%s\" of type \"%s\"" % (cnstr_id, cnstr['type'])
-      return self.constraint_to_sdb_query(cnstr)
-    sdb_query = " and ".join("(%s)" % (handle_constraint(cid, c)) for cid, c in query['constraints'].iteritems())
-
-    # This is inefficient but works to generate cache keys
-    cnstrs_shaer = sha.new()
-    for cnstr in query['constraints'].iteritems():
-      cnstrs_shaer.update(json.dumps(cnstr))
-
-    response = {}
-    needed_views = {}
-    views_to_cache = {}
-    for view_id, view in query['views'].iteritems():
-      method_str = None
-      if self.should_cache(query, view):
-        shaer = cnstrs_shaer.copy()
-        shaer.update(json.dumps(view))
-        cache_key = shaer.digest()
-        view_response = self.response_cache.get(cache_key)
-        if view_response is None:
-          method_str = "generating view for cache"
-          views_to_cache[view_id] = cache_key
-          needed_views[view_id] = view
-        else:
-          method_str = "using cache"
-          response[view_id] = view_response
-      else:
-        method_str = "generating view"
-        needed_views[view_id] = view
-      print >> sys.stderr, "handling view \"%s\" of type \"%s\": %s" % (view_id, view['type'], method_str)
-
-    self.generate_views(response, needed_views, sdb_query)
-
-    for view_id, cache_key in views_to_cache.iteritems():
-      self.response_cache[cache_key] = response[view_id]
-
-    return response
+    type = view['type']
+    if type == 'countbyfieldvalue' :
+      return ('counts', self.count_by_field_value_page_size)
+    elif type == 'countbyyear':
+      # This view is paginated only if it requests it by setting the 'page' attribute.
+      if 'page' in view:
+        return ('counts', self.count_by_year_page_size)
+    elif type == 'countbyreferencepoint':
+      # This view is paginated only if it requests it by setting the 'page' attribute.
+      if 'page' in view:
+        return ('counts', self.count_by_referencepoint_page_size)
+    return None
 
   def prime(self):
     """
@@ -245,3 +247,95 @@ class Querier:
     """
     for query in self.queries_to_prime():
       self.handle(query)
+
+  def handle(self, query):
+    """
+    Produces a JSON (as python objects) response for a query given as a JSON (as
+    python objects) query.
+    query: The query as JSON (as python objects).
+    """
+
+    # Generate the SimpleDB query string for the constraints.
+    def handle_constraint(cnstr_id, cnstr):
+      print >> sys.stderr, "handling constraint \"%s\" of type \"%s\"" % (cnstr_id, cnstr['type'])
+      return self.constraint_to_sdb_query(cnstr)
+    sdb_query = " and ".join("(%s)" % (handle_constraint(cid, c)) for cid, c in query['constraints'].iteritems())
+
+    # This is inefficient but works to generate cache keys. For each view we will use an SHA keys across the stringified JSON for all the constraints and that view.
+    cnstrs_shaer = sha.new()
+    for cnstr in query['constraints'].iteritems():
+      cnstrs_shaer.update(json.dumps(cnstr))
+
+    response = {}
+    needed_views = {}
+    for view_id, view in query['views'].iteritems():
+      view_response = None
+      should_cache = self.should_cache(query, view)
+      how_to_paginate_result = self.how_to_paginate_results(query, view)
+
+      if should_cache or how_to_paginate_result is not None:
+        # If we are doing either full caching or result pagination, then prepare a cache key.
+        if how_to_paginate_result is not None:
+          # For a result paginated view we don't want the page number as part of the cache key since we want to cache the whole result before pagination (for a query that can be paginated by the DB then we need the page number since we store a separate result for each page).
+          if 'page' in view:
+            page_num = view['page']
+            del view['page']
+          else:
+            page_num = 0
+        shaer = cnstrs_shaer.copy()
+        shaer.update(json.dumps(view))
+        cache_key = shaer.digest()
+        view['_cache_key'] = cache_key
+
+        # If caching the whole result, then use the cached copy if available and otherwise flag the view for later caching.
+        if should_cache:
+          view_response = self.response_cache.get(cache_key)
+          if view_response is not None:
+            method_str = "using cache"
+            response[view_id] = view_response
+          else:
+            view['_should_cache'] = True
+
+        # If we are doing result pagination, keep the needed information. Also try to use the result pagination cache if we didn't already get a result from the main cache.
+        if how_to_paginate_result is not None:
+          view['_how_to_paginate_result'] = how_to_paginate_result
+          view['_page_num'] = page_num
+          if view_response is None:
+            view_response = self.results_pagination_cache.get(cache_key)
+            if view_response is not None:
+              method_str = "using result pagination cache"
+              response[view_id] = view_response
+
+      if view_response is None:
+        method_str = "generating view"
+        needed_views[view_id] = view
+
+      print >> sys.stderr, "handling view \"%s\" of type \"%s\": %s" % (view_id, view['type'], method_str)
+
+    # Get results for all views that were not cached.
+    self.generate_views(response, needed_views, sdb_query)
+
+    for view_id, view in query['views'].iteritems():
+      if '_cache_key' in view:
+        result = response[view_id]
+        how_to_paginate_result = view.get('_how_to_paginate_result')
+        # Update the caches.
+        if view.get('_should_cache'):
+          self.response_cache[view['_cache_key']] = result
+        elif how_to_paginate_result is not None:
+          self.results_pagination_cache[view['_cache_key']] = result
+        # Handle result pagination.
+        if how_to_paginate_result is not None:
+          paginate_attr, page_size = how_to_paginate_result
+          page_num = view['_page_num']
+          paginated_result = {}
+          for attr, value in result.iteritems():
+            if attr != paginate_attr:
+              paginated_result[attr] = value
+          i = page_num * page_size
+          j = i + page_size
+          paginated_result[paginate_attr] = result[paginate_attr][i:j]
+          paginated_result['more'] = j < len(result[paginate_attr])
+          response[view_id] = paginated_result
+
+    return response

@@ -4,7 +4,8 @@
 	"views": {
 		"0": {
 			"type": "countbyfieldvalue",
-			"field": "locationText"
+			"field": "locationText",
+			"page": 0
 		}
 	}
 }

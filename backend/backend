@@ -36,11 +36,13 @@ def make_querier(settings):
   querier = queries.Querier(
     data_dom = sdbutils.get_maybenew_domain(sdb, settings.data_domain_name),
     description_page_size = settings.description_page_size,
+    count_by_field_value_page_size = settings.count_by_field_value_page_size,
+    count_by_year_page_size = settings.count_by_year_page_size,
+    count_by_referencepoint_page_size = settings.count_by_referencepoint_page_size,
     num_initial_description_pages_to_cache = settings.num_initial_description_pages_to_cache,
     all_argument_numbers = settings.all_argument_numbers,
     fields_to_prime = settings.fields_to_prime
   )
-  querier.description_paginator.cache.set_max_size(settings.pagination_cache_size)
   return querier
 
 def clear_queue(queue):

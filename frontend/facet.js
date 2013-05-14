@@ -12,6 +12,8 @@ function setupFacet(container, globalQuery, name, field) {
 	var listBoxElt = $("<div class=\"listbox\"></div>").appendTo(facetElt);
 	var loadingElt = makeLoadingIndicator().prependTo(listBoxElt);
 	var listElt = $("<ul></ul>").appendTo(listBoxElt);
+	var moreBoxElt = $("<div class=\"buttonbox\"></div>").appendTo(listBoxElt);
+	var moreElt = $("<button type=\"button\" class=\"btn\" disabled=\"true\">More</button>").appendTo(moreBoxElt);
 
 	fillElement(container, facetElt, 'vertical');
 	setupPanelled(facetElt, topBoxElt, listBoxElt, 'vertical', 0, false);
@@ -28,6 +30,16 @@ function setupFacet(container, globalQuery, name, field) {
 			clearElt.attr('disabled', 'disabled');
 	}
 	setClearEnabled(false);
+
+	function setMoreEnabled(enabled) {
+		if (enabled) {
+			moreElt.addClass('btn-primary');
+			moreElt.removeAttr('disabled');
+		} else {
+			moreElt.removeClass('btn-primary');
+			moreElt.attr('disabled', 'disabled');
+		}
+	}
 
 	function setSearchErrorStatus(isError) {
 		if (isError)
@@ -108,6 +120,17 @@ function setupFacet(container, globalQuery, name, field) {
 	}
 	setData(null);
 
+	var continuer = null;
+	function addData(counts) {
+		for (var i in counts) {
+			var pair = counts[i];
+			curData[pair[0]] = pair[1];
+		}
+		if (haveSelection() && !(selectedValue in curData))
+			curData[selectedValue] = 0;
+		setData(curData);
+		setMoreEnabled(continuer.hasMore());
+	};
 	clearElt.click(function () {
 		constraint.clear();
 		globalQuery.update();
@@ -139,10 +162,12 @@ function setupFacet(container, globalQuery, name, field) {
 			type: 'countbyfieldvalue',
 			field: field
 		}
-	}, function(result) {
+	}, function(result, getContinuer) {
 		if (!haveSelection()) {
 			setLoadingIndicator(false);
-			setData(result.counts.counts);
+			curData = {};
+			continuer = getContinuer();
+			addData(result.counts.counts);
 		}
 	});
 	contextQueryResultWatcher.set({
@@ -152,12 +177,12 @@ function setupFacet(container, globalQuery, name, field) {
 		}
 	});
 	contextQueryResultWatcher.enabled(false);
-	contextQueryResultWatcher.setCallback(function(result) {
+	contextQueryResultWatcher.setCallback(function(result, getContinuer) {
 		if (haveSelection()) {
 			setLoadingIndicator(false);
-			if (!(selectedValue in result.counts.counts))
-				result.counts.counts[selectedValue] = 0;
-			setData(result.counts.counts);
+			curData = {};
+			continuer = getContinuer();
+			addData(result.counts.counts);
 		}
 	});
 	searchBoxElt.submit(function () {
@@ -168,5 +193,12 @@ function setupFacet(container, globalQuery, name, field) {
 		} else
 			setSearchErrorStatus(true);
 		return false;
+	});
+
+	moreElt.click(function() {
+		if (continuer != null)
+			continuer.fetchNext(function(result) {
+				addData(result.counts.counts);
+			});
 	});
 }

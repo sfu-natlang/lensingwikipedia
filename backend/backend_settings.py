@@ -19,8 +19,12 @@ defaults.reset_always = False
 defaults.reset_next = False
 defaults.data_domain_name = None
 defaults.description_page_size = 25
+defaults.count_by_field_value_page_size = 50
+defaults.count_by_year_page_size = 50
+defaults.count_by_referencepoint_page_size = 50
 defaults.num_initial_description_pages_to_cache = 10
-defaults.pagination_cache_size = 100
+defaults.query_pagination_cache_size = 100
+defaults.result_pagination_cache_size = 100
 defaults.all_argument_numbers = [0, 1]
 defaults.fields_to_prime = ["role", "locationText", "personText", "currentCountryText"]
 
@@ -35,7 +39,11 @@ parse_settings = {
   'data_domain_name': str,
   'num_initial_description_pages_to_cache': int,
   'description_page_size': int,
-  'pagination_cache_size': int,
+  'count_by_field_value_page_size': int,
+  'count_by_year_page_size': int,
+  'count_by_referencepoint_page_size': int,
+  'query_pagination_cache_size': int,
+  'result_pagination_cache_size': int,
   'all_argument_numbers': lambda s: s.split(','),
   'fields_to_prime': lambda s: s.split(','),
 }

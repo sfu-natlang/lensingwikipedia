@@ -562,7 +562,7 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 			type: 'countbyreferencepoint'
 		}
 	}, function (result) {
-		initialCounts = result.counts.counts;
+		initialCounts = pairListToDict(result.counts.counts);
 		for (var pointStr in initialCounts)
 			allPointStrs[pointStr] = true;
 		update();
@@ -578,7 +578,7 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 			type: 'countbyreferencepoint'
 		}
 	}, function (result) {
-		contextCounts = result.counts.counts;
+		contextCounts = pairListToDict(result.counts.counts);
 		update();
 	});
 

@@ -300,7 +300,7 @@ function setupTimeline(container, initialQuery, globalQuery) {
 			type: 'countbyyear'
 		}
 	}, function(result) {
-		initialData = result.counts.counts;
+		initialData = pairListToDict(result.counts.counts);
 		draw();
 	});
 	contextQuery.onChange(function () {
@@ -311,7 +311,7 @@ function setupTimeline(container, initialQuery, globalQuery) {
 			type: 'countbyyear'
 		}
 	}, function(result) {
-		contextData = result.counts.counts;
+		contextData = pairListToDict(result.counts.counts);
 		draw();
 	});
 	contextData = {};
