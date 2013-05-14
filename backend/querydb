@@ -26,7 +26,7 @@ if __name__ == '__main__':
   import getopt
 
   try:
-    opts, args = getopt.getopt(sys.argv[1:], "")
+    opts, args = getopt.getopt(sys.argv[1:], "a:")
     if len(args) not in [1, 2]:
       raise getopt.GetoptError("wrong number of positional arguments")
     opts = dict(opts)
@@ -37,18 +37,17 @@ if __name__ == '__main__':
   data_dom_name = args[0]
   all_arg_nums = [int(an) for an in opts['-a'].split(',')] if '-a' in opts else None
 
-  if all_arg_nums is not None:
-    queries.all_argument_numbers = all_arg_nums
-
   sdb = boto.connect_sdb()
   input = open(args[1]) if len(args) > 1 else sys.stdin
   query = json.load(input)
   input.close()
 
-  querier = queries.Querier(
-    data_dom = sdbutils.get_maybenew_domain(sdb, data_dom_name, make_new=False),
-    all_argument_numbers = all_arg_nums
-  )
+  opts = {
+    'data_dom': sdbutils.get_maybenew_domain(sdb, data_dom_name, make_new=False)
+  }
+  if all_arg_nums is not None:
+    opts['all_argument_numbers'] = all_arg_nums
+  querier = queries.Querier(**opts)
 
   response = querier.handle(query)
   json.dump(response, sys.stdout, sort_keys=True, indent=4)
