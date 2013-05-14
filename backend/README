@@ -197,8 +197,8 @@ where each element corresponds to a particular event and has the format:
 	}
 This view is always paginated.
 
-Other design notes
-==================
+Design notes
+============
 
 Miscellaneous 
 -------------
@@ -218,7 +218,7 @@ Pagination
 
 For some queries (the descriptions view) we can have SimpleDB do pagination for us. Pagination directly to SimpleDB is easy, since SimpleDB queries return a next pointer which can be used to continue the query. However, providing this through the backend without identifying clients is not as trivial. The solution involves counting to skip ahead to the desired starting point in a query, but caching next points so that this is generally not necessary. See sdbutils.py for details and reference(s). In the code this type of pagination tends to be called "query pagination".
 
-For other queries (all the count views) there is no way to have SimpleDB do the pagination. For these views we get all results from the DB, do counting, and clip to the desired page size. We cache the unclipped results so that this isn't horribly inefficient. It should be efficient enough as long as the cache is large enough relative to the number of users. In the code this type of pagination tends to be called "result pagination".
+For other queries (all the count views) there is no way to have SimpleDB do the pagination. For these views we get all results from the DB, do counting, and clip to the desired page size. We cache the unclipped results so that this isn't horribly inefficient. It should be efficient enough as long as the cache is large enough relative to the number of users. In the code this type of pagination tends to be called "result pagination". Which views get result pagination is controlled by how_to_paginate_results() in queries.py.
 
 Duplicated items in SimpleDB query results
 ------------------------------------------
