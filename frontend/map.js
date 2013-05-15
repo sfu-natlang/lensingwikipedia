@@ -588,11 +588,11 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 			var btnClass = dir < 0 ? ".zoomout" : ".zoomin";
 			topBoxElt.find(".viewbox " + btnClass).trigger('click');
 		}
+		return false;
 	}
-	if (window.addEventListener) {
-		document.addEventListener('DOMMouseScroll', onMouseWheel, false);
-	}
-	document.onmousewheel = onMouseWheel;
+	if (svgElt[0].addEventListener)
+		svgElt[0].addEventListener('DOMMouseScroll', onMouseWheel, false);
+	svgElt[0].onmousewheel = onMouseWheel;
 
 	initControls();
 }
