@@ -64,7 +64,7 @@ def make_location_list(event):
 
 def make_country_list(event):
   wiki_countries = set(ii['country'] for it, ii in event['wiki_info'].iteritems() if 'country' in ii)
-  other_countries = set(ii['country'] for it, ii in event['locations'].iteritems() if 'country' in ii)
+  other_countries = set(ii['country'] for it, ii in event['locations'].iteritems() if 'country' in ii) if 'locations' in event else set()
   return list(wiki_countries | other_countries)
 
 def format_location(item):
