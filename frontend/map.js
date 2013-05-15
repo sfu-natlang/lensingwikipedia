@@ -37,6 +37,7 @@ var mapProjections = {
 		}
 	}
 }
+defaultMapProjection = 'winkel3';
 
 function drawWorld(svg, group, worldData, projection) {
 	// This is all from d3's Waterman Butterfly example
@@ -332,7 +333,7 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 	var defaultSettings = {
 		selectionMode: 'toggle',
 		zoomLevel: 1,
-		projection: 'hobodyer',
+		projection: defaultMapProjection,
 		viewChoices: {
 			graticule: false,
 			currentcountryboundary: false
