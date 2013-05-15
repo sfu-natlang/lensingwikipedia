@@ -170,8 +170,12 @@ class Querier:
       result = { 'more': True }
       def on_last_page():
         result['more'] = False
-      rs = sdbutils.select_all(self.data_dom, sdb_query, ['year', 'descriptionHtml'], paginated=(self.description_paginator, page_num), last_page_callback=on_last_page, needs_non_null=['yearKey'], order='yearKey', order_descending=True)
-      result['descriptions'] = [dict(e) for e in rs]
+      rs = sdbutils.select_all(self.data_dom, sdb_query, ['year', 'descriptionHtml', 'eventRoot'], paginated=(self.description_paginator, page_num), last_page_callback=on_last_page, needs_non_null=['yearKey'], order='yearKey', order_descending=True)
+      def format(item):
+        event = dict(item)
+        event['dbid'] = item.name
+        return event
+      result['descriptions'] = [format(e) for e in rs]
       return result
     else:
       raise ValueError("unknown view type \"%s\"" % (type))

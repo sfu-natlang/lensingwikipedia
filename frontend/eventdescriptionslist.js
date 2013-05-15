@@ -27,7 +27,11 @@ function setupEventDescriptionsList(container, globalQuery) {
 		$.each(descriptions, function (i, event) {
 			var yearText = event.year > 0 ? event.year + " CE" : -event.year + " BCE";
 			var yearUrl = baseWikipediaUrl + "/wiki/" + (event.year > 0 ? event.year : -event.year + "BC");
-			var descElt = $("<dt title=\"Event in " + event.year + ".\"><a href=\"" + yearUrl + "\">" + yearText + "</a></dt>" + "<dd>" + event.descriptionHtml + "</dd>").appendTo(listElt);
+			var tooltipText = "Event ID " + event.dbid + " in " + event.year;
+			if (event.hasOwnProperty('eventRoot'))
+				tooltipText += ", predicate stem '" + event.eventRoot + "'";
+			tooltipText += ".";
+			var descElt = $("<dt title=\"" + tooltipText + "\"><a href=\"" + yearUrl + "\">" + yearText + "</a></dt>" + "<dd>" + event.descriptionHtml + "</dd>").appendTo(listElt);
 			descElt.find("a").attr('target', '_blank');
 		});
 	}
