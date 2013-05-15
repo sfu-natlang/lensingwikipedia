@@ -306,7 +306,7 @@ function makeMapControls(container, projections, minZoom, maxZoom, defaults) {
 
 function loadSettingsCookies(defaults) {
 	var value = $.cookie("mapprojection");
-	if (value != null)
+	if (value != null && mapProjections.hasOwnProperty(value))
 		defaults.projection = value;
 	$.each(defaults.viewChoices, function (setting, choice) {
 		var value = $.cookie("mapviewchoice" + setting);
