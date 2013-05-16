@@ -48,17 +48,15 @@ function setupConstraintList(container, globalQuery) {
 		 		errorBox.css('display', 'none');
 			}
 		} else {
-			if (!alreadyError) {
-				if (message != true && !errorMessages.hasOwnProperty(message)) {
-					if (message != true)
-						errorMessages[message] = true;
-					messagesStrs = $.map(errorMessages, function (value, key)  { return key; });
-					var text = "The current constraints caused an error in processing the query";
-					if (messagesStrs.length > 0)
-						text += ": " + messagesStrs.join("; ");
-					text += ".";
-					errorBox.html(text);
-				}
+			if (!alreadyError || message != true && !errorMessages.hasOwnProperty(message)) {
+				if (message != true)
+					errorMessages[message] = true;
+				messagesStrs = $.map(errorMessages, function (value, key)  { return key; });
+				var text = "The current constraints caused an error in processing the query";
+				if (messagesStrs.length > 0)
+					text += ": " + messagesStrs.join("; ");
+				text += ".";
+				errorBox.html(text);
 				alreadyError = true;
 		 		errorBox.css('display', '');
 				container.trigger('changedSize');
