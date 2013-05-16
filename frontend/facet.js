@@ -10,7 +10,7 @@ function setupFacet(container, globalQuery, name, field) {
 	var search = searchInputElt.typeahead();
 
 	var listBoxElt = $("<div class=\"listbox\"></div>").appendTo(facetElt);
-	var loadingElt = makeLoadingIndicator().prependTo(listBoxElt);
+	var loadingIndicator = new LoadingIndicator(listBoxElt);
 	var listElt = $("<ul></ul>").appendTo(listBoxElt);
 	var moreBoxElt = $("<div class=\"buttonbox\"></div>").appendTo(listBoxElt);
 	var moreElt = $("<button type=\"button\" class=\"btn\" disabled=\"true\">More</button>").appendTo(moreBoxElt);
@@ -18,10 +18,7 @@ function setupFacet(container, globalQuery, name, field) {
 	fillElement(container, facetElt, 'vertical');
 	setupPanelled(facetElt, topBoxElt, listBoxElt, 'vertical', 0, false);
 
-	function setLoadingIndicator(enabled) {
-		loadingElt.css('display', enabled ? '' : 'none');
-	}
-	setLoadingIndicator(true);
+	loadingIndicator.enabled(true);
 
 	function setClearEnabled(enabled) {
 		if (enabled)
@@ -138,13 +135,13 @@ function setupFacet(container, globalQuery, name, field) {
 	globalQuery.onChange(function () {
 		if (!haveSelection()) {
 			setData(null);
-			setLoadingIndicator(true);
+			loadingIndicator.enabled(true);
 		}
 	});
 	contextQuery.onChange(function () {
 		if (haveSelection()) {
 			setData(null);
-			setLoadingIndicator(true);
+			loadingIndicator.enabled(true);
 		}
 	});
 	ownCnstrQuery.onChange(function () {
@@ -163,8 +160,13 @@ function setupFacet(container, globalQuery, name, field) {
 			field: field
 		}
 	}, function(result, getContinuer) {
-		if (!haveSelection()) {
-			setLoadingIndicator(false);
+		if (result.counts.hasOwnProperty('error')) {
+console.log("error on global");
+			loadingIndicator.error('counts', true);
+			loadingIndicator.enabled(true);
+		} else if (!haveSelection()) {
+			loadingIndicator.error('counts', false);
+			loadingIndicator.enabled(false);
 			curData = {};
 			continuer = getContinuer();
 			addData(result.counts.counts);
@@ -178,8 +180,13 @@ function setupFacet(container, globalQuery, name, field) {
 	});
 	contextQueryResultWatcher.enabled(false);
 	contextQueryResultWatcher.setCallback(function(result, getContinuer) {
-		if (haveSelection()) {
-			setLoadingIndicator(false);
+		if (result.counts.hasOwnProperty('error')) {
+console.log("error on context");
+			loadingIndicator.error('counts', true);
+			loadingIndicator.enabled(true);
+		} else if (haveSelection()) {
+			loadingIndicator.error('counts', false);
+			loadingIndicator.enabled(false);
 			curData = {};
 			continuer = getContinuer();
 			addData(result.counts.counts);

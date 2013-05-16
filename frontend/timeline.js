@@ -179,7 +179,7 @@ function setupTimeline(container, initialQuery, globalQuery) {
 	var outerElt = $("<div class=\"timeline\"></div>").appendTo(container);
 	var topBoxElt = $("<div class=\"topbox\"></div>").appendTo(outerElt);
 	var clearElt = $("<button type=\"button\" class=\"btn btn-block btn-mini btn-warning\" title=\"Clear the timeline selection.\">Clear selection</button></ul>").appendTo(topBoxElt);
-	var loadingElt = makeLoadingIndicator().appendTo(outerElt);
+	var loadingIndicator = new LoadingIndicator(outerElt);
 	var outerSvgElt = $("<svg class=\"outersvg\"></svg>").appendTo(outerElt);
 	var svgElt = $("<svg class=\"innersvg\" viewBox=\"" + viewBox.x + " " + viewBox.y + " " + viewBox.width + " " + viewBox.height + "\" preserveAspectRatio=\"none\"></svg>").appendTo(outerSvgElt);
 
@@ -194,7 +194,7 @@ function setupTimeline(container, initialQuery, globalQuery) {
 
 	function setLoadingIndicator(enabled) {
 		svgElt.css('display', !enabled ? '' : 'none');
-		loadingElt.css('display', enabled ? '' : 'none');
+		loadingIndicator.enabled(enabled);
 	}
 	setLoadingIndicator(true);
 
@@ -300,8 +300,14 @@ function setupTimeline(container, initialQuery, globalQuery) {
 			type: 'countbyyear'
 		}
 	}, function(result) {
-		initialData = pairListToDict(result.counts.counts);
-		draw();
+		if (result.counts.hasOwnProperty('error')) {
+			loadingIndicator.error('counts', true);
+			setLoadingIndicator(true);
+		} else {
+			loadingIndicator.error('counts', false);
+			initialData = pairListToDict(result.counts.counts);
+			draw();
+		}
 	});
 	contextQuery.onChange(function () {
 		setLoadingIndicator(true);
@@ -311,8 +317,14 @@ function setupTimeline(container, initialQuery, globalQuery) {
 			type: 'countbyyear'
 		}
 	}, function(result) {
-		contextData = pairListToDict(result.counts.counts);
-		draw();
+		if (result.counts.hasOwnProperty('error')) {
+			loadingIndicator.error('counts', true);
+			setLoadingIndicator(true);
+		} else {
+			loadingIndicator.error('counts', false);
+			contextData = pairListToDict(result.counts.counts);
+			draw();
+		}
 	});
 	contextData = {};
 }

@@ -15,8 +15,17 @@ import collections
 import sha
 import json
 import dates
+import traceback
 import sdbutils
 import caching
+
+class QueryHandlingError(Exception):
+  """
+  Exception for errors in query handling that should send an error message to
+  the frontend.
+  """
+  def __init__(self, value):
+    self.value = value
 
 def discover_year_range(data_dom):
   """
@@ -66,6 +75,8 @@ class Querier:
     settings.setdefault('year_key_digits', None)
     # Names of fields to prime the cache with
     settings.setdefault('fields_to_prime', [])
+    # Maximum number of events to count over before giving up
+    settings.setdefault('max_items_to_count_over', 1000)
 
     for key, value in settings.iteritems():
       setattr(self, key, value)
@@ -146,7 +157,9 @@ class Querier:
     for view_id, view in views.iteritems():
       response[view_id] = { 'counts': {} }
 
-    for item in sdbutils.select_all(self.data_dom, sdb_query, field_keys, needs_non_null=field_keys, non_null_is_any=True):
+    for i, item in enumerate(sdbutils.select_all(self.data_dom, sdb_query, field_keys, needs_non_null=field_keys, non_null_is_any=True)):
+      if self.max_items_to_count_over is not None and i > self.max_items_to_count_over:
+        raise QueryHandlingError("Too many matching events; narrow the query more.")
       for view_id, view in views.iteritems():
         counts = response[view_id]['counts']
         values = set(v for f in view['_use_fields'] if f in item for v in (item[f] if isinstance(item[f], list) else [item[f]]))
@@ -206,10 +219,22 @@ class Querier:
           'field': 'year'
         }
       else:
-        response[view_id] = self.handle_independent_view(view, sdb_query)
+        try:
+          response[view_id] = self.handle_independent_view(view, sdb_query)
+        except Exception, e:
+          response[view_id] = { 'error': e.value if isinstance(e, QueryHandlingError) else "Error" }
+          print >> sys.stderr, "error while generating a view:"
+          traceback.print_exc(file=sys.stderr)
 
     if len(field_count_views) > 0:
-      self.generate_field_counts(response, field_count_views, sdb_query)
+      try:
+        self.generate_field_counts(response, field_count_views, sdb_query)
+      except Exception, e:
+        message = e.value if isinstance(e, QueryHandlingError) else "Error"
+        for view_id in field_count_views:
+          response[view_id] = { 'error': message }
+        print >> sys.stderr, "error while generating count views:"
+        traceback.print_exc(file=sys.stderr)
 
     return response
 
@@ -249,22 +274,21 @@ class Querier:
     """
     Primes the querier by self-submitting queries that will get cached.
     """
+    # Disable maximum items to count over temporarily.
+    old_mitco = self.max_items_to_count_over
+    self.max_items_to_count_over = None
     for query in self.queries_to_prime():
       self.handle(query)
+    self.max_items_to_count_over = old_mitco
 
-  def handle(self, query):
-    """
-    Produces a JSON (as python objects) response for a query given as a JSON (as
-    python objects) query.
-    query: The query as JSON (as python objects).
-    """
-
+  def handle_all_constraints(self, query):
     # Generate the SimpleDB query string for the constraints.
     def handle_constraint(cnstr_id, cnstr):
       print >> sys.stderr, "handling constraint \"%s\" of type \"%s\"" % (cnstr_id, cnstr['type'])
       return self.constraint_to_sdb_query(cnstr)
-    sdb_query = " and ".join("(%s)" % (handle_constraint(cid, c)) for cid, c in query['constraints'].iteritems())
+    return " and ".join("(%s)" % (handle_constraint(cid, c)) for cid, c in query['constraints'].iteritems())
 
+  def handle_all_views(self, query, sdb_query):
     # This is inefficient but works to generate cache keys. For each view we will use an SHA keys across the stringified JSON for all the constraints and that view.
     cnstrs_shaer = sha.new()
     for cnstr in query['constraints'].iteritems():
@@ -336,10 +360,29 @@ class Querier:
           for attr, value in result.iteritems():
             if attr != paginate_attr:
               paginated_result[attr] = value
-          i = page_num * page_size
-          j = i + page_size
-          paginated_result[paginate_attr] = result[paginate_attr][i:j]
-          paginated_result['more'] = j < len(result[paginate_attr])
-          response[view_id] = paginated_result
+          if paginate_attr in paginated_result:
+            i = page_num * page_size
+            j = i + page_size
+            paginated_result[paginate_attr] = result[paginate_attr][i:j]
+            paginated_result['more'] = j < len(result[paginate_attr])
+            response[view_id] = paginated_result
 
+    return response
+
+  def handle(self, query):
+    """
+    Produces a JSON (as python objects) response for a query given as a JSON (as
+    python objects) query.
+    query: The query as JSON (as python objects).
+    """
+    try:
+      sdb_query = self.handle_all_constraints(query)
+      response = self.handle_all_views(query, sdb_query)
+    except Exception, e:
+      message = e.value if isinstance(e, QueryHandlingError) else "Error"
+      response = {}
+      for view_id in query['views']:
+        response[view_id] = { 'error': message }
+      print >> sys.stderr, "error while handling query:"
+      traceback.print_exc(file=sys.stderr)
     return response

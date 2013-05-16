@@ -328,7 +328,7 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 	var outerElt = $("<div class=\"map\"></div>").appendTo(container);
 	var topBoxElt = $("<div class=\"topbox\"></div>").appendTo(outerElt);
 	var svgElt = $("<svg viewBox=\"" + viewBox.x + " " + viewBox.y + " " + viewBox.width + " " + viewBox.height + "\" preserveAspectRatio=\"xMidYMid meet\"></svg>").appendTo(outerElt);
-	var loadingElt = makeLoadingIndicator().appendTo(outerElt);
+	var loadingIndicator = new LoadingIndicator(outerElt);
 
 	var defaultSettings = {
 		selectionMode: 'toggle',
@@ -353,6 +353,12 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 	globalQuery.addConstraint(constraint);
 	ownCnstrQuery.addConstraint(constraint);
 	var contextQuery = new Query(globalQuery.backendUrl(), 'setminus', globalQuery, ownCnstrQuery);
+
+	function setLoadingIndicator(enabled) {
+		svgElt.css('display', !enabled ? '' : 'none');
+		loadingIndicator.enabled(enabled);
+	}
+	setLoadingIndicator(true);
 
 	var mapData = null,
 	    initialCounts = null,
@@ -420,9 +426,9 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 	function update(quick) {
 		if (mapData == null || initialCounts == null || contextCounts == null || projection == null || zoomLevel == null || viewChoices == null || pan == null) {
 			svgElt.css('display', 'none');
-			loadingElt.css('display', '');
+			setLoadingIndicator(true);
 		} else {
-			loadingElt.css('display', 'none');
+			setLoadingIndicator(false);
 			svgElt.css('display', '');
 			if (curProj == null) {
 				curProj = projection.proj();
@@ -562,10 +568,16 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 			type: 'countbyreferencepoint'
 		}
 	}, function (result) {
-		initialCounts = pairListToDict(result.counts.counts);
-		for (var pointStr in initialCounts)
-			allPointStrs[pointStr] = true;
-		update();
+		if (result.counts.hasOwnProperty('error')) {
+			loadingIndicator.error('counts', true);
+			setLoadingIndicator(true);
+		} else {
+			loadingIndicator.error('counts', false);
+			initialCounts = pairListToDict(result.counts.counts);
+			for (var pointStr in initialCounts)
+				allPointStrs[pointStr] = true;
+			update();
+		}
 	});
 	contextQuery.onChange(function () {
 		contextCounts = null;
@@ -578,8 +590,14 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 			type: 'countbyreferencepoint'
 		}
 	}, function (result) {
-		contextCounts = pairListToDict(result.counts.counts);
-		update();
+		if (result.counts.hasOwnProperty('error')) {
+			loadingIndicator.error('counts', true);
+			setLoadingIndicator(true);
+		} else {
+			loadingIndicator.error('counts', false);
+			contextCounts = pairListToDict(result.counts.counts);
+			update();
+		}
 	});
 
 	function onMouseWheel(event) {

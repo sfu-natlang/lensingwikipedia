@@ -111,6 +111,8 @@ Years are given as integers, where negative indicates BCE and positive indicates
 
 Some view types are paginated (see the code and the design notes below for details) or can optionally be paginated. These views have a page attribute which sets the page number, starting from zero. The number of items per page is determined by the backend. The result contains details for this number of events, or as many are available to match the constraints if less than a full page is available. The result also has a "more" attribute indicating whether more pages are available. Submitting a query with the same constraints and the same view except for a changed page number will fetch subsequent pages. If a view type is strictly paginated then it will assume a page number of zero if no page number is given. If it is optionally paginated it will paginate only if a page number is given, and otherwise will return all possible results.
 
+Any view result can have an error; see below.
+
 See examplequeries/ for examples.
 
 Constraints
@@ -196,6 +198,14 @@ where each element corresponds to a particular event and has the format:
 		"descriptionHtml": /* HTML-formatted description */
 	}
 This view is always paginated.
+
+Errors
+------
+
+Any view result can be replaced by an error if an error occurred when handling that view. The error could be intended if the backend refuses to handle a certain constraint, or could indicate an internal backend error. An error result has the format:
+	{
+		"error": /* error message string */
+	}
 
 Design notes
 ============

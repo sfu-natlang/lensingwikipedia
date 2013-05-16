@@ -41,7 +41,8 @@ def make_querier(settings):
     count_by_referencepoint_page_size = settings.count_by_referencepoint_page_size,
     num_initial_description_pages_to_cache = settings.num_initial_description_pages_to_cache,
     all_argument_numbers = settings.all_argument_numbers,
-    fields_to_prime = settings.fields_to_prime
+    fields_to_prime = settings.fields_to_prime,
+    max_items_to_count_over = settings.max_items_to_count_over
   )
   return querier
 

@@ -1,14 +1,11 @@
 function setupEventDescriptionsList(container, globalQuery) {
 	var outerElt = $("<div class=\"eventdescriptionslist\"></div>").appendTo(container);
-	var loadingElt = makeLoadingIndicator().prependTo(outerElt);
+	var loadingIndicator = new LoadingIndicator(outerElt);
 	var listElt = $("<dl></dl>").appendTo(outerElt);
 	var moreBoxElt = $("<div class=\"buttonbox\"></div>").appendTo(outerElt);
 	var moreElt = $("<button type=\"button\" class=\"btn\" disabled=\"true\">More</button>").appendTo(moreBoxElt);
 
-	function setLoadingIndicator(enabled) {
-		loadingElt.css('display', enabled ? '' : 'none');
-	}
-	setLoadingIndicator(true);
+	loadingIndicator.enabled(true);
 
 	function setMoreEnabled(enabled) {
 		if (enabled) {
@@ -37,7 +34,7 @@ function setupEventDescriptionsList(container, globalQuery) {
 	}
 
 	globalQuery.onChange(function() {
-		setLoadingIndicator(true);
+		loadingIndicator.enabled(true);
 		setMoreEnabled(false);
 		resetList();
 	});
@@ -49,11 +46,17 @@ function setupEventDescriptionsList(container, globalQuery) {
 			page: 0
 		}
 	}, function(result, getContinuer) {
-		setLoadingIndicator(false);
-		resetList();
-		addToList(result.descriptions.descriptions);
-		continuer = getContinuer();
-		setMoreEnabled(continuer.hasMore());
+		if (result.descriptions.hasOwnProperty('error')) {
+			loadingIndicator.error('descriptions', true);
+			loadingIndicator.enabled(true);
+		} else {
+			loadingIndicator.error('descriptions', false);
+			loadingIndicator.enabled(false);
+			resetList();
+			addToList(result.descriptions.descriptions);
+			continuer = getContinuer();
+			setMoreEnabled(continuer.hasMore());
+		}
 	});
 
 	moreElt.click(function() {
