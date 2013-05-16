@@ -13,7 +13,7 @@ Now use make to run the build process. There are two main targets:
 	release -- Build the site with packed and minimized CSS and Javascript files. Outputs to out/.
 	devel -- Build the site with independent CSS and Javascript files. Useful for development and debugging. Outputs to devel/.
 
-By default make uses "closure" (from Google's Closure Compiler) for Javascript minimization and "csso" (from CSSO) for CSS minimization. You can change these by setting by creating a file called config.mk which sets variables MINJS and MINCSS respectively. Alternatively you can set these variables in the environment before calling make. If you don't want to do minimization for one or both components, set the relevant variable(s) to "cat". See the Makefile for details and other settings you can change.
+By default make uses uglifyjs for Javascript minimization and csso for CSS minimization. You can change these by setting by creating a file called config.mk which sets variables MINJS and MINCSS respectively. Alternatively you can set these variables in the environment before calling make. If you don't want to do minimization for one or both components, set the relevant variable(s) to "cat". See the Makefile for details and other settings you can change.
 
 After building, serve the files from either out/ or devel/.
 
