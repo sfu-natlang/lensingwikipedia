@@ -106,7 +106,7 @@ function setupFacet(container, globalQuery, name, field) {
 			searchInputElt.removeAttr('disabled');
 			search.data('typeahead').source = keyList(data);
 			var sortedValues = getSortedValues();
-			for (i in sortedValues) {
+			for (var i in sortedValues) {
 				var value = sortedValues[i];
 				addValue(value, data[value]);
 			}
@@ -119,14 +119,16 @@ function setupFacet(container, globalQuery, name, field) {
 
 	var continuer = null;
 	function addData(counts) {
-		for (var i in counts) {
-			var pair = counts[i];
-			curData[pair[0]] = pair[1];
+		if (curData != null) {
+			for (var i in counts) {
+				var pair = counts[i];
+				curData[pair[0]] = pair[1];
+			}
+			if (haveSelection() && !(selectedValue in curData))
+				curData[selectedValue] = 0;
+			setData(curData);
+			setMoreEnabled(continuer.hasMore());
 		}
-		if (haveSelection() && !(selectedValue in curData))
-			curData[selectedValue] = 0;
-		setData(curData);
-		setMoreEnabled(continuer.hasMore());
 	};
 	clearElt.click(function () {
 		constraint.clear();
