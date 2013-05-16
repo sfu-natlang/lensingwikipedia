@@ -205,8 +205,9 @@ Errors
 
 Any view result can be replaced by an error if an error occurred when handling that view. The error could be intended if the backend refuses to handle a certain constraint, or could indicate an internal backend error. An error result has the format:
 	{
-		"error": /* error message string */
+		"error": /* true boolean error message string */
 	}
+The value of the error attribute is either a boolean true value if there is no specific error message, or a string containing a specific error message.
 
 Design notes
 ============

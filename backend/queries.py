@@ -159,7 +159,7 @@ class Querier:
 
     for i, item in enumerate(sdbutils.select_all(self.data_dom, sdb_query, field_keys, needs_non_null=field_keys, non_null_is_any=True)):
       if self.max_items_to_count_over is not None and i > self.max_items_to_count_over:
-        raise QueryHandlingError("Too many matching events; narrow the query more.")
+        raise QueryHandlingError("too many matching events, narrow the query more")
       for view_id, view in views.iteritems():
         counts = response[view_id]['counts']
         values = set(v for f in view['_use_fields'] if f in item for v in (item[f] if isinstance(item[f], list) else [item[f]]))
@@ -222,7 +222,7 @@ class Querier:
         try:
           response[view_id] = self.handle_independent_view(view, sdb_query)
         except Exception, e:
-          response[view_id] = { 'error': e.value if isinstance(e, QueryHandlingError) else "Error" }
+          response[view_id] = { 'error': e.value if isinstance(e, QueryHandlingError) else True }
           print >> sys.stderr, "error while generating a view:"
           traceback.print_exc(file=sys.stderr)
 
@@ -230,7 +230,7 @@ class Querier:
       try:
         self.generate_field_counts(response, field_count_views, sdb_query)
       except Exception, e:
-        message = e.value if isinstance(e, QueryHandlingError) else "Error"
+        message = e.value if isinstance(e, QueryHandlingError) else True
         for view_id in field_count_views:
           response[view_id] = { 'error': message }
         print >> sys.stderr, "error while generating count views:"
@@ -379,7 +379,7 @@ class Querier:
       sdb_query = self.handle_all_constraints(query)
       response = self.handle_all_views(query, sdb_query)
     except Exception, e:
-      message = e.value if isinstance(e, QueryHandlingError) else "Error"
+      message = e.value if isinstance(e, QueryHandlingError) else True
       response = {}
       for view_id in query['views']:
         response[view_id] = { 'error': message }

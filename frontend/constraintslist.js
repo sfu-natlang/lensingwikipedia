@@ -3,6 +3,7 @@ function setupConstraintList(container, globalQuery) {
 
 	var clearAllElt = $("<button type=\"button\" class=\"btn btn-block btn-mini btn-warning\" title=\"Remove all current constraints.\">Clear all constraints</button></ul>").appendTo(outerElt);
 	var listElt = $("<ul></ul>").appendTo(outerElt);
+	var errorBox = $("<div class=\"alert alert-error\" style=\"display: none\"></div>").appendTo(outerElt);
 
 	function setClearEnabled(enabled) {
 		if (enabled)
@@ -12,42 +13,97 @@ function setupConstraintList(container, globalQuery) {
 	}
 	setClearEnabled(false);
 
-	function removeConstraintElement(cnstrElt) {
-		cnstrElt.slideUp(400, function() {
+	function removeElement(elt) {
+		elt.slideUp(400, function() {
 			container.trigger('changedSize');
 		});
 	};
 
+	var cnstrStack = [];
 	function addConstraintElement(cnstr) {
 		var itemElt = $("<li></li>").appendTo(listElt);
 		var cnstrElt = $("<div class=\"alert alert-constraint\" title=\"Click to remove this constraint.\"></div>").appendTo(itemElt);
 		$("<button type=\"button\" class=\"close\">&times;</button>").appendTo(cnstrElt);
 		var cnstrTextElt = $("<span></span>").appendTo(cnstrElt);
 		cnstrTextElt.append(cnstr.name());
+		cnstrStack.push(cnstr);
+		container.trigger('changedSize');
 		cnstrElt.click(function() {
 			cnstr.clear();
 			globalQuery.update();
-			removeConstraintElement(cnstrElt);
+			removeElement(cnstrElt);
+			var i = cnstrStack.indexOf(cnstr);
+			if (i >= 0)
+				cnstrStack.splice(i, 1);
 		});
 		cnstr.onChange(function(changeType, query, cnstr) {
 			if (changeType =="removed") {
-				removeConstraintElement(cnstrElt);
+				removeElement(cnstrElt);
+				var i = cnstrStack.indexOf(cnstr);
+				if (i >= 0)
+					cnstrStack.splice(i, 1);
 			} else if (changeType == "changed") {
 				cnstrTextElt.html(cnstr.name());
 			}
 		});
 	}
 
-	globalQuery.onChange(function (changeType, query, cnstr) {
-		if (changeType == "current" || changeType == "added") {
-			addConstraintElement(cnstr)
-			container.trigger('changedSize');
+	var alreadyError = true;
+	var errorMessages = {};
+	function setError(message) {
+		if (message == null) {
+			if (alreadyError) {
+				alreadyError = false;
+				removeElement(errorBox);
+			}
+		} else {
+			if (!alreadyError || (message != true && !errorMessages.hasOwnProperty(message))) {
+				alreadyError = true;
+				if (message != true)
+					errorMessages[message] = true;
+				messagesStrs = $.map(errorMessages, function (value, key)  { return key; });
+				var text = "The last constraint added appears to have caused an error in processing the query";
+				if (messagesStrs.length > 0)
+					text += ": " + messagesStrs.join("; ");
+				text += ".";
+				errorBox.empty();
+				var para = $("<p></p>").appendTo(errorBox).html(text);
+				var btnBox = $("<div class=\"buttonbox\"></div>").appendTo(errorBox);
+				var undoBtn = $("<button type=\"button\" class=\"btn btn-warning\" title=\"Undo last constraint addition.\">Undo</button>").appendTo(btnBox);
+				undoBtn.click(function () {
+					if (cnstrStack.length > 0) {
+						cnstrStack[cnstrStack.length - 1].clear();
+						globalQuery.update();
+					}
+				});
+		 		errorBox.css('display', '');
+				container.trigger('changedSize');
+			}
 		}
+	}
+	setError(null);
+
+	globalQuery.onChange(function (changeType, query, cnstr) {
+		if (changeType == "current" || changeType == "added")
+			addConstraintElement(cnstr)
 		setClearEnabled(!globalQuery.isEmpty());
 	}, true);
 
 	clearAllElt.click(function() {
 		globalQuery.clearAll();
 		globalQuery.update();
+	});
+
+	var numErrors = 0;
+	globalQuery.onError(function (message, fromChild, onResolve) {
+		numErrors += 1;
+		setError(message);
+		onResolve(function () {
+			if (numErrors > 0) {
+				numErrors -= 1;
+				if (numErrors == 0)
+					setError(null);
+			}
+		});
 	});
 }

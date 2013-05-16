@@ -23,3 +23,11 @@
 	border-color: rgba(58, 135, 173, 1.0);
 	text-shadow: none;
 }
+.constraintslist .buttonbox {
+	text-align: center;
+	margin: 0;
+	padding: 0;
+}
+.constraintslist .listbox button {
+	margin: 0em auto 1em auto;
+}

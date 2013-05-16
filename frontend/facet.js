@@ -161,7 +161,6 @@ function setupFacet(container, globalQuery, name, field) {
 		}
 	}, function(result, getContinuer) {
 		if (result.counts.hasOwnProperty('error')) {
-console.log("error on global");
 			loadingIndicator.error('counts', true);
 			loadingIndicator.enabled(true);
 		} else if (!haveSelection()) {
@@ -181,7 +180,6 @@ console.log("error on global");
 	contextQueryResultWatcher.enabled(false);
 	contextQueryResultWatcher.setCallback(function(result, getContinuer) {
 		if (result.counts.hasOwnProperty('error')) {
-console.log("error on context");
 			loadingIndicator.error('counts', true);
 			loadingIndicator.enabled(true);
 		} else if (haveSelection()) {

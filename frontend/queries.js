@@ -26,7 +26,6 @@ function _addViews(views) {
 	return stringifiedViews;
 }
 
-
 function _removeViews(stringifiedViews) {
 	for (localViewId in stringifiedViews) {
 		var viewStr = stringifiedViews[localViewId];
@@ -38,7 +37,7 @@ function _removeViews(stringifiedViews) {
 	}
 }
 
-function _resultsForResultWatchers(resultWatchers, backendResponse, expectAll, onResult) {
+function _resultsForResultWatchers(resultWatchers, backendResponse, expectAll, onResult, onError) {
 	for (var watcherId in resultWatchers) {
 		var ok = true;
 		var watcher = resultWatchers[watcherId];
@@ -51,7 +50,10 @@ function _resultsForResultWatchers(resultWatchers, backendResponse, expectAll, o
 				ok = false;
 				break;
 			}
-			result[localViewId] = backendResponse[globalViewId];
+			var viewResult = backendResponse[globalViewId];
+			result[localViewId] = viewResult;
+			if (viewResult.hasOwnProperty('error') && onError != null)
+				onError(viewResult.error);
 		}
 		if (ok)
 			onResult(watcher, result);
@@ -281,6 +283,8 @@ function Query(backendUrl, type, arg1, arg2) {
 	this._someResultWatcherChangedSinceUpdate = true;
 	this._resultWatchersChangedSinceUpdate = {};
 	this._resultWatchersUpdatePremptivelyAt = {};
+	this._errorWatchers = [];
+	this._errorResolvedWatchers = [];
 
 	if (type == 'base')
 		this._setupBase();
@@ -291,11 +295,12 @@ function Query(backendUrl, type, arg1, arg2) {
 }
 
 Query.prototype._setupBase = function () {
-	// nothing to do
+	this._parents = [];
 }
 
 Query.prototype._setupSetminus = function (query1, query2) {
 	var query = this;
+	this._parents = [query1, query2];
 	query1.onChange(function (changeType, _, cnstr) {
 		if (changeType == 'added' || changeType == 'current') {
 			if (!query2._constraints.hasOwnProperty(cnstr._id))
@@ -332,6 +337,29 @@ Query.prototype._updateChangeWatchers = function(changeType, constraint) {
 	for (var watcherId in constraint._changeWatchers)
 		constraint._changeWatchers[watcherId]._callback(changeType, query, constraint);
 	this._someConstraintChangedSinceUpdate = true;
+}
+
+Query.prototype._updateErrorWatchers = function(message, isFromChild, onResolve) {
+	if (onResolve == null)
+		onResolve = function (resolveCallback) {
+			query._errorResolvedWatchers.push(resolveCallback);
+		};
+	var query = this;
+	for (var i = 0; i < this._errorWatchers.length; i++) {
+		var watcher = this._errorWatchers[i];
+		if (!isFromChild || watcher.getFromChildren)
+			watcher.callback(message, isFromChild, onResolve);
+	}
+	for (var i = 0; i < this._parents.length; i++)
+		this._parents[i]._updateErrorWatchers(message, true, onResolve);
+}
+
+Query.prototype._updateErrorResolvedWatchers = function() {
+	for (var i = 0; i < this._errorResolvedWatchers.length; i++) {
+		var watcher = this._errorResolvedWatchers[i];
+		watcher();
+	}
+	this._errorResolvedWatchers = [];
 }
 
 Query.prototype._addConstraint = function(constraint) {
@@ -427,6 +455,11 @@ Query.prototype.onResult = function(views, callback) {
 	return watcher;
 }
 
+Query.prototype.onError = function (callback, getFromChildren) {
+	if (getFromChildren == null) getFromChildren = true;
+	this._errorWatchers.push({ callback: callback, getFromChildren: getFromChildren });
+}
+
 Query.prototype.clearAll = function() {
 	for (cnstrKey in this._constraints) {
 		var cnstr = this._constraints[cnstrKey];
@@ -517,11 +550,17 @@ Query.prototype.update = function(postponeFinish) {
 			finish = function () {
 				post.done(function (response) {
 					//console.log("R", query._id, response);
+					var hadError = false;
 					_resultsForResultWatchers(resultWatchersToUpdate, response, true, function (watcher, result) {
 						watcher._callback(result, function (limitLocalViewIds) {
 							return new Continuer(query, watcher, limitLocalViewIds, result);
 						});
+					}, function (message) {
+						query._updateErrorWatchers(message, false);
+						hadError = true;
 					});
+					if (!hadError)
+						query._updateErrorResolvedWatchers();
 				});
 			}
 		}
