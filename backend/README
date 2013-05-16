@@ -61,6 +61,7 @@ The backend settings are:
 	result_pagination_cache_size -- number of results to cache for results which are paginated by the backend
 	all_argument_numbers -- list of all role arguments, given to backend-ctrl as a comma-separated list
 	fields_to_prime -- list of all field names to prime the caches with, given to backend-ctrl as a comma-separated list
+	max_items_to_count_over -- maximum number of items to count over for a non-priming query before giving up and giving an error result
 
 See backend_settings.py for the defaults defaults, which are used if a setting is not set in the settings domain. To unset a setting (and therefore revert to the default), give it an empty value, eg:
 	backend-ctrl --description_page_size= lensingwikipedia-demo-backend-setting
