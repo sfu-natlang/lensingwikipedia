@@ -360,7 +360,7 @@ class Querier:
           for attr, value in result.iteritems():
             if attr != paginate_attr:
               paginated_result[attr] = value
-          if paginate_attr in paginated_result:
+          if paginate_attr in result:
             i = page_num * page_size
             j = i + page_size
             paginated_result[paginate_attr] = result[paginate_attr][i:j]
