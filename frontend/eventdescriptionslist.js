@@ -49,6 +49,7 @@ function setupEventDescriptionsList(container, globalQuery) {
 		if (result.descriptions.hasOwnProperty('error')) {
 			loadingIndicator.error('descriptions', true);
 			loadingIndicator.enabled(true);
+			setMoreEnabled(false);
 		} else {
 			loadingIndicator.error('descriptions', false);
 			loadingIndicator.enabled(false);

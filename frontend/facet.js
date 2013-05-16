@@ -165,6 +165,7 @@ function setupFacet(container, globalQuery, name, field) {
 		if (result.counts.hasOwnProperty('error')) {
 			loadingIndicator.error('counts', true);
 			loadingIndicator.enabled(true);
+			setMoreEnabled(false);
 		} else if (!haveSelection()) {
 			loadingIndicator.error('counts', false);
 			loadingIndicator.enabled(false);
@@ -184,6 +185,7 @@ function setupFacet(container, globalQuery, name, field) {
 		if (result.counts.hasOwnProperty('error')) {
 			loadingIndicator.error('counts', true);
 			loadingIndicator.enabled(true);
+			setMoreEnabled(false);
 		} else if (haveSelection()) {
 			loadingIndicator.error('counts', false);
 			loadingIndicator.enabled(false);
