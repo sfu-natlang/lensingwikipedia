@@ -53,7 +53,7 @@ function _resultsForResultWatchers(resultWatchers, backendResponse, expectAll, o
 			var viewResult = backendResponse[globalViewId];
 			result[localViewId] = viewResult;
 			if (viewResult.hasOwnProperty('error') && onError != null)
-				onError(viewResult.error);
+				onError(viewResult.error, watcher);
 		}
 		if (ok)
 			onResult(watcher, result);
@@ -283,8 +283,9 @@ function Query(backendUrl, type, arg1, arg2) {
 	this._someResultWatcherChangedSinceUpdate = true;
 	this._resultWatchersChangedSinceUpdate = {};
 	this._resultWatchersUpdatePremptivelyAt = {};
+	this._resultWatchersWithErrors = {};
 	this._errorWatchers = [];
-	this._errorResolvedWatchers = [];
+	this._errorResolvedWatchers = {};
 
 	if (type == 'base')
 		this._setupBase();
@@ -339,27 +340,31 @@ Query.prototype._updateChangeWatchers = function(changeType, constraint) {
 	this._someConstraintChangedSinceUpdate = true;
 }
 
-Query.prototype._updateErrorWatchers = function(message, isFromChild, onResolve) {
+Query.prototype._updateErrorWatchers = function(message, isFromChild, resultWatcher, onResolve) {
+	var query = this;
 	if (onResolve == null)
 		onResolve = function (resolveCallback) {
-			query._errorResolvedWatchers.push(resolveCallback);
+			if (!query._errorResolvedWatchers.hasOwnProperty(resultWatcher._id))
+				query._errorResolvedWatchers[resultWatcher._id] = [];
+			query._errorResolvedWatchers[resultWatcher._id].push(resolveCallback);
 		};
-	var query = this;
 	for (var i = 0; i < this._errorWatchers.length; i++) {
 		var watcher = this._errorWatchers[i];
 		if (!isFromChild || watcher.getFromChildren)
 			watcher.callback(message, isFromChild, onResolve);
 	}
 	for (var i = 0; i < this._parents.length; i++)
-		this._parents[i]._updateErrorWatchers(message, true, onResolve);
+		this._parents[i]._updateErrorWatchers(message, true, resultWatcher, onResolve);
 }
 
-Query.prototype._updateErrorResolvedWatchers = function() {
-	for (var i = 0; i < this._errorResolvedWatchers.length; i++) {
-		var watcher = this._errorResolvedWatchers[i];
-		watcher();
-	}
-	this._errorResolvedWatchers = [];
+Query.prototype._updateErrorResolvedWatchers = function(currentResultWatchersWithErrors) {
+	for (var watcherId in this._errorResolvedWatchers)
+		if (!currentResultWatchersWithErrors[watcherId]) {
+			for (var i = 0; i < this._errorResolvedWatchers[watcherId].length; i++)
+				this._errorResolvedWatchers[watcherId][i]();
+			delete this._errorResolvedWatchers[watcherId];
+		}
+	this._resultWatchersWithErrors = currentResultWatchersWithErrors;
 }
 
 Query.prototype._addConstraint = function(constraint) {
@@ -526,20 +531,26 @@ Query.prototype._getViewsJSON = function(resultWatchers, viewRewriter) {
 Query.prototype.update = function(postponeFinish) {
 	var query = this;
 
-	function getResultWatchersToUpdate() {
-		var toUpdate = {};
-		for (var watcherId in query._resultWatchers) {
-			var watcher = query._resultWatchers[watcherId];
-			if ((query._someConstraintChangedSinceUpdate || query._resultWatchersChangedSinceUpdate[watcher._id]) && watcher._value != null)
-				toUpdate[watcher._id] = watcher;
-		}
-		return toUpdate;
-	}
-
 	// We only go the backend if something changed and there is at least one view that needs updating.
 	var finish = null;
 	if (query._someConstraintChangedSinceUpdate || query._someResultWatcherChangedSinceUpdate) {
-		var resultWatchersToUpdate = getResultWatchersToUpdate();
+		var resultWatchersToUpdate = {};
+		var toForceResolve = {};
+		for (var watcherId in query._resultWatchers) {
+			var watcher = query._resultWatchers[watcherId];
+			if (query._someConstraintChangedSinceUpdate || query._resultWatchersChangedSinceUpdate[watcher._id])
+				(watcher._value != null ? resultWatchersToUpdate : toForceResolve)[watcher._id] = watcher;
+					
+		}
+
+		// We resolve any errors on watchers that are no longer active, because otherwise they are stuck in an error state
+		var currentResultWatchersWithErrors = {};
+		for (var watcherId in this._resultWatchersWithErrors)
+			currentResultWatchersWithErrors[watcherId] = this._resultWatchersWithErrors[watcherId];
+		for (var watcherId in toForceResolve)
+			currentResultWatchersWithErrors[watcherId] = false;
+		query._updateErrorResolvedWatchers(currentResultWatchersWithErrors);
+
 		if (!$.isEmptyObject(resultWatchersToUpdate)) {
 			var queryJson = "{\"constraints\":" + query._getConstraintsJSON() + ",\"views\":" + query._getViewsJSON(resultWatchersToUpdate) + "}";
 			//console.log("Q", query._id, queryJson);
@@ -550,17 +561,16 @@ Query.prototype.update = function(postponeFinish) {
 			finish = function () {
 				post.done(function (response) {
 					//console.log("R", query._id, response);
-					var hadError = false;
+					var currentResultWatchersWithErrors = {};
 					_resultsForResultWatchers(resultWatchersToUpdate, response, true, function (watcher, result) {
 						watcher._callback(result, function (limitLocalViewIds) {
 							return new Continuer(query, watcher, limitLocalViewIds, result);
 						});
-					}, function (message) {
-						query._updateErrorWatchers(message, false);
-						hadError = true;
+					}, function (message, watcher) {
+						query._updateErrorWatchers(message, false, watcher);
+						currentResultWatchersWithErrors[watcher._id] = true;
 					});
-					if (!hadError)
-						query._updateErrorResolvedWatchers();
+					query._updateErrorResolvedWatchers(currentResultWatchersWithErrors);
 				});
 			}
 		}

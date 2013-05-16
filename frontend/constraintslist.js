@@ -19,32 +19,23 @@ function setupConstraintList(container, globalQuery) {
 		});
 	};
 
-	var cnstrStack = [];
 	function addConstraintElement(cnstr) {
 		var itemElt = $("<li></li>").appendTo(listElt);
 		var cnstrElt = $("<div class=\"alert alert-constraint\" title=\"Click to remove this constraint.\"></div>").appendTo(itemElt);
 		$("<button type=\"button\" class=\"close\">&times;</button>").appendTo(cnstrElt);
 		var cnstrTextElt = $("<span></span>").appendTo(cnstrElt);
 		cnstrTextElt.append(cnstr.name());
-		cnstrStack.push(cnstr);
 		container.trigger('changedSize');
 		cnstrElt.click(function() {
 			cnstr.clear();
 			globalQuery.update();
 			removeElement(cnstrElt);
-			var i = cnstrStack.indexOf(cnstr);
-			if (i >= 0)
-				cnstrStack.splice(i, 1);
 		});
 		cnstr.onChange(function(changeType, query, cnstr) {
-			if (changeType =="removed") {
+			if (changeType =="removed")
 				removeElement(cnstrElt);
-				var i = cnstrStack.indexOf(cnstr);
-				if (i >= 0)
-					cnstrStack.splice(i, 1);
-			} else if (changeType == "changed") {
+			else if (changeType == "changed")
 				cnstrTextElt.html(cnstr.name());
-			}
 		});
 	}
 
@@ -54,28 +45,21 @@ function setupConstraintList(container, globalQuery) {
 		if (message == null) {
 			if (alreadyError) {
 				alreadyError = false;
-				removeElement(errorBox);
+		 		errorBox.css('display', 'none');
 			}
 		} else {
-			if (!alreadyError || (message != true && !errorMessages.hasOwnProperty(message))) {
+			if (!alreadyError) {
+				if (message != true && !errorMessages.hasOwnProperty(message)) {
+					if (message != true)
+						errorMessages[message] = true;
+					messagesStrs = $.map(errorMessages, function (value, key)  { return key; });
+					var text = "The current constraints caused an error in processing the query";
+					if (messagesStrs.length > 0)
+						text += ": " + messagesStrs.join("; ");
+					text += ".";
+					errorBox.html(text);
+				}
 				alreadyError = true;
-				if (message != true)
-					errorMessages[message] = true;
-				messagesStrs = $.map(errorMessages, function (value, key)  { return key; });
-				var text = "The last constraint added appears to have caused an error in processing the query";
-				if (messagesStrs.length > 0)
-					text += ": " + messagesStrs.join("; ");
-				text += ".";
-				errorBox.empty();
-				var para = $("<p></p>").appendTo(errorBox).html(text);
-				var btnBox = $("<div class=\"buttonbox\"></div>").appendTo(errorBox);
-				var undoBtn = $("<button type=\"button\" class=\"btn btn-warning\" title=\"Undo last constraint addition.\">Undo</button>").appendTo(btnBox);
-				undoBtn.click(function () {
-					if (cnstrStack.length > 0) {
-						cnstrStack[cnstrStack.length - 1].clear();
-						globalQuery.update();
-					}
-				});
 		 		errorBox.css('display', '');
 				container.trigger('changedSize');
 			}
