@@ -163,6 +163,7 @@ function setupFacet(container, globalQuery, name, field) {
 		}
 	}, function(result, getContinuer) {
 		if (result.counts.hasOwnProperty('error')) {
+			setData(null);
 			loadingIndicator.error('counts', true);
 			loadingIndicator.enabled(true);
 			setMoreEnabled(false);
@@ -183,6 +184,7 @@ function setupFacet(container, globalQuery, name, field) {
 	contextQueryResultWatcher.enabled(false);
 	contextQueryResultWatcher.setCallback(function(result, getContinuer) {
 		if (result.counts.hasOwnProperty('error')) {
+			setData(null);
 			loadingIndicator.error('counts', true);
 			loadingIndicator.enabled(true);
 			setMoreEnabled(false);
