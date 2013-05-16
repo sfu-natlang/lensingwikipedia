@@ -12,7 +12,7 @@ database in such a way that it can't do pagination for us.
 
 import sys
 import collections
-import sha
+import hashlib
 import json
 import dates
 import traceback
@@ -290,7 +290,7 @@ class Querier:
 
   def handle_all_views(self, query, sdb_query):
     # This is inefficient but works to generate cache keys. For each view we will use an SHA keys across the stringified JSON for all the constraints and that view.
-    cnstrs_shaer = sha.new()
+    cnstrs_shaer = hashlib.sha1()
     for cnstr in query['constraints'].iteritems():
       cnstrs_shaer.update(json.dumps(cnstr))
 
