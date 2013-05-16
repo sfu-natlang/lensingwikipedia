@@ -156,7 +156,7 @@ function drawTimeline(svg, detailBox, selectBox, data, initialBrushExtent, brush
 		.attr('x', 0)
 		.attr('y', -6)
 		.style('text-anchor', 'middle')
-		.text("Num. events");
+		.text("Events");
 	detailPlot.draw.append('text')
 		.attr('class', "instructions")
 		.attr('transform', "translate(" + (detailBox.width / 2) + "," + (detailBox.height / 2) + ")")
