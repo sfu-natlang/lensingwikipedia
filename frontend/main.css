@@ -10,6 +10,9 @@ body,html {
 	margin: 0;
 	padding: 2px 1em 2px 1em;
 }
+.header .about {
+	float: right;
+}
 .contentarea {
 	margin: 0;
 	padding: 0;
@@ -69,4 +72,20 @@ div.selectorsarea {
 	margin: 0;
 	padding: 10px;
 	line-height: 32px;
+}
+
+noscript {
+	margin: 1em auto 1em auto;
+	padding: 1em;
+	width: 80%;
+	display: block;
+	background-color: yellow;
+	border-width: 4;
+	border-color: black;
+	border-style: dashed;
+	text-align: center;
+}
+
+body.about {
+	margin: 1em;
 }

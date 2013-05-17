@@ -30,7 +30,7 @@ LIBCSS=lib/bootstrap/css/bootstrap.min.css lib/bootstrap/css/bootstrap-responsiv
 OWNCSS=loadingindicator.css constraintslist.css eventdescriptionslist.css facet.css timeline.css map.css main.css
 LIBJS=lib/jquery.min.js lib/jquery.cookie.min.js lib/d3/d3.v3.min.js lib/d3/topojson.v0.min.js lib/d3/d3.geo.projection.v0.min.js lib/d3/d3.geo.polyhedron.v0.min.js lib/bootstrap/js/bootstrap.min.js
 OWNJS=utils.js layoututils.js d3utils.js loadingindicator.js queries.js constraintslist.js eventdescriptionslist.js facet.js timeline.js map.js config.js
-FILES=index.html map.json search.png $(OTHERFILES)
+FILES=index.html about.html map.json search.png $(OTHERFILES)
 
 all: release
 test: devel
@@ -64,6 +64,11 @@ config.js: config.def.js
 $(RELEASEOUT)/index.html $(DEVELOUT)/index.html: %/index.html: $(SCRATCH)/%.css.list.html $(SCRATCH)/%.js.list.html index.html
 	@mkdir -p $(@D)
 	awk "/{CSS}/ { system(\"cat $(SCRATCH)/$*.css.list.html\"); d=1 } /{JS}/ { system(\"cat $(SCRATCH)/$*.js.list.html\"); d=1 } !d { print } { d=0 }" index.html > $@
+
+# Substitute the CSS list into the about file.
+$(RELEASEOUT)/about.html $(DEVELOUT)/about.html: %/about.html: $(SCRATCH)/%.css.list.html about.html
+	@mkdir -p $(@D)
+	awk "/{CSS}/ { system(\"cat $(SCRATCH)/$*.css.list.html\"); d=1 } !d { print } { d=0 }" about.html > $@
 
 # CSS and Javascript files for release output.
 $(RELEASEOUT)/lib.css: $(SCRATCH)/lib.css.cat libheader
