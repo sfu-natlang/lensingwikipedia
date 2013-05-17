@@ -1,3 +1,14 @@
+/*
+ * Facet control.
+ */
+
+/*
+ * Setup the control in some container element.
+ * container: container element as a jquery selection
+ * globalQuery: the global query
+ * name: name for the facet, to show the user
+ * field: field name to use in requesting views from the backend
+ */
 function setupFacet(container, globalQuery, name, field) {
 	var facetElt = $("<div class=\"facet\"></div>").appendTo(container);
 

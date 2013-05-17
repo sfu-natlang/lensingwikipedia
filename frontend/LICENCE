@@ -1,3 +1,5 @@
+See the LICENCE file in the project root directory for licencing of Lensing Wikipedia.
+
 d3, d3-plugins, and topojson (d3/, http://d3js.org, https://github.com/mbostock/d3, https://github.com/d3/d3-plugins, https://github.com/mbostock/topojson) are used under the following BSD licence (copyright date adjusted to cover all packages):
 	Copyright (c) 2012-2013, Michael Bostock
 	All rights reserved.

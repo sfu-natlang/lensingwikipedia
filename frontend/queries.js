@@ -1,3 +1,19 @@
+/*
+ * Queries against a backend.
+ *
+ * See the backend documentation for information on the query format we use to
+ * send to the backend. In summary, the backend takes queries as JSON objects
+ * which contain constraints and views. The sets of constraints and views are
+ * both given as a objects where the keys are arbitrary identifiers and the
+ * values are constraint or view specifications in particular formats.
+ *
+ * Here a query is treated as a set of constraints which can have result
+ * watchers attached to it. The constraints correspond directly to the
+ * constraints sent to the backend. Each result watcher contributes one or more
+ * views (and a callback to receive them) which are collected to form the views
+ * sent to the backend.
+ */
+
 // Keep track of unique IDs for various objects
 var nextConstraintId = 0;
 var nextChangeWatcherId = 0;
@@ -7,6 +23,9 @@ var nextQueryId = 0;
 var nextViewValueId = 0;
 var viewUniqueValues = {};
 
+/*
+ * Add a view to the global index of unique views.
+ */
 function _addViews(views) {
 	var stringifiedViews = {};
 	for (localViewId in views) {
@@ -26,6 +45,9 @@ function _addViews(views) {
 	return stringifiedViews;
 }
 
+/*
+ * Remove a view from the global index.
+ */
 function _removeViews(stringifiedViews) {
 	for (localViewId in stringifiedViews) {
 		var viewStr = stringifiedViews[localViewId];
@@ -37,33 +59,33 @@ function _removeViews(stringifiedViews) {
 	}
 }
 
-function _resultsForResultWatchers(resultWatchers, backendResponse, expectAll, onResult, onError) {
-	for (var watcherId in resultWatchers) {
-		var watcher = resultWatchers[watcherId];
-		if (watcher._value != null) {
-			var ok = true;
-			var result = {};
-			for (var localViewId in watcher._value) {
-				var globalViewId = viewUniqueValues[watcher._value[localViewId]].id;
-				if (!backendResponse.hasOwnProperty(globalViewId)) {
-					if (!expectAll)
-						console.log("warning: didn't get anything for view \"" + localViewId + "\"");
-					ok = false;
-					break;
-				}
-				var viewResult = backendResponse[globalViewId];
-				result[localViewId] = viewResult;
-				if (viewResult.hasOwnProperty('error') && onError != null)
-					onError(viewResult.error, watcher);
-			}
-			if (ok)
-				onResult(watcher, result);
-		}
-	}
-}
-
 /*
  * Watcher for constraint changes on a query or an individual constraint.
+ *
+ * The callback function for a change watcher takes the arguments
+ *	(changeType, query, constraint)
+ * Here changeType is either 'added', 'removed', or 'changed'. The remaining two
+ * arguments are the query and constraint concerned.
+ *
+ * Because of the constraint semantics (see the Constraint documentation), when
+ * a constraint's value changes to null it will be considered to be removed from
+ * all queries it is in, and similarly when the value changes to non-null after
+ * having be null it will be considered to be re-added to any queries.
+ *
+ * This watcher can be applied either on a query or on a constraint. In the
+ * later case the watcher will be called whenever the constraint's status
+ * changes with respect to any query; thus a watcher on a single constraint may
+ * receive multiple change updates for any single change (one for each query it
+ * is part of) and the change type will not necessarily be the same for all
+ * queries (eg in the case of a setminus query: if q=q1\q2, then q can gain a
+ * constraint as q2 loses that same constraint).
+ *
+ * The callback for the watcher will be called asynchronously after update() is
+ * called on any query it is part of. It may also be called at other times
+ * (for example, with future improvements to query handling it could be called
+ * if another query with the same constraints receives the needed results).
+ * Therefore you should not assume that the watcher will be notified only after
+ * calls to update().
  */
 function ChangeWatcher(callback, getCurrent) {
 	this._id = nextChangeWatcherId;
@@ -72,6 +94,9 @@ function ChangeWatcher(callback, getCurrent) {
 	this._getCurrent = (getCurrent == true);
 }
 
+/*
+ * Change the callback function to be called when a change happens.
+ */
 ChangeWatcher.prototype.setCallback = function(callback) {
 	this._callback = callback;
 }
@@ -90,6 +115,9 @@ function ResultWatcher(callback) {
 	this._stored_value = null;
 }
 
+/*
+ * Change the callback function to be called when there is a result.
+ */
 ResultWatcher.prototype.setCallback = function(callback) {
 	this._callback = callback;
 }
@@ -103,7 +131,11 @@ ResultWatcher.prototype._change = function () {
 }
 
 /*
- * Note: the keys given here don't have to be unique across the whole program; they get mapped to unique keys in the generated query.
+ * Sets the views for this watcher. The value argument is an object where the
+ * keys are local names for the views and the values are JSON views in the
+ * format required by the backend. The local keys used here are just for this
+ * watcher (they will be mapped to unique keys in the actual query submitted to
+ * the backend).
  */
 ResultWatcher.prototype.set = function (value) {
 	if (value == null) {
@@ -116,6 +148,9 @@ ResultWatcher.prototype.set = function (value) {
 	}
 }
 
+/*
+ * Clears the views for this watcher, effectively disabling it.
+ */
 ResultWatcher.prototype.clear = function () {
 	if (this._value != null) {
 		_removeViews(this._value);
@@ -124,6 +159,11 @@ ResultWatcher.prototype.clear = function () {
 	}
 }
 
+/*
+ * Enables or disables the watcher, keeping the same views whenever it is
+ * enabled. This is just a utility method; the same behaviour can be obtained
+ * with set() and clear().
+ */
 ResultWatcher.prototype.enabled = function (enabled) {
 	if (enabled == null) {
 		return this._enabled;
@@ -152,7 +192,42 @@ ResultWatcher.prototype.enabled = function (enabled) {
 }
 
 /*
+ * Update result watchers based on results from the backend. Used in result
+ * handling.
+ */
+function _resultsForResultWatchers(resultWatchers, backendResponse, expectAll, onResult, onError) {
+	for (var watcherId in resultWatchers) {
+		var watcher = resultWatchers[watcherId];
+		if (watcher._value != null) {
+			var ok = true;
+			var result = {};
+			for (var localViewId in watcher._value) {
+				var globalViewId = viewUniqueValues[watcher._value[localViewId]].id;
+				if (!backendResponse.hasOwnProperty(globalViewId)) {
+					if (!expectAll)
+						console.log("warning: didn't get anything for view \"" + localViewId + "\"");
+					ok = false;
+					break;
+				}
+				var viewResult = backendResponse[globalViewId];
+				result[localViewId] = viewResult;
+				if (viewResult.hasOwnProperty('error') && onError != null)
+					onError(viewResult.error, watcher);
+			}
+			if (ok)
+				onResult(watcher, result);
+		}
+	}
+}
+
+/*
  * A single constraint that can be added to a query.
+ *
+ * A constraint is part of one or more queries. It's value (the JSON constraint
+ * specification in the format used by the backend) can be changed at any time,
+ * or cleared (set to null). For the purposes of query results and watchers, a
+ * constraint is considered part of a query only when its value is set to
+ * non-null.
  */
 function Constraint(name) {
 	this._id = nextConstraintId;
@@ -163,6 +238,10 @@ function Constraint(name) {
 	this._changeWatchers = {};
 }
 
+/*
+ * Sets a name for this constraint. This is just for the frontend's convenience
+ * in identifying particular constraints.
+ */
 Constraint.prototype.name = function(name) {
 	if (name == null)
 		return this._name;
@@ -175,6 +254,12 @@ Constraint.prototype._updateChangeWatchers = function(changeType) {
 		this._queriesIn[queryId]._updateChangeWatchers(changeType, this);
 }
 
+/*
+ * Sets the value (JSON in the format the backend requires for a single
+ * constraint) for this constraint. If the value is null then it is cleared.
+ * If the value is set to non-null after previously being null then the
+ * constraint is effectively added back to any queries it has been added to.
+ */
 Constraint.prototype.set = function(value) {
 	if (value == null) {
 		this._clear()
@@ -185,6 +270,10 @@ Constraint.prototype.set = function(value) {
 	}
 }
 
+/*
+ * Clears the constraint to a null value, effectively removing it from any
+ * queries it is in.
+ */
 Constraint.prototype.clear = function() {
 	if (this._value != null) {
 		this._value = null;
@@ -192,6 +281,9 @@ Constraint.prototype.clear = function() {
 	}
 }
 
+/*
+ * Adds a watcher for changes on this individual constraint.
+ */
 Constraint.prototype.addChangeWatcher = function(watcher) {
 	if (!this._changeWatchers.hasOwnProperty(watcher._id)) {
 		this._changeWatchers[watcher._id] = watcher;
@@ -199,6 +291,9 @@ Constraint.prototype.addChangeWatcher = function(watcher) {
 		console.log("warning: change watcher \"" + watacher._id + "\" already on query, can't add");
 }
 
+/*
+ * Remove a change watcher.
+ */
 Constraint.prototype.removeChangeWatcher = function(watcher) {
 	if (this._changeWatchers.hasOwnProperty(watcher._id)) {
 		delete this._changeWatchers[watcher._id];
@@ -206,18 +301,29 @@ Constraint.prototype.removeChangeWatcher = function(watcher) {
 		console.log("warning: change watcher \"" + watacher._id + "\" not on constraint, can't remove");
 }
 
+/*
+ * Sets a change watcher with a callback. This is a utility method for the
+ * common case.
+ */
 Constraint.prototype.onChange = function(callback) {
 	var watcher = new ChangeWatcher(callback);
 	this.addChangeWatcher(watcher);
 	return watcher;
 }
 
+/*
+ * Get the current value.
+ */
 Constraint.prototype.value = function() {
 	return this._value;
 }
 
 /*
- For continuing paginated queries.
+ * For continuing paginated queries.
+ *
+ * This is mostly intended for continuing exactly one view (from a result
+ * watcher that might have been watching for other views as well). It should
+ * handle multiple views but the behaviour might be strange.
  */
 function Continuer(query, resultWatcher, limitLocalViewIds, initialResultForWatcher, firstPageOffset) {
 	this._query = query;
@@ -239,10 +345,18 @@ function Continuer(query, resultWatcher, limitLocalViewIds, initialResultForWatc
 	}
 }
 
+/*
+ * Checks if there are more pages.
+ */
 Continuer.prototype.hasMore = function() {
 	return this._haveMore;
 }
 
+/*
+ * Gets the next page for the result. The callback will be called when the new
+ * page is received. The callback gets view results just like a result watcher
+ * callback does.
+ */
 Continuer.prototype.fetchNext = function(callback) {
 	var contr = this;
 
@@ -270,6 +384,10 @@ Continuer.prototype.fetchNext = function(callback) {
 
 /*
  * A query containing a set of constraints against a given backend.
+ *
+ * The constraints are explicitly added or removed for a base query. For a
+ * setminus query the constraints are determined by which constraints the
+ * parent queries have.
  */
 function Query(backendUrl, type, arg1, arg2) {
 	if (type == null) type = 'base';
@@ -297,10 +415,18 @@ function Query(backendUrl, type, arg1, arg2) {
 		console.log("error: unknown query type \"" + type + "\"");
 }
 
+/*
+ * Initialize a base query.
+ */
 Query.prototype._setupBase = function () {
 	this._parents = [];
 }
 
+/*
+ * Initialize a setminus query.
+ * Basically we set a bunch of watchers on the parent queries and trigger updates
+ * on this query accordingly.
+ */
 Query.prototype._setupSetminus = function (query1, query2) {
 	var query = this;
 	this._parents = [query1, query2];
@@ -333,6 +459,9 @@ Query.prototype._setupSetminus = function (query1, query2) {
 	});
 }
 
+/*
+ * Trigger change watchers on both the query itself and its constraints.
+ */
 Query.prototype._updateChangeWatchers = function(changeType, constraint) {
 	var query = this;
 	for (var watcherId in this._changeWatchers)
@@ -342,6 +471,9 @@ Query.prototype._updateChangeWatchers = function(changeType, constraint) {
 	this._someConstraintChangedSinceUpdate = true;
 }
 
+/*
+ * Notify error watchers of any new errors.
+ */
 Query.prototype._updateErrorWatchers = function(message, isFromChild, resultWatcher, onResolve) {
 	var query = this;
 	if (onResolve == null)
@@ -359,6 +491,9 @@ Query.prototype._updateErrorWatchers = function(message, isFromChild, resultWatc
 		this._parents[i]._updateErrorWatchers(message, true, resultWatcher, onResolve);
 }
 
+/*
+ * Notify error resolved watchers of any resolved errors.
+ */
 Query.prototype._updateErrorResolvedWatchers = function(currentResultWatchersWithErrors) {
 	for (var watcherId in this._errorResolvedWatchers)
 		if (!currentResultWatchersWithErrors[watcherId]) {
@@ -369,6 +504,9 @@ Query.prototype._updateErrorResolvedWatchers = function(currentResultWatchersWit
 	this._resultWatchersWithErrors = currentResultWatchersWithErrors;
 }
 
+/*
+ * Add a constraint to the internal list.
+ */
 Query.prototype._addConstraint = function(constraint) {
 	this._someConstraintChangedSinceUpdate = true;
 	this._constraints[constraint._id] = constraint;
@@ -378,6 +516,9 @@ Query.prototype._addConstraint = function(constraint) {
 	}
 }
 
+/*
+ * Remove a constraint from the internal list.
+ */
 Query.prototype._removeConstraint = function(constraint) {
 	this._someConstraintChangedSinceUpdate = true;
 	delete this._constraints[constraint._id];
@@ -386,12 +527,19 @@ Query.prototype._removeConstraint = function(constraint) {
 	this._updateChangeWatchers('removed', constraint);
 }
 
+/*
+ * Update on a constraint change.
+ */
 Query.prototype._changeConstraint = function(constraint) {
 	this._someConstraintChangedSinceUpdate = true;
 	var query = this;
 	this._updateChangeWatchers('changed', constraint);
 }
 
+/*
+ * Add a constraint to this query. The constraint will only considered a real
+ * part of the query when its value is non-null.
+ */
 Query.prototype.addConstraint = function(constraint) {
 	if (this._type != 'base') {
 		console.log("error: can't add to a non-base query");
@@ -403,6 +551,9 @@ Query.prototype.addConstraint = function(constraint) {
 		console.log("warning: constraint \"" + constraint._id + "\" already in query, can't add");
 }
 
+/*
+ * Remove a constraint from this query.
+ */
 Query.prototype.removeConstraint = function(constraint) {
 	if (this._type != 'base') {
 		console.log("error: can't remove from a non-base query");
@@ -414,6 +565,10 @@ Query.prototype.removeConstraint = function(constraint) {
 		console.log("warning: constraint \"" + constraint._id + "\" not in query, can't remove");
 }
 
+/*
+ * Add a change watcher which will be notified on any change to a constraint
+ * that is part of the query.
+ */
 Query.prototype.addChangeWatcher = function(watcher) {
 	if (!this._changeWatchers.hasOwnProperty(watcher._id)) {
 		this._changeWatchers[watcher._id] = watcher;
@@ -426,6 +581,9 @@ Query.prototype.addChangeWatcher = function(watcher) {
 		console.log("warning: change watcher \"" + watacher._id + "\" already on query, can't add");
 }
 
+/*
+ * Remove a change watcher.
+ */
 Query.prototype.removeChangeWatcher = function(watcher) {
 	if (this._changeWatchers.hasOwnProperty(watcher._id)) {
 		delete this._changeWatchers[watcher._id];
@@ -433,6 +591,10 @@ Query.prototype.removeChangeWatcher = function(watcher) {
 		console.log("warning: change watcher \"" + watacher._id + "\" not on query, can't remove");
 }
 
+/*
+ * Add a result watcher which will be notified whenever there is a new result
+ * from the backend.
+ */
 Query.prototype.addResultWatcher = function(watcher) {
 	if (!this._resultWatchers.hasOwnProperty(watcher._id)) {
 		this._resultWatchers[watcher._id] = watcher;
@@ -441,6 +603,9 @@ Query.prototype.addResultWatcher = function(watcher) {
 		console.log("warning: result watcher \"" + watacher._id + "\" already on query, can't add");
 }
 
+/*
+ * Remove a result watcher.
+ */
 Query.prototype.removeResultWatcher = function(watcher) {
 	if (this._resultWatchers.hasOwnProperty(watcher._id)) {
 		delete this._resultWatchers[watcher._id];
@@ -449,12 +614,20 @@ Query.prototype.removeResultWatcher = function(watcher) {
 		console.log("warning: result watcher \"" + watacher._id + "\" not on query, can't remove");
 }
 
+/*
+ * Adds a change watcher as a simple callback. This is a utility method for the
+ * common case.
+ */
 Query.prototype.onChange = function(callback, getCurrent) {
 	var watcher = new ChangeWatcher(callback, getCurrent);
 	this.addChangeWatcher(watcher);
 	return watcher;
 }
 
+/*
+ * Adds a result watcher as a simple callback. This is a utility method for the
+ * common case.
+ */
 Query.prototype.onResult = function(views, callback) {
 	var watcher = new ResultWatcher(callback);
 	this.addResultWatcher(watcher);
@@ -462,11 +635,26 @@ Query.prototype.onResult = function(views, callback) {
 	return watcher;
 }
 
+/*
+ * Add an error watcher. The callback will be called whenever there is an error
+ * in a result for this query.
+ * callback(message, isFromChild, onResolve): callback function where
+ *	message: error message as a string, or a boolean true value if there is
+ *		no specific message
+ *	isFromChild: set if the error was in a query derived from this one
+ *	onResolve(resolveCallback): set a callback function of no arguments to be
+ *		called when this error is resolved
+ * getFromChildren: if false, only get errors from this query itself; otherwise
+ *	(and by default) also get errors from queries derived from this one
+ */
 Query.prototype.onError = function (callback, getFromChildren) {
 	if (getFromChildren == null) getFromChildren = true;
 	this._errorWatchers.push({ callback: callback, getFromChildren: getFromChildren });
 }
 
+/*
+ * Remove all constraints (setting their values to null).
+ */
 Query.prototype.clearAll = function() {
 	for (cnstrKey in this._constraints) {
 		var cnstr = this._constraints[cnstrKey];
@@ -474,6 +662,9 @@ Query.prototype.clearAll = function() {
 	}
 };
 
+/*
+ * Check if this query has no constraints.
+ */
 Query.prototype.isEmpty = function() {
 	for (var cnstrKey in this._constraints)
 		if (this._constraints[cnstrKey]._value != null)
@@ -481,10 +672,16 @@ Query.prototype.isEmpty = function() {
 	return true;
 }
 
+/*
+ * Get the backend URL thus query is communicating on.
+ */
 Query.prototype.backendUrl = function() {
 	return this._backendUrl;
 }
 
+/*
+ * Make complete JSON in the backend's format for all constraints.
+ */
 Query.prototype._getConstraintsJSON = function() {
 	var jsonStr = "{";
 	var first = true;
@@ -503,6 +700,10 @@ Query.prototype._getConstraintsJSON = function() {
 	return jsonStr;
 }
 
+/*
+ * Make complete JSON in the backend's format for all views required by the
+ * change watchers.
+ */
 Query.prototype._getViewsJSON = function(resultWatchers, viewRewriter) {
 	if (resultWatchers == null) resultWatchers = this._resultWatchers;
 	var seenGlobalIds = {};
@@ -530,6 +731,10 @@ Query.prototype._getViewsJSON = function(resultWatchers, viewRewriter) {
 	return jsonStr;
 }
 
+/*
+ * Trigger an update, asking the backend for all needed results and passing the
+ * results (when they arrive) off to the result watchers.
+ */
 Query.prototype.update = function(postponeFinish) {
 	var query = this;
 

@@ -1,9 +1,22 @@
+/*
+ * Loading indicator control.
+ */
+
+/*
+ * Make a loading indicator on a container element.
+ * container: container element as a jquery selection
+ */
 function LoadingIndicator(container) {
 	this._elt = $("<div class=\"loadingindicator\"></div>").appendTo(container);
 	this._enabled = false;
 	this._errors = {};
 }
 
+/*
+ * Sets an error status with a given key and boolean value.
+ *
+ * The indicator will show an error as long as any error value is set to true.
+ */
 LoadingIndicator.prototype.error = function(key, value) {
 	if (key == null) {
 		for (var key in this._errors)
@@ -15,6 +28,9 @@ LoadingIndicator.prototype.error = function(key, value) {
 	}
 }
 
+/*
+ * Sets or gets the enabled status.
+ */
 LoadingIndicator.prototype.enabled = function(isEnabled) {
 	if (isEnabled == null) {
 		return this._enabled;

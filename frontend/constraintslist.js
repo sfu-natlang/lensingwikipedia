@@ -1,3 +1,12 @@
+/*
+ * Control which shows all constraints and allows the user to remove them.
+ */
+
+/*
+ * Setup the control in some container element.
+ * container: container element as a jquery selection
+ * globalQuery: the global query
+ */
 function setupConstraintList(container, globalQuery) {
 	var outerElt = $("<div class=\"constraintslist\">").appendTo(container);
 

@@ -1,21 +1,47 @@
-function fillElement(container, content, orient, extraSpaceSize1, extraSpaceSize2) {
+/*
+ * Utilities for layout.
+ *
+ * Elements here are given as jquery selection.
+ */
+
+/*
+ * Set an element to fill its container whenever the window size changes.
+ * container: container element
+ * elt: element to fit
+ * orient: 'vertical', 'horizontal', or 'both, for the direction to resize in
+ * extraSpace or extraHorizontalSpace, extraVerticalSpace: amount extra space
+ *	to leave between elt's size and container's size
+ */
+function fillElement(container, elt, orient, extraSpaceSize1, extraSpaceSize2) {
 	if (extraSpaceSize1 == null) extraSpaceSize1 = 0;
 	if (extraSpaceSize2 == null) extraSpaceSize2 = 0;
 	var fit = {
 		vertical: function () {
-			content.height(container.height() - extraSpaceSize1);
+			elt.height(container.height() - extraSpaceSize1);
 		},
 		horizontal: function () {
-			content.width(container.width() - extraSpaceSize1);
+			elt.width(container.width() - extraSpaceSize1);
 		},
 		both: function () {
-			content.width(container.width() - extraSpaceSize1).height(container.height() - extraSpaceSize2);
+			elt.width(container.width() - extraSpaceSize1).height(container.height() - extraSpaceSize2);
 		}
 	}[orient];
 	$(window).resize(fit);
 	fit();
 }
 
+/*
+ * Setup a panel and content area to fit in a container. The panel may change
+ * size and the content area will be sized to fit.
+ * container: container element
+ * panel: panel element
+ * content: content element
+ * orient: 'vertical' or 'horizontal", for the direction to resize in
+ * extraSpaceSize: amount of extra space to leave between the size of the panel
+ *	and content area and the size of the container
+ * watchPanel: set (default) to watch the panel for sizes changes and re-fit as
+ *	needed
+ */
 function setupPanelled(container, panel, content, orient, extraSpaceSize, watchPanel) {
 	if (extraSpaceSize == null) extraSpaceSize = 0;
 	if (watchPanel == null) watchPanel = true;
@@ -29,10 +55,17 @@ function setupPanelled(container, panel, content, orient, extraSpaceSize, watchP
 		}
 	}[orient];
 	$(window).resize(fit);
-	panel.bind('changedSize', fit);
+	if (watchPanel)
+		panel.bind('changedSize', fit);
 	fit();
 }
 
+/*
+ * Setup several elements to take equal space in a row or column in a container.
+ * container: container element
+ * orient: 'vertical' or 'horizontal", for the direction to resize in
+ * contentElements: array of elements to fit
+ */
 function setupSplit(container, orient, contentElements) {
 	var fit = {
 		horizontal: function () {
@@ -54,6 +87,16 @@ function setupSplit(container, orient, contentElements) {
 	fit();
 }
 
+/*
+ * Like setupSplit(), but takes a list of set up functions instead of the child
+ * elements themselves.
+ * container, orient: as for setupSplit()
+ * contentMakers: array of functions to call to set up each component element
+ *
+ * A div will be created for each element in contentMakers, and then the
+ * functions in contentMakers will be called and passed their respective div
+ * elements.
+ */
 function setupSplitMakeElements(container, orient, contentMakers) {
 	var contentElements = [];
 	for (var i in contentMakers) {

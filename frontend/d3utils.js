@@ -1,3 +1,10 @@
+/*
+ * Utilities for d3.
+ */
+
+/*
+ * Convert a jquery selection to a d3 selection.
+ */
 function jqueryToD3(querySel) {
 	return d3.select(querySel[0]);
 }
@@ -12,6 +19,10 @@ function jqueryToD3(querySel) {
  * This idea is from:
  * http://phrogz.net/svg/libraries/SVGPanUnscale.js
  * http://meloncholy.com/blog/making-responsive-svg-graphs.
+ *
+ * svg: svg element as a jquery selection
+ * eltPat: jquery pattern string to match the children to not scale
+ * fixDelay: delay before applying scales after window resizes
  */
 function dontScaleSvgParts(svg, eltPat, fixDelay) {
 	if (fixDelay == null) fixDelay = 100;
@@ -49,6 +60,16 @@ function dontScaleSvgParts(svg, eltPat, fixDelay) {
 	return unscaleAll;
 }
 
+/*
+ * Utility to implement panning without using the d3 automatic panning
+ * behaviour.
+ * drag: d3 drag behaviour object
+ * doPan: function called with the current panning offset when ready to pan 
+ * getOrigin: function to get the origin of the coordinates for panning
+ * getPanFactor: function to get a scale factor for pan movements
+ * startPredicate: function called with a location to determine if we can start
+ *	panning at that location
+ */
 function makeDragPan(drag, doPan, getOrigin, getPanFactor, startPredicate) {
 	var mouseDownAt = null,
 	    mouseOrigin = [0, 0],
@@ -74,6 +95,15 @@ function makeDragPan(drag, doPan, getOrigin, getPanFactor, startPredicate) {
 	});
 }
 
+/*
+ * Setup a drag-select that selects rectangular areas.
+ * drag: d3 drag behaviour object
+ * drawOn: d3 selection to draw the extent on
+ * classStr: class string for the extent rectangle
+ * selectionCallback: called with the extent when selection is done
+ * startPredicate: called with the starting position to determine if we can
+ *	start a drag there
+ */
 function makeDragSelector(drag, drawOn, classStr, selectionCallback, startPredicate) {
 	var extentBox = null;
 	var dragStart = null;
@@ -116,6 +146,11 @@ function makeDragSelector(drag, drawOn, classStr, selectionCallback, startPredic
 	});
 }
 
+/*
+ * Set a callback to notify when any dragging ends.
+ * drag: d3 drag behaviour object
+ * onEnd: callback that takes no arguments
+ */
 function makeDragEndWatcher(drag, onEnd) {
 	var startDrag = null;
 	drag.on('dragstart.watchend', function () {

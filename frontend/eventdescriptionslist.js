@@ -1,3 +1,12 @@
+/*
+ * Control which lists event descriptions from a query.
+ */
+
+/*
+ * Setup the control in some container element.
+ * container: container element as a jquery selection
+ * globalQuery: the global query
+ */
 function setupEventDescriptionsList(container, globalQuery) {
 	var outerElt = $("<div class=\"eventdescriptionslist\"></div>").appendTo(container);
 	var loadingIndicator = new LoadingIndicator(outerElt);

@@ -1,6 +1,12 @@
+/*
+ * Map control.
+ */
+
+// Numbers for generating unique element IDs
 var mapClipId = 0;
 var mapSphereId = 0;
 
+// Map projections to use
 var mapProjections = {
 	winkel3: {
 		name: "Flat",
@@ -39,8 +45,11 @@ var mapProjections = {
 }
 defaultMapProjection = 'winkel3';
 
+/*
+ * Draw the world map.
+ */
 function drawWorld(svg, group, worldData, projection) {
-	// This is all from d3's Waterman Butterfly example
+	// This is from d3's Waterman Butterfly example
 
 	var path = d3.geo.path()
 		.projection(projection);
@@ -100,10 +109,16 @@ function drawWorld(svg, group, worldData, projection) {
 	return path;
 }
 
-function uniqClassForMarker(pointStr) {
+/*
+ * Generate a class name for a map marker give it's point string.
+ */
+function classForMarker(pointStr) {
 	return "p" + pointStr.replace(/[.,]/g, '_');
 }
 
+/*
+ * Draw markers on the map.
+ */
 function drawMarkers(svg, group, proj, initialCounts, contextCounts) {
 	var points = {};
 	var allCounts = [initialCounts, contextCounts];
@@ -149,7 +164,7 @@ function drawMarkers(svg, group, proj, initialCounts, contextCounts) {
 		.attr("cx", function(p) { return screenPoints[p][0]; })
 		.attr("cy", function(p) { return screenPoints[p][1]; })
 		.attr("r", function(p) { return initialCounts.hasOwnProperty(p) ? Math.sqrt(initialCounts[p] * countScale * proj.scale() / maxCount) : 0; })
-		.attr("class", function(p) { return "marker initial " + uniqClassForMarker(p); })
+		.attr("class", function(p) { return "marker initial " + classForMarker(p); })
 		.on('mousedown', triggerDown)
 		.on('mouseup', triggerUp);
 	group.selectAll("marker")
@@ -159,7 +174,7 @@ function drawMarkers(svg, group, proj, initialCounts, contextCounts) {
 		.attr("cx", function(p) { return screenPoints[p][0]; })
 		.attr("cy", function(p) { return screenPoints[p][1]; })
 		.attr("r", function(p) { return contextCounts.hasOwnProperty(p) ? Math.sqrt(contextCounts[p] * countScale * proj.scale() / maxCount) : 0; })
-		.attr("class", function(p) { return "marker context " + uniqClassForMarker(p); })
+		.attr("class", function(p) { return "marker context " + classForMarker(p); })
 		.on('mousedown', triggerDown)
 		.on('mouseup', triggerUp);
 	group.selectAll("markercount")
@@ -171,7 +186,7 @@ function drawMarkers(svg, group, proj, initialCounts, contextCounts) {
 		.attr("dy", "0.35em")
 		.attr("text-anchor", 'middle')
 		.text(function (p) { return contextCounts[p] > 0 ? contextCounts[p] : ""; })
-		.attr("class", function(p) { return "marker counttext " + uniqClassForMarker(p); })
+		.attr("class", function(p) { return "marker counttext " + classForMarker(p); })
 		.on('mousedown', triggerDown)
 		.on('mouseup', triggerUp);
 
@@ -181,6 +196,9 @@ function drawMarkers(svg, group, proj, initialCounts, contextCounts) {
 	}
 }
 
+/*
+ * Make and manage the extra interface controls.
+ */
 function makeMapControls(container, projections, minZoom, maxZoom, defaults) {
 	container.append(" \
 		<div class=\"selbox\"> \
@@ -304,6 +322,9 @@ function makeMapControls(container, projections, minZoom, maxZoom, defaults) {
 	}
 }
 
+/*
+ * Restore settings from cookies.
+ */
 function loadSettingsCookies(defaults) {
 	var value = $.cookie("mapprojection");
 	if (value != null && mapProjections.hasOwnProperty(value))
@@ -315,11 +336,24 @@ function loadSettingsCookies(defaults) {
 	});
 }
 
+/*
+ * Save settings back to cookies.
+ */
 function saveSettingsCookie(name, value) {
 	$.cookie(name, value, { expires: 7 });
 }
 
-function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
+/*
+ * Setup the control in some container element.
+ * container: container element as a jquery selection
+ * initialQuery: the initial (empty) query
+ * globalQuery: the global query
+ * mapDataUrl: the URL for the map data file (for world data like continent
+ *	outlines), which can be relative
+ * minZoom: minimum allowed zoom level
+ * maxZoom: maximum allowed zoom level
+ */
+function setupMap(container, initialQuery, globalQuery, mapDataUrl, minZoom, maxZoom) {
 	// The view space for SVG; this doesn't have to correspond to screen units.
 	var viewBox = { x: 0, y : 0, width: 1024, height: 768 };
 	// Margins for the map.
@@ -385,7 +419,7 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 			var allCounts = [initialCounts, contextCounts];
 			for (var pointStr in allPointStrs) {
 				if (!newSelection.hasOwnProperty(pointStr) && selection[pointStr] != lastSelection[pointStr])
-					svg.selectAll(".marker." + uniqClassForMarker(pointStr)).classed("selected", selection[pointStr]);
+					svg.selectAll(".marker." + classForMarker(pointStr)).classed("selected", selection[pointStr]);
 				newSelection[pointStr] = selection[pointStr];
 			}
 			lastSelection = newSelection;
@@ -477,7 +511,7 @@ function setupMap(container, initialQuery, globalQuery, minZoom, maxZoom) {
 		curProj = null;
 	}
 
-	d3.json("map.json", function(error, incoming) {
+	d3.json(mapDataUrl , function(error, incoming) {
 		mapData = incoming;
 		update();
 	});

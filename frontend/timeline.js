@@ -1,5 +1,13 @@
+/*
+ * Timeline control.
+ */
+
+// Number for generating unique clipping element IDs
 var timelineClipNum = 0;
 
+/*
+ * Convert results from the backend into sequence data we can use for plotting.
+ */
 function resultToPlotData(initialCounts, contextCounts) {
 	// Add in extra samples to show where the time sequence will go to zero
 	function patch(counts) {
@@ -37,6 +45,9 @@ function resultToPlotData(initialCounts, contextCounts) {
 	return samples;
 }
 
+/*
+ * Draw histogram of counts by year.
+ */
 function drawCounts(data, box, draw, scales, classStr, clipId) {
 	var initialArea = d3.svg.area()
 		.interpolate('step-after')
@@ -69,6 +80,9 @@ function drawCounts(data, box, draw, scales, classStr, clipId) {
 	return update;
 }
 
+/*
+ * Draw a single complete plot, including axes.
+ */
 function drawPlot(svg, box, data, classStr, matchScales, clipId) {
 	var draw = svg.append('g')
 		.attr('transform', "translate(" + box.x + "," + box.y + ")");
@@ -118,6 +132,9 @@ function drawPlot(svg, box, data, classStr, matchScales, clipId) {
 	};
 }
 
+/*
+ * Draw the whole timeline visualization.
+ */
 function drawTimeline(svg, detailBox, selectBox, data, initialBrushExtent, brushCallback) {
 	var clipId = "timelineclip" + timelineClipNum;
 	timelineClipNum++;
@@ -166,6 +183,12 @@ function drawTimeline(svg, detailBox, selectBox, data, initialBrushExtent, brush
 	return function() { d3.select('g.brush').call(brush.clear()); onBrush(); };
 }
 
+/*
+ * Setup the control in some container element.
+ * container: container element as a jquery selection
+ * initialQuery: the initial (empty) query
+ * globalQuery: the global query
+ */
 function setupTimeline(container, initialQuery, globalQuery) {
 	// The view space for SVG; this doesn't have to correspond to screen units.
 	var viewBox = { x: 0, y : 0, width: 1024, height: 768 };
