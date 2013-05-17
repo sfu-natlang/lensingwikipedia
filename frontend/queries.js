@@ -39,24 +39,26 @@ function _removeViews(stringifiedViews) {
 
 function _resultsForResultWatchers(resultWatchers, backendResponse, expectAll, onResult, onError) {
 	for (var watcherId in resultWatchers) {
-		var ok = true;
 		var watcher = resultWatchers[watcherId];
-		var result = {};
-		for (var localViewId in watcher._value) {
-			var globalViewId = viewUniqueValues[watcher._value[localViewId]].id;
-			if (!backendResponse.hasOwnProperty(globalViewId)) {
-				if (!expectAll)
-					console.log("warning: didn't get anything for view \"" + localViewId + "\"");
-				ok = false;
-				break;
+		if (watcher._value != null) {
+			var ok = true;
+			var result = {};
+			for (var localViewId in watcher._value) {
+				var globalViewId = viewUniqueValues[watcher._value[localViewId]].id;
+				if (!backendResponse.hasOwnProperty(globalViewId)) {
+					if (!expectAll)
+						console.log("warning: didn't get anything for view \"" + localViewId + "\"");
+					ok = false;
+					break;
+				}
+				var viewResult = backendResponse[globalViewId];
+				result[localViewId] = viewResult;
+				if (viewResult.hasOwnProperty('error') && onError != null)
+					onError(viewResult.error, watcher);
 			}
-			var viewResult = backendResponse[globalViewId];
-			result[localViewId] = viewResult;
-			if (viewResult.hasOwnProperty('error') && onError != null)
-				onError(viewResult.error, watcher);
+			if (ok)
+				onResult(watcher, result);
 		}
-		if (ok)
-			onResult(watcher, result);
 	}
 }
 
