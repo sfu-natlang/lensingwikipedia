@@ -42,7 +42,9 @@ def make_querier(settings):
     num_initial_description_pages_to_cache = settings.num_initial_description_pages_to_cache,
     all_argument_numbers = settings.all_argument_numbers,
     fields_to_prime = settings.fields_to_prime,
-    max_items_to_count_over = settings.max_items_to_count_over
+    max_items_to_count_over = settings.max_items_to_count_over,
+    max_years_selected = settings.max_years_selected,
+    max_reference_points_selected = settings.max_reference_points_selected
   )
   return querier
 

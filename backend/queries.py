@@ -76,7 +76,11 @@ class Querier:
     # Names of fields to prime the cache with
     settings.setdefault('fields_to_prime', [])
     # Maximum number of events to count over before giving up
-    settings.setdefault('max_items_to_count_over', 1000)
+    settings.setdefault('max_items_to_count_over', None)
+    # Maximum number of years to allow in a single constraint before giving up
+    settings.setdefault('max_years_selected', None)
+    # Maximum number of reference points to allow in a single constraint before giving up
+    settings.setdefault('max_reference_points_selected', None)
 
     for key, value in settings.iteritems():
       setattr(self, key, value)
@@ -128,11 +132,15 @@ class Querier:
       use_fields = self.expand_field(cnstr['field'])
       return " or ".join("`%s` = '%s'" % (f, cnstr['value'].replace("'", "''")) for f in use_fields)
     elif type == "timerange":
-      low = dates.year_key(cnstr['low'], self.min_year, self.year_key_digits)
-      high = dates.year_key(cnstr['high'], self.min_year, self.year_key_digits)
-      return "yearKey >= '%s' and yearKey <= '%s'" % (low, high)
+      low, high = cnstr['low'], cnstr['high']
+      if self.max_years_selected is not None and high - low > self.max_years_selected:
+        raise QueryHandlingError("too many years selected")
+      low_key, high_key = dates.year_key(low, self.min_year, self.year_key_digits), dates.year_key(high, self.min_year, self.year_key_digits)
+      return "yearKey >= '%s' and yearKey <= '%s'" % (low_key, high_key)
     elif type == 'referencepoints':
       # SimpleDB only allows up to 20 comparisons on a single attribute (see https://forums.aws.amazon.com/thread.jspa?threadID=40439; I'm not sure where this is in the official documentation). However, using this dummy field hack gets around that for some reason. See http://blog.yslin.tw/2012/03/simpledb-too-many-value-tests-per.html. Here we do the hack by splitting the values into smaller groups and interspersing "in" conditions on these groups with "is not null" conditions on a dummy field. However, this only works up to the point where we hit the predicate limit (also around 20).
+      if self.max_reference_points_selected is not None and len(cnstr['points']) > self.max_reference_points_selected:
+        raise QueryHandlingError("too many reference points selected")
       def split_list(list, part_size):
         i = 0
         while i < len(list):

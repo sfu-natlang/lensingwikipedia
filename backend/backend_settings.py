@@ -27,7 +27,9 @@ defaults.query_pagination_cache_size = 100
 defaults.result_pagination_cache_size = 100
 defaults.all_argument_numbers = [0, 1]
 defaults.fields_to_prime = ["role", "locationText", "personText", "currentCountryText"]
-defaults.max_items_to_count_over = 1000
+defaults.max_items_to_count_over = None
+defaults.max_years_selected = None
+defaults.max_reference_points_selected = None
 
 def parse_bool(string):
   return string == 'true' or string == 'True'
@@ -47,7 +49,9 @@ parse_settings = {
   'result_pagination_cache_size': int,
   'all_argument_numbers': lambda s: s.split(','),
   'fields_to_prime': lambda s: s.split(','),
-  'max_items_to_count_over': int
+  'max_items_to_count_over': int,
+  'max_years_selected': int,
+  'max_reference_points_selected': int
 }
 parse_from_db = {
   'all_argument_numbers': lambda i: [int(an) for an in i],
