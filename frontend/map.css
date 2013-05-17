@@ -42,9 +42,6 @@
 	stroke: #fff;
 	stroke-width: .5px;
 }
-.map .graticule :nth-child(2n) {
-	stroke-dasharray: 2,2;
-}
 .map .land {
 	fill: #d7c7ad;
 	stroke: #766951;
