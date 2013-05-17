@@ -45,6 +45,7 @@ function setupConstraintList(container, globalQuery) {
 		if (message == null) {
 			if (alreadyError) {
 				alreadyError = false;
+				errorMessages = {};
 		 		errorBox.css('display', 'none');
 			}
 		} else {
