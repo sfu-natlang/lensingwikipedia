@@ -309,7 +309,11 @@ function setupTimeline(container, initialQuery, globalQuery) {
 			var svg = jqueryToD3(svgElt);
 			var plotData = resultToPlotData(initialData, contextData);
 			setLoadingIndicator(false);
-			clearBrush = drawTimeline(svg, detailBox, selectBox, plotData, lastSelection, setSelection);
+			clearBrush = drawTimeline(svg, detailBox, selectBox, plotData, lastSelection, function (selection) {
+				if (selection == null)
+					globalQuery.update();
+				setSelection(selection);
+			});
 			setSelection(lastSelection, true);
 			scaleSvg();
 		}
