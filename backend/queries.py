@@ -165,15 +165,17 @@ class Querier:
     for view_id, view in views.iteritems():
       response[view_id] = { 'counts': {} }
 
-    for i, item in enumerate(sdbutils.select_all(self.data_dom, sdb_query, field_keys, needs_non_null=field_keys, non_null_is_any=True)):
-      if self.max_items_to_count_over is not None and i > self.max_items_to_count_over:
-        raise QueryHandlingError("too many matching events, narrow the query more")
+    last_i = -1
+    for i, item in enumerate(sdbutils.select_all(self.data_dom, sdb_query, field_keys, needs_non_null=field_keys, non_null_is_any=True, limit=self.max_items_to_count_over)):
       for view_id, view in views.iteritems():
         counts = response[view_id]['counts']
         values = set(v for f in view['_use_fields'] if f in item for v in (item[f] if isinstance(item[f], list) else [item[f]]))
         for value in values:
           counts.setdefault(value, 0)
           counts[value] += 1
+      last_i = i
+    if self.max_items_to_count_over is not None and last_i >= self.max_items_to_count_over:
+      raise QueryHandlingError("too many matching events, narrow the query more")
 
     for view_id, view in views.iteritems():
       counts = response[view_id]['counts'].items()

@@ -5,13 +5,13 @@ Utilities for SimpleDB with Boto, to cover common cases in queries.
 import boto
 import caching
 
-def _select_all(dom, pattern, order, fields):
+def _select_all(dom, pattern, order, fields, limit):
   """
   Select all results. Takes care of any repeated database requests needed to get
   the requested information (boto may already do that, but I'm not sure). Also
   protects against duplicated items in results.
   """
-  query = "select %s from `%s` %s %s" % (fields, dom.name, pattern, order)
+  query = "select %s from `%s` %s %s%s" % (fields, dom.name, pattern, order, " limit %i" % (limit) if limit is not None else "")
   next_token = None
   # Note: we maintain a set of all items (by name ID) we have seen because SimpleDB sometimes returns the same item more than once. See notes in the readme. Having to do this seems inefficient. If there are performance issues it may be best to check which queries actually need it and enable it only for them.
   seen = set()
@@ -37,7 +37,7 @@ class QueryPaginator:
     self.cache = caching.FIFO(100) if cache is None else cache
     self.default_page_size = default_page_size
 
-  def select(self, dom, pattern, order, fields, last_page_cb, page_num, page_size=None):
+  def select(self, dom, pattern, order, fields, last_page_cb, page_num, page_size=None, limit=None):
     """
     Select all results by page. Takes care of any repeated database requests
     needed to get the requested information.
@@ -50,10 +50,11 @@ class QueryPaginator:
 
     if page_size is None: page_size = self.default_page_size
 
-    # First we skip to the start of the page
     pos = page_num * page_size
     next_token = self.cache.get((pattern, fields, page_size, pos))
-    if next_token is None:
+
+    # First we skip to the start of the page
+    if pos < limit and next_token is None:
       # Use the counting trick to skip ahead if we don't already have a next pointer for the position
       num_skipped = 0
       next_token = None
@@ -73,7 +74,8 @@ class QueryPaginator:
           return
 
     # Now we can do the real query, starting from the next token
-    rs = dom.select("select %s from `%s` %s %s limit %i" % (fields, dom.name, pattern, order, page_size), next_token=next_token, max_items=page_size)
+    num_to_retrive = max(0, min(limit - pos, page_size)) if limit is not None else page_size
+    rs = dom.select("select %s from `%s` %s %s limit %i" % (fields, dom.name, pattern, order, num_to_retrive), next_token=next_token, max_items=page_size)
     for item in rs:
       yield item
       pos += 1
@@ -84,7 +86,7 @@ class QueryPaginator:
     elif last_page_cb is not None:
       last_page_cb()
 
-def select_all(dom, pattern=None, fields=['*'], needs_non_null=[], non_null_is_any=False, paginated=None, last_page_callback=None, order=None, order_descending=False):
+def select_all(dom, pattern=None, fields=['*'], needs_non_null=[], non_null_is_any=False, paginated=None, last_page_callback=None, order=None, order_descending=False, limit=None):
   """
   Select with commonly used options. Should guarantee finding all matches even
   if there are more than SimpleDB will return at once. Can optionally do
@@ -106,6 +108,7 @@ def select_all(dom, pattern=None, fields=['*'], needs_non_null=[], non_null_is_a
   order: Key to sort on. Can only do lexicographical sort because that's what
     SimpleDB gives us.
   order_descending: If set, sort order is descending. Otherwise it is ascending.
+  limit: Maximum number of items to return.
   """
 
   where = []
@@ -120,14 +123,14 @@ def select_all(dom, pattern=None, fields=['*'], needs_non_null=[], non_null_is_a
   fields_str = ",".join("`%s`" % (f) for f in fields)
 
   if paginated is None:
-    return _select_all(dom, pattern_str, order_str, fields_str)
+    return _select_all(dom, pattern_str, order_str, fields_str, limit=limit)
   else:
     if len(paginated) == 3:
       paginator, page_num, page_size = paginated
     else:
       paginator, page_num = paginated
       page_size = None
-    return paginator.select(dom, pattern_str, order_str, fields_str, last_page_callback, page_num, page_size)
+    return paginator.select(dom, pattern_str, order_str, fields_str, last_page_callback, page_num, page_size, limit)
 
 def get_maybenew_domain(sdb, dom_name, make_new=True, delete_old=False):
   """
