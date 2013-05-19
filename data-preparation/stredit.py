@@ -171,6 +171,9 @@ if __name__ == '__main__':
     b,e = 16,len(s2) # start from index 1 instead of 0
     (rb, re) = streditmap(s1,s2,b,e)
     print "\"%s\" => \"%s\"" % (s2[b-1:e], s1[rb:re])
+    b,e = 1,len(s2)-1 # start from index 1 instead of 0
+    (rb, re) = streditmap(s1,s2,b,e)
+    print "\"%s\" => \"%s\"" % (s2[b-1:e], s1[rb:re])
 
 
 #stredit2('mccallum', 'mcalllomo')

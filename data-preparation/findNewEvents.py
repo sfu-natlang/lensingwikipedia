@@ -22,12 +22,14 @@ def readNewFile(nameFile):
 	#fin = open(nameFile, "r")
 	#fout = open("newEvents.txt", "w")
 	fin = codecs.open(nameFile,'r', encoding='utf-8')
-	fout = codecs.open("newEvents.txt",'w', encoding='utf-8')
+	fout = codecs.open(sys.argv[3],'w', encoding='utf-8')
 	co = 0
 	global origEvents
 	print len(origEvents)
+	c = 0
 	for line in fin:
-		items = line[:-1].split("\t")		
+		items = line.split("\t")		
+		c+=1
 		if not(items[2] in origEvents):
 			print >> fout, line[:-1]
 			co += 1

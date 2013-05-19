@@ -10,6 +10,7 @@ frameLabel = {}
 eventsLst = []
 locDict = {}
 countryDict = {}
+COMP_SPAN_FLAG = 1
 
 class Sentence:
 	""" """
@@ -66,9 +67,10 @@ class Sentence:
 				print "err, sentence does not have predicate!", self.sentence
 				exit(1)
 			v = predDic['V'][2]
+			origPred = predDic['V'][2]
 			for key in predDic.keys():
 				if key == 'V': 
-					predDic['V'] = (predDic['V'][1], v, predDic['V'][0])
+					predDic['V'] = (predDic['V'][1], origPred, predDic['V'][0])
 					continue
 				if v not in frameLabel: v = "defPred"
 				if key not in frameLabel[v]:	
@@ -108,8 +110,81 @@ def read_word(inFile):
 	words = re.sub(r'\s', ' ', line).split()
 	return words
 
+def findSubStrTok(Str, subStr, last=0):
+	if last == 0 and Str.startswith(subStr+" "):
+		b = 0
+		e = b+len(subStr)
+		return b,e
+	
+	b = Str.find(" "+subStr+" ", last)
+	if b < 0 and last < (len(Str) - len(subStr)) and Str.endswith(" "+ subStr):
+		b = Str.find(" "+subStr)
+	elif b < 0:
+		return (-1,-1)
+	if Str[b] != subStr[0]:
+		b+=1
+	e = b+len(subStr)
+	return b,e
+
+def findSubStr(Str, subStr, last=0):
+	b = Str.find(subStr,last)
+	#if b < 0 and Str.startswith(subStr+" "):
+	if b < 0:
+		return (-1,-1)
+	e = b+len(subStr)
+		
+	return b,e
+
+def addNERInfo(docId, tokDesc):
+	global eventsLst, nerLst, countryDict
+	Desc = eventsLst[docId]["description"]	
+	
+	for index, label in enumerate(['person','organization', 'locations']):
+		if len(nerLst[docId][index]) > 0:
+			eventsLst[docId][label] = {}
+			lastInd = 0
+			for l in nerLst[docId][index]:
+				b,e = findSubStrTok(tokDesc, l, lastInd)
+				#b,e = findSubStr(Desc, l)
+				if b < 0:
+					print "err (%s): '%s'  is not in '%s'" %(label, l, tokDesc)
+					#exit(1)
+					#print lastInd
+					continue
+				lastInd = e
+				b += 1
+				if COMP_SPAN_FLAG:
+					(rb, re) = stredit.streditmap(Desc,tokDesc,b,e)
+				else:
+					(rb,re) = (b,e)
+				if label == 'locations':
+					if l in locDict:
+						eventsLst[docId][label][l] = {}
+						eventsLst[docId][label][l]["span"] = (rb, re)
+						eventsLst[docId][label][l]["latitude"] = locDict[l][0]
+						eventsLst[docId][label][l]["longitude"] = locDict[l][1]
+						if l in countryDict:
+							eventsLst[docId][label][l]["country"] = countryDict[l]
+				else:
+					eventsLst[docId][label][l] = (rb, re)
+					#eventsLst[docId]['person'][l] = (b, e)
+
+	
+	if ("locations" not in eventsLst[docId]) or len(eventsLst[docId]["locations"]) == 0:
+		wl = 1
+		wc = 1
+	else:
+		wc = 1
+		wl = 0
+		for loc in eventsLst[docId]["locations"]:
+			if "country" in eventsLst[docId]["locations"][loc]:
+				wc = 0
+				break
+	return wl, wc
+
+
 def print_doc(docs, docId, outFile):
-	global eventsLst, nerLst
+	global eventsLst, nerLst, woLoc, woCountry
 	tokDesc = " ".join([s.sentence for s in docs])
 	setTokDesc = set(tokDesc.split())
 	setDesc = set(eventsLst[docId]["description"].split())
@@ -120,37 +195,10 @@ def print_doc(docs, docId, outFile):
 		print len(setDesc & setTokDesc), setDesc & setTokDesc
 		exit(1)
 	Desc = eventsLst[docId]["description"]	
-	if len(nerLst[docId][0]) > 0:
-		eventsLst[docId]['person'] = {}
-		for l in nerLst[docId][0]:
-			b = tokDesc.find(" "+l+" ")
-			if b < 0 and tokDesc.startswith(l+" "):
-				b = 0
-			elif b < 0 and tokDesc.endswith(" "+ l):
-				b = tokDesc.find(" "+l)
-			elif b < 0:
-				print "err: '%s'  is not in '%s'" %(l, tokDesc)
-				exit(1)
-			e = b+len(l)
-			b += 1
-			(rb, re) = stredit.streditmap(Desc,tokDesc,b,e)
-			eventsLst[docId]['person'][l] = (rb, re)
 
-	if len(nerLst[docId][1]) > 0:
-		eventsLst[docId]['organization'] = {}
-		for l in nerLst[docId][1]:
-			b = tokDesc.find(" "+l+" ")
-			if b < 0 and tokDesc.startswith(l+" "):
-				b = 0
-			elif b < 0 and tokDesc.endswith(" "+ l):
-				b = tokDesc.find(" "+l)
-			elif b < 0:
-				print "err: '%s'  is not in '%s'" %(l, tokDesc)
-				exit(1)
-			e = b+len(l)
-			b += 1
-			(rb, re) = stredit.streditmap(Desc,tokDesc,b,e)
-			eventsLst[docId]['organization'][l] = (rb, re)
+	wl,wc = addNERInfo(docId, tokDesc)
+	woLoc+=wl
+	woCountry+=wc
 
 	for sentInd, sent in enumerate(docs):
 		preSentLen = len(" ".join([s.sentence for s in docs[:sentInd]]))
@@ -159,7 +207,8 @@ def print_doc(docs, docId, outFile):
 		for pred in sent.predicates:
 			printable = {}
 			for key in pred:
-				if key in ["V", "A0", "A1", "AM-MOD", "AM-NEG"]:
+				if key=='V' or key in frameLabel["defPred"]:
+				#if key in ["V", "A0", "A1", "AM-MOD", "AM-NEG", "A2", "A3", "A4"]:
 					wInd = pred[key][2]
 					b = sum([len(w)+1 for w in splitedSent[:wInd[0]]])
 					if preSentLen > 0: b += preSentLen + 1
@@ -172,9 +221,13 @@ def print_doc(docs, docId, outFile):
 						print pred[key][0]
 						print tokDesc
 						exit(1)
-					(rb, re) = stredit.streditmap(Desc,tokDesc,b,e)
+					if COMP_SPAN_FLAG:
+						(rb, re) = stredit.streditmap(Desc,tokDesc,b,e)
+					else:
+						(rb, re) = (b,e)
 					text = Desc[rb:re]
-					if key == "V":
+					#print key, pred[key]
+					if key == 'V':
 						printable["event"] = ((rb, re), text)
 						printable["eventRoot"] = pred[key][1]
 					else:
@@ -190,13 +243,12 @@ def print_doc(docs, docId, outFile):
 			print >> outFile, json.dumps(printable)
 			del printable
 
+
 def read_fullEvents(fileName):
 	inFile = codecs.open(fileName, "r", "utf-8")
 	ID = 0
 	global eventsLst, locDict, countryDict
 	eventsLst = []
-	woLoc = 0
-	woCountry = 0
 	for line in inFile:
 		items = line[:-1].split("\t")
 		dict = {}
@@ -207,60 +259,36 @@ def read_fullEvents(fileName):
 		dict["header"] = items[1]
 		dict["description"] = items[2]
 		urlDic = {}
-		dict["locations"] = []
 		if len(items) > 3:
+			lastInd = 0
 			for link in items[3:]:
 				if len(link) == 0: continue
 				url = link.split()[0]
 				text = " ".join(link.split()[1:])
-				urlDic[text] = url
+				b,e = findSubStr(items[2], text, lastInd)
+				if b < 0: 		##HACK
+					print lastInd
+					print items[2].find(text, lastInd)
+					print "err (urls): '%s'  is not in '%s'" %(text.encode('utf-8'), items[2].encode('utf-8'))
+					#exit(1)
+					continue
+				urlDic[text] = {}
+				urlDic[text]["url"] = url
 				if url in locDict:
-					loc = {}
-					loc["latitude"] = locDict[url][0]
-					loc["longtitude"] = locDict[url][1]
-					loc["text"] = text
+					urlDic[text]["latitude"] = locDict[url][0]
+					urlDic[text]["longitude"] = locDict[url][1]
 					if url in countryDict:
-						loc["country"] = countryDict[url]
-					dict["locations"].append(loc)
-		dict["urls"]=urlDic
-		for key in locDict:
-			if " "+key+" " in items[2] or items[2].startswith(key+" ") or items[2].endswith(" "+key) or items[2]==key:
-				loc = {}
-				loc["latitude"] = locDict[key][0]
-				loc["longtitude"] = locDict[key][1]
-				loc["text"] = key
-				b = items[2].find(key)
-				e = b + len(key)
-				loc["span"] = (b, e)
-				if key in countryDict:
-					loc["country"] = countryDict[key]
-				dict["locations"].append(loc)
-				
-			
-		#if not("country" in dict):
-		#	for key in countryDict:
-		#		if key in items[2]:
-		#			dict["country"] = countryDict[key]
-		#			break
-		
-		if len(dict["locations"]) == 0:
-			woLoc += 1
-			woCountry += 1
-		else:
-			woCountry += 1
-			for loc in dict["locations"]:
-				if "country" in loc:
-					woCountry -= 1
-					break
+						urlDic[text]["country"] = countryDict[url]
+				urlDic[text]["span"] = (b,e)
+				lastInd=e
+		dict["wiki_info"]=urlDic
 		eventsLst.append(dict)
 	inFile.close
-	print "events without location:", woLoc
-	print "events without country:", woCountry
 
 def parse_SRL():
 	inFile = open(sys.argv[1], "r")
 	outFile = codecs.open(sys.argv[5], "w", "utf-8")
-	global eventsLst, locDict, noEvents
+	global eventsLst, locDict, noEvents, woLoc, woCountry
         docId=0
 	sentId=0
 	flag = 1 
@@ -268,6 +296,8 @@ def parse_SRL():
 	document = []
 	noEvents = 0
 	sent = None
+	woLoc = 0
+	woCountry = 0
 	for line in inFile:
 		items = line[:-1].split("\t")
 		if "V*V" in line:
@@ -308,6 +338,8 @@ def parse_SRL():
 
 	outFile.close()
 	inFile.close()
+	print "events without location:", woLoc
+	print "events without country:", woCountry
 	print "No of documents: ", docId
 	print "No of events: ", noEvents
 
@@ -329,7 +361,7 @@ def read_frames(fileName):
 		items = line[:-1].split("\t")
 		arg = items[0]
 		role = items[1]
-		frameLabel["defPred"][arg] = role
+		frameLabel["defPred"][arg] = role.lower()
 	inFile.close
 	
 def read_location(fileName):
@@ -396,10 +428,12 @@ def readNER(fileName):
 	
 
 if __name__ == '__main__':
-	if len(sys.argv) != 6:
-		print "usage:  python  %s <srl-data-file> <location-file> <crawled-data-file> <json-output-name>" %(sys.argv[0])
+	if len(sys.argv) < 6 or len(sys.argv) > 7:
+		print "usage:  python  %s <srl-data-file> <location-file> <crawled-data-file> <json-output-name> [falg for computing spans]" %(sys.argv[0])
 		print "'frame_labels.txt' and 'def_roles.txt' are supposed to be in local directory."
 		exit(1)
+	if len(sys.argv) == 7:
+		COMP_SPAN_FLAG = int(sys.argv[6])
 	full_path = os.path.realpath(__file__)
 	global script_dir
 	script_dir = "/".join(full_path.split("/")[:-1]) + "/"
