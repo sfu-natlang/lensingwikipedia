@@ -4,6 +4,7 @@ from scrapy.contrib.spiders import CrawlSpider, Rule
 from scrapy.contrib.linkextractors.sgml import SgmlLinkExtractor
 import sys
 import re
+import json
 
 #from django.utils.encoding import smart_str
 
@@ -36,7 +37,9 @@ class eventSpider(BaseSpider):
 		fout.close
 
 	def parse(self,response):
+		printable = {}
 		year = response.url.split("/")[-1]
+		printable['year'] = year
 		fout = open(self.outFile,"a")
 		ptr = HtmlXPathSelector(response)
 		ulDict = {}
@@ -53,8 +56,10 @@ class eventSpider(BaseSpider):
 			node_name = str(topic.select('name()').extract()[0])
 			if node_name == 'h2':
 				content = topic.select('span/text()').extract()
-				content = content[-1] if len(content) > 0 else ''
-				topic_name = str(content)
+				#content = content[-1] if len(content) > 0 else ''
+				for tt in content:
+					topic_name = str(tt)
+					if topic_name == 'Events' or topic_name == 'Events and trends': break
 				if (topic_name != 'Events' and topic_name != 'Events and trends' ) and flag == 0: continue
 				if flag:
 					#print "break!   ",node_name
@@ -65,11 +70,14 @@ class eventSpider(BaseSpider):
 				continue
 			if flag == 0: continue
 			if node_name == 'h3'or node_name == 'h4':
-				content = topic.select('span/text()').extract()[-1].encode('utf8', 'ignore')
-				topic_name = str(content)
+				content = topic.select('span/text()').extract()
+				for tt in content:	
+					topic_name = str(tt.encode('utf8', 'ignore'))
+					if len(topic_name) > 2: break
 				#print "continue!   ",node_name, topic_name
 				continue	
 			#print "out!!!   ",node_name, topic_name
+			printable['header'] = topic_name
 			#lis = topic.select('following-sibling::ul[1]').select('li')
 			lis = topic.select('li')
 			for ind, li in enumerate(lis):
@@ -92,8 +100,9 @@ class eventSpider(BaseSpider):
 					content = tt.encode('utf8', 'ignore')
 					if str(content) != "\n":
 						text += str(content).rstrip("\n")
-				text.rstrip('\n')
-				location = ''
+				text = text.rstrip('\n')
+				printable['description'] = text
+				linked_entity = []
 				links = li.select('./a')
 				#links = hxs.select('./a')
 				for link in links:
@@ -102,11 +111,21 @@ class eventSpider(BaseSpider):
 						if t not in text:
 							l ="" 
 						else:
-							l = link.select('@href').extract()[0].encode('utf8','ignore') + ' '+t+ "\t"
+							#l = link.select('@href').extract()[0].encode('utf8','ignore') + ' '+t
+							key = link.select('@href').extract()[0].encode('utf8','ignore')
+							linked_entity.append((key, t))
 					except:
 						l = ''
-					location += l
-				fout.write("%s\t%s\t%s\t%s\n" %(year,topic_name,text, location))
+				printable['urls'] = linked_entity
+				clnhtmlText = clnhtmlText.strip()
+				if clnhtmlText.startswith("<li>"):
+					clnhtmlText=clnhtmlText[4:]
+				if clnhtmlText.endswith("</li>"):
+					clnhtmlText=clnhtmlText[:-5]
+				clnhtmlText = clnhtmlText.strip()
+				printable['html_fragment'] = clnhtmlText
+				print >> fout, json.dumps(printable)
+				#fout.write("%s\t%s\t%s\t%s\t%s\n" %(year,topic_name,text, clnhtmlText, "\t".join(linked_entity))
 		fout.close
 
 
