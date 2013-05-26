@@ -1,6 +1,8 @@
 from pygeocoder import Geocoder
 import sys
 import time
+import json
+import codecs
 
 def convertCord(cord):
         sign = -1 if cord[-1] == 'S' or cord[-1] == 'W' else 1
@@ -28,17 +30,17 @@ if __name__ == "__main__":
 	fin = open(sys.argv[1] ,"r")
 	fout = open(sys.argv[2] ,"w")
 	for line in fin:
-		items = line[:-1].split("\t")
-		lat,long = items[1].split(" , ")
-		latitude = int(float(lat)*100)/100.0
-		longtitude = int(float(long)*100)/100.0
-		print latitude, longtitude
+		items = json.loads(line, "utf-8")				
+		latitude = int(float(items['latitude'])*100)/100.0
+		longitude = int(float(items['longitude'])*100)/100.0
+		print latitude, longitude
 		try:
-			results = Geocoder.reverse_geocode(latitude, longtitude)
-			items.append(results.country.encode('utf8','ignore'))
+			results = Geocoder.reverse_geocode(latitude, longitude)
+			items['country'] = results.country.encode('utf8','ignore')
 		except:
 			print "Unknown"
-		print >> fout, "\t".join(items)
+		#print >> fout, "\t".join(items)
+		print >> fout, json.dumps(items)
 		time.sleep (50.0 / 100.0);
 fin.close
 fout.close

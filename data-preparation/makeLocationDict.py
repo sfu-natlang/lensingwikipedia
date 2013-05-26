@@ -1,4 +1,6 @@
 import sys
+import json
+import codecs
 
 
 #fres = open("response.txt", "r")
@@ -26,36 +28,54 @@ def convertCord(cord):
 
 if __name__ == "__main__":
 	try:
-		floc = open(sys.argv[1], "r")
-		flocNER = open(sys.argv[2], "r")
-		fDict = open(sys.argv[3], "w")
+		floc = codecs.open(sys.argv[1], "r", encoding='utf-8')
+		flocNER = codecs.open(sys.argv[2], "r", encoding='utf-8')
+		fDict = codecs.open(sys.argv[3], "w", encoding='utf-8')
 	except:
-		print "usage:   python %s <locations_file> <NER_location_file> <locationDictionaryName>" %(sys.argv[0])
+		print "usage:   python %s <locations_json_file> <NER_location_json_file> <locationDictionaryName>" %(sys.argv[0])
 		exit(1)
 
 	locDic = {}
 	for line in floc:
-		items = line[:-1].split("\t")
-		locDic[items[0]] = items[1]
+		items = json.loads(line[:-1], "utf-8")				
+		#locDic[items['url']] = items
+		locDic[items['url']] = {}
+		locDic[items['url']]['latitude'] = items['latitude']
+		locDic[items['url']]['longitude'] = items['longitude']
+		locDic[items['url']]['title'] = items['title']
+		locDic[items['url']]['url'] = items['url']
 		#for ii in items[2:]:
 		#	locDic[ii] = items[1]
 	floc.close
 
 	for line in flocNER:
-		items = line[:-1].split("\t")
-		for ii in items[2:]:
-			if ii in locDic and items[1] != locDic[ii]:
-				print line[:-1],  locDic[ii]
+		items = json.loads(line[:-1], "utf-8")	
+		if not type(items['text']) is list:
+			textList = [items['text']]			
+		for ii in textList:
+			text = str(ii)
+			if text in locDic and items['latitude'] != locDic[text]['latitude']:
+				print line[:-1]
+				print  locDic[text]
+				print textList
+				continue
 			else:
-				locDic[ii] = items[1]
+				#locDic[text] = items
+				locDic[text] = {}
+				locDic[text]['latitude'] = items['latitude']
+				locDic[text]['longitude'] = items['longitude']
+				locDic[text]['title'] = items['title']
+				locDic[text]['text'] = text
 	flocNER.close
 
 	for key in locDic:
-		lat,long = locDic[key].split(" , ")
-                latitude = str(convertCord(lat))
-                longitude = str(convertCord(long))
+		lat = str(locDic[key]['latitude'].encode('utf8', 'ignore'))
+		long = str(locDic[key]['longitude'].encode('utf8', 'ignore'))
+                locDic[key]['latitude'] = convertCord(lat)
+                locDic[key]['longitude'] = convertCord(long)
 
-		print >> fDict, "%s\t%s , %s" %(key, latitude, longitude)
+		#print >> fDict, "%s\t%s , %s\t%s" %(key, latitude, longitude, title)
+		print >> fDict, json.dumps(locDic[key])
 
 	print "No of locations: ", len(locDic)
 
