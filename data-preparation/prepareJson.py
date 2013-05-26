@@ -270,8 +270,8 @@ def read_fullEvents(fileName):
 				urlDic = {}
 				lastInd = 0
 				for link in items[k]:
-					url = link
-					text = items[k][link]
+					url = link[0]
+					text = link[1]
 					#text = str(items[k][link].encode('utf8', 'ignore'))
 					b,e = findSubStr(description, text, lastInd)
 					if b < 0: 		##HACK
@@ -288,7 +288,7 @@ def read_fullEvents(fileName):
 						for keyInLoc in locDict[url]:
 							urlDic[text][keyInLoc] = locDict[url][keyInLoc]
 					urlDic[text]["span"] = (b,e)
-					#lastInd=e
+					lastInd=e
 				dict["wiki_info"]=urlDic
 			else:
 				#key = str(k.encode('utf8', 'ignore'))

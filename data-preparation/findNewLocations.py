@@ -22,8 +22,8 @@ if __name__ == "__main__":
 			exit(1)
 		dict = {}
 		for v in items:
-			if v != 'url' and v!= 'text':
-				dict[v] = items[v]	
+			#if v != 'url' and v!= 'text':
+			dict[v] = items[v]	
 		if 'country' not in dict: 
 			woC += 1
 		else:

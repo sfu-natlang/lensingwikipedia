@@ -32,6 +32,7 @@ if [ $remaining -gt 0 ]; then
      	$PYPATH reGeocoding.py $log/loc.$lastInd $log/loc.$lastInd.out
 fi
 #if [ $remaining -gt 0 ]; then let nday="$nday + 1"; fi
+let nday="$nday + 1"
 #echo $nday
 
 
