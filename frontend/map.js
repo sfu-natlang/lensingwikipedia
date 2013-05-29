@@ -165,8 +165,6 @@ function drawMarkers(svg, group, proj, initialCounts, contextCounts) {
 		.attr("cy", function(p) { return screenPoints[p][1]; })
 		.attr("r", function(p) { return initialCounts.hasOwnProperty(p) ? Math.sqrt(initialCounts[p] * countScale * proj.scale() / maxCount) : 0; })
 		.attr("class", function(p) { return "marker initial " + classForMarker(p); })
-		.on('touchstart', triggerDown)
-		.on('touchend', triggerUp)
 		.on('mousedown', triggerDown)
 		.on('mouseup', triggerUp);
 	group.selectAll("marker")
@@ -177,8 +175,6 @@ function drawMarkers(svg, group, proj, initialCounts, contextCounts) {
 		.attr("cy", function(p) { return screenPoints[p][1]; })
 		.attr("r", function(p) { return contextCounts.hasOwnProperty(p) ? Math.sqrt(contextCounts[p] * countScale * proj.scale() / maxCount) : 0; })
 		.attr("class", function(p) { return "marker context " + classForMarker(p); })
-		.on('touchstart', triggerDown)
-		.on('touchend', triggerUp)
 		.on('mousedown', triggerDown)
 		.on('mouseup', triggerUp);
 	group.selectAll("markercount")
@@ -191,8 +187,6 @@ function drawMarkers(svg, group, proj, initialCounts, contextCounts) {
 		.attr("text-anchor", 'middle')
 		.text(function (p) { return contextCounts[p] > 0 ? contextCounts[p] : ""; })
 		.attr("class", function(p) { return "marker counttext " + classForMarker(p); })
-		.on('touchstart', triggerDown)
-		.on('touchend', triggerUp)
 		.on('mousedown', triggerDown)
 		.on('mouseup', triggerUp);
 
