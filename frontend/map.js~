@@ -166,9 +166,7 @@ function drawMarkers(svg, group, proj, initialCounts, contextCounts) {
 		.attr("r", function(p) { return initialCounts.hasOwnProperty(p) ? Math.sqrt(initialCounts[p] * countScale * proj.scale() / maxCount) : 0; })
 		.attr("class", function(p) { return "marker initial " + classForMarker(p); })
 		.on('mousedown', triggerDown)
-		.on('mouseup', triggerUp)
-		.on('touchstart', triggerDown)
-		.on('touchend', triggerUp);
+		.on('mouseup', triggerUp);
 	group.selectAll("marker")
 		.data(toDraw)
 		.enter()
@@ -178,9 +176,7 @@ function drawMarkers(svg, group, proj, initialCounts, contextCounts) {
 		.attr("r", function(p) { return contextCounts.hasOwnProperty(p) ? Math.sqrt(contextCounts[p] * countScale * proj.scale() / maxCount) : 0; })
 		.attr("class", function(p) { return "marker context " + classForMarker(p); })
 		.on('mousedown', triggerDown)
-		.on('mouseup', triggerUp)
-		.on('touchstart', triggerDown)
-		.on('touchend', triggerUp);
+		.on('mouseup', triggerUp);
 	group.selectAll("markercount")
 		.data(toDraw)
 		.enter()
@@ -192,9 +188,7 @@ function drawMarkers(svg, group, proj, initialCounts, contextCounts) {
 		.text(function (p) { return contextCounts[p] > 0 ? contextCounts[p] : ""; })
 		.attr("class", function(p) { return "marker counttext " + classForMarker(p); })
 		.on('mousedown', triggerDown)
-		.on('mouseup', triggerUp)
-		.on('touchstart', triggerDown)
-		.on('touchend', triggerUp);
+		.on('mouseup', triggerUp);
 
 	return {
 		path: path,
