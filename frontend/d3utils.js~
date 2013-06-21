@@ -157,11 +157,9 @@ function makeDragSelector(drag, drawOn, classStr, selectionCallback, startPredic
  * Set a callback to notify when any dragging ends.
  * drag: d3 drag behaviour object
  * onEnd: callback that takes no arguments
- * try to differentiate whether the event is corresponding to mouse or touch devices
  */
 function makeDragEndWatcher(drag, onEnd) {
 	var startDrag = null;
-	
 	drag.on('dragstart.watchend', function () {
 		if((this.type == "onclick") || (event.type == "onmousedown") || (event.type == "onmouseup") || (event.type == 				"onmousemove"))
 			startDrag = d3.mouse(this);
