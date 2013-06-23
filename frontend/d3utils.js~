@@ -108,7 +108,10 @@ function makeDragSelector(drag, drawOn, classStr, selectionCallback, startPredic
 	var extentBox = null;
 	var dragStart = null;
 	function getBox(event) {
-		var at = d3.mouse(event);
+		if((event.type == "onclick") || (event.type == "onmousedown") || (event.type == "onmouseup") || (event.type == 				"onmousemove"))
+			var at = d3.mouse(event);
+		else
+			var at = d3.touches(event);
 		var d = [at[0] - dragStart[0], at[1] - dragStart[1]];
 		var p = [dragStart[0], dragStart[1]];
 		for (var i = 0; i < 2; i++)
@@ -119,7 +122,11 @@ function makeDragSelector(drag, drawOn, classStr, selectionCallback, startPredic
 		return [p, d];
 	}
 	drag.on('dragstart.dragselect', function () {
-		var at = d3.mouse(this);
+		if((this.type == "onclick") || (event.type == "onmousedown") || (event.type == "onmouseup") || (event.type == 				"onmousemove"))
+			var at = d3.mouse(this);
+		else
+			var at = d3.touches(this);
+		
 		if (startPredicate == null || startPredicate(at)) {
 			if (extentBox != null)
 				extentBox.remove();
@@ -156,9 +163,17 @@ function makeDragEndWatcher(drag, onEnd) {
 	var startDrag = null;
 	
 	drag.on('dragstart.watchend', function () {
-			startDrag = d3.mouse(this);		
+		if((this.type == "onclick") || (event.type == "onmousedown") || (event.type == "onmouseup") || (event.type == 				"onmousemove"))
+			startDrag = d3.mouse(this);
+		else
+			startDrag = d3.touches(this);
+		
 	}).on('dragend.watchend', function () {
+		if((this.type == "onclick") || (event.type == "onmousedown") || (event.type == "onmouseup") || (event.type == 				"onmousemove"))
 			var at = d3.mouse(this);
+		else
+			var at = d3.touches(this);
+
 		if (at[0] != startDrag[0] || at[1] != startDrag[1])
 			onEnd();
 		startDrag = null;
