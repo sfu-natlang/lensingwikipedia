@@ -1,0 +1,12 @@
+.selection {
+    stroke          : gray;
+    stroke-width    : 1px;
+    stroke-dasharray: 4px;
+    stroke-opacity  : 0.5;
+    fill            : transparent;
+}
+
+.state {
+    stroke  : gray;
+    fill    : white;
+}
