@@ -55,8 +55,8 @@ if __name__ == '__main__':
     event = json.loads(line)
     event_doc = {
       'year': int(event['year']),
-      'persons': unicode(", ".join(k for (k, v) in event['person'].iteritems()) if 'person' in event else ""),
-      'locations': unicode(", ".join(k for (k, v) in event['locations'].iteritems()) if 'locations' in event else ""),
+      'persons': unicode(", ".join(v['title'] for v in event['person'].itervalues()) if 'person' in event else ""),
+      'locations': unicode(", ".join(v['title'] for v in event['locations'].itervalues()) if 'locations' in event else ""),
       'currentcountries': unicode(", ".join(v['country'] for (k, v) in event['locations'].iteritems() if 'country' in v) if 'locations' in event else ""),
       'description': unicode(event['description'])
     }
