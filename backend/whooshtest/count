@@ -1,0 +1,37 @@
+#!/usr/bin/env python2
+
+"""
+Usage: %s INDEX-DIR QUERY COUNT-ON
+
+Run a query QUERY (in the python object format) and count matching events per
+value for some field COUNT-ON.
+"""
+
+import whoosh, whoosh.index, whoosh.fields, whoosh.qparser, whoosh.collectors, whoosh.sorting
+import sys
+from whoosh.query import *
+
+def parse_query(text):
+  return eval(text)
+
+if __name__ == '__main__':
+  import getopt
+
+  try:
+    opts, args = getopt.getopt(sys.argv[1:], "")
+    if len(args) != 3:
+      raise getopt.GetoptError("wrong number of positional arguments")
+    opts = dict(opts)
+  except getopt.GetoptError:
+    print >> sys.stderr, __doc__.strip('\n\r') % (sys.argv[0])
+    sys.exit(1)
+
+  index = whoosh.index.open_dir(args[0])
+  query = parse_query(args[1])
+  count_on_field = args[2]
+
+  with index.searcher() as searcher:
+    facet = whoosh.sorting.FieldFacet(count_on_field, maptype=whoosh.sorting.Count)
+    results = searcher.search(query, groupedby=facet)
+    for key, value in results.groups().iteritems():
+      print key, value
