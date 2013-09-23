@@ -1,5 +1,5 @@
 """
-Cache structures.
+General-purpose cache structures.
 """
 
 import sys

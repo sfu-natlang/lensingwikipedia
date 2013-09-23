@@ -1,7 +1,0 @@
-Tests for Whoosh, working towards using it for the backend.
-
-Examples:
-./buildindex index < /path/to/data.json
-./search -t 1 -l 3 -y index "Term('description', 'reporter')"
-./count index "Term('description', 'reporter')" year
-./timequeries -r 1 index < test.queries | awk 'BEGIN { FS=":" } { printf("%-90s : %s\n", $1, $2) }'
