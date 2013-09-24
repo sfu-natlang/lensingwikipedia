@@ -9,10 +9,11 @@ QUERY-FILE        File to read the query from. Standard input is used if not
   given.
 
 Options:
--c FILE   Config file to load settings from. All query handling settings are
+-c FILE     Config file to load settings from. All query handling settings are
   left at defaults if this option is not given.
--r REPS   Repeat query a given number of times.
--p        Prime the caches as the backend would.
+-r NUM      Repeat query a given number of times.
+-s SECONDS  Seconds to sleep between repeated queries.
+-p          Prime the caches as the backend would.
 
 Runs a query from standard input or a file directly against the index files.
 Doesn't need the backend, but should produce the same result that the
@@ -21,15 +22,16 @@ backend would produce.
 
 import sys
 import json
-import queries
+import time
 import whoosh, whoosh.index
+import queries
 import settings
 
 if __name__ == '__main__':
   import getopt
 
   try:
-    opts, args = getopt.getopt(sys.argv[1:], "c:pr:")
+    opts, args = getopt.getopt(sys.argv[1:], "c:pr:s:")
     if len(args) not in [1, 2]:
       raise getopt.GetoptError("wrong number of positional arguments")
     opts = dict(opts)
@@ -41,6 +43,7 @@ if __name__ == '__main__':
   config_file_path = opts['-c'] if '-c' in opts else None
   do_priming = '-p' in opts
   reps = int(opts['-r']) if '-r' in opts else 1
+  rep_sleep_time = float(opts['-s']) if '-s' in opts else None
 
   whoosh_index = whoosh.index.open_dir(whoosh_index_dir_path)
   input = open(args[1]) if len(args) > 1 else sys.stdin
@@ -55,5 +58,7 @@ if __name__ == '__main__':
   for i in range(reps):
     if reps > 1:
       print >> sys.stderr, "repetition %i" % (i + 1)
+      if rep_sleep_time is not None and i > 0:
+        time.sleep(rep_sleep_time)
     response = querier.handle(query)
     json.dump(response, sys.stdout, sort_keys=True, indent=4)
