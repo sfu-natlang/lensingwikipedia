@@ -1,11 +1,14 @@
 #!/usr/bin/env python2
 
 """
-Usage: %s WHOOSH-INDEX-DIR [DATA-FILE]
+Usage: %s [opts] WHOOSH-INDEX-DIR [DATA-FILE]
 
 Arguments:
 WHOOSH-INDEX-DIR  Directory of the Whoosh index.
-DATA-FILE     Local data file. Uses standard input if not given.
+DATA-FILE         Local data file. Uses standard input if not given.
+
+Options:
+-v  Verbose output.
 
 Indexes event data from a file or standard input, where each input line is a
 Json representation of a event. Creates a Whoosh index for the backend.
@@ -40,6 +43,10 @@ schema = whoosh.fields.Schema(
 ref_re = re.compile("\[[0-9]+\]")
 
 def make_html_description(event):
+  """
+  Expand a description to HTML with suitable markup.
+  """
+
   replacements = list(event['wiki_info'].iteritems())
   replacements.sort(key=lambda i: i[1]['span'][0])
 
@@ -75,6 +82,29 @@ def get_points(event):
     points |= points_from(event['locations'])
   return points
 
+def make_event_doc(event):
+  """
+  Convert a Json event to a document for Whoosh.
+  """
+
+  points = get_points(event)
+  doc = {
+    'id': line_num,
+    'year': int(event['year']),
+    'eventRoot': unicode(event['eventRoot']),
+    'locationText': unicode(", ".join(v['title'] for v in event['locations'].itervalues()) if 'locations' in event else ""),
+    'currentCountryText': unicode(join_keywords(v['country'] for (k, v) in event['locations'].iteritems() if 'country' in v) if 'locations' in event else ""),
+    'personText': unicode(", ".join(v['title'] for v in event['person'].itervalues()) if 'person' in event else ""),
+    'description': unicode(event['description']),
+    'descriptionHtml': unicode(make_html_description(event)),
+    'allPoints': unicode(join_keywords("%fx%f" % p for p in points))
+  }
+  for role_id in range(0, 4):
+    key = 'roleA%i' % (role_id)
+    if key in event:
+      doc['roleA%i' % (role_id)] = unicode(event[key])
+  return doc
+
 if __name__ == '__main__':
   import getopt
 
@@ -101,23 +131,7 @@ if __name__ == '__main__':
   num_added = 0
   for line_num, line in enumerate(input_file):
     print >> sys.stderr, "%i" % (line_num + 1)
-    event = json.loads(line)
-    points = get_points(event)
-    event_doc = {
-      'id': line_num,
-      'year': int(event['year']),
-      'eventRoot': unicode(event['eventRoot']),
-      'locationText': unicode(", ".join(v['title'] for v in event['locations'].itervalues()) if 'locations' in event else ""),
-      'currentCountryText': unicode(join_keywords(v['country'] for (k, v) in event['locations'].iteritems() if 'country' in v) if 'locations' in event else ""),
-      'personText': unicode(", ".join(v['title'] for v in event['person'].itervalues()) if 'person' in event else ""),
-      'description': unicode(event['description']),
-      'descriptionHtml': unicode(make_html_description(event)),
-      'allPoints': unicode(join_keywords("%fx%f" % p for p in points))
-    }
-    for role_id in range(0, 4):
-      key = 'roleA%i' % (role_id)
-      if key in event:
-        event_doc['roleA%i' % (role_id)] = unicode(event[key])
+    event_doc = make_event_doc(json.loads(line))
     if verbose:
       print >> sys.stderr, event_doc
     writer.add_document(**event_doc)
