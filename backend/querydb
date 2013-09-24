@@ -9,25 +9,27 @@ QUERY-FILE        File to read the query from. Standard input is used if not
   given.
 
 Options:
+-c FILE   Config file to load settings from. All query handling settings are
+  left at defaults if this option is not given.
 -r REPS   Repeat query a given number of times.
--a INTS   List of all predicate argument numbers. Comma separated.
 -p        Prime the caches as the backend would.
 
 Runs a query from standard input or a file directly against the index files.
 Doesn't need the backend, but should produce the same result that the
-backend would produce (with some settings at defaults).
+backend would produce.
 """
 
 import sys
 import json
 import queries
 import whoosh, whoosh.index
+import settings
 
 if __name__ == '__main__':
   import getopt
 
   try:
-    opts, args = getopt.getopt(sys.argv[1:], "a:pr:")
+    opts, args = getopt.getopt(sys.argv[1:], "c:pr:")
     if len(args) not in [1, 2]:
       raise getopt.GetoptError("wrong number of positional arguments")
     opts = dict(opts)
@@ -35,20 +37,18 @@ if __name__ == '__main__':
     print >> sys.stderr, __doc__.strip('\n\r') % (sys.argv[0])
     sys.exit(1)
 
-  index_dir_path = args[0]
-  all_arg_nums = [int(an) for an in opts['-a'].split(',')] if '-a' in opts else None
+  whoosh_index_dir_path = args[0]
+  config_file_path = opts['-c'] if '-c' in opts else None
   do_priming = '-p' in opts
   reps = int(opts['-r']) if '-r' in opts else 1
 
-  index = whoosh.index.open_dir(index_dir_path)
+  whoosh_index = whoosh.index.open_dir(whoosh_index_dir_path)
   input = open(args[1]) if len(args) > 1 else sys.stdin
   query = json.load(input)
   input.close()
 
-  opts = { 'whoosh_index': index }
-  if all_arg_nums is not None:
-    opts['all_argument_numbers'] = all_arg_nums
-  querier = queries.Querier(**opts)
+  backend_settings = settings.read_from_file(config_file_path) if config_file_path is not None else {}
+  querier = queries.Querier(whoosh_index, **(backend_settings.get('querier') or {}))
   if do_priming:
     querier.prime()
 

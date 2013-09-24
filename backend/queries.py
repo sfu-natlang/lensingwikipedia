@@ -1,3 +1,7 @@
+"""
+Query (frontend to backend) handling.
+"""
+
 import sys
 import traceback
 import re
@@ -5,6 +9,8 @@ import whoosh, whoosh.query
 import hashlib
 import json
 import caching
+import settings
+import default_settings
 
 class QueryHandlingError(Exception):
   """
@@ -19,33 +25,14 @@ class Querier:
   Query handler. Should be able to operate independently of any other query handler.
   """
 
-  def __init__(self, **settings):
+  def __init__(self, whoosh_index, **our_settings):
     """
     Make new querier. All arguments are keyword arguments. See the comments in
     the method body for more information.
     """
 
-    # The Whoosh index to query
-    assert 'whoosh_index' in settings
-    # All possible predicate argument numbers
-    settings.setdefault('all_argument_numbers', [0, 1])
-    # Number of events on a page of descriptions
-    settings.setdefault('description_page_size', 25)
-    # Number of events on a page of count by reference point results
-    settings.setdefault('count_by_referencepoint_page_size', 50)
-    # Number of pages of the initial (empty constraint) query to cache
-    settings.setdefault('num_initial_description_pages_to_cache', 10)
-    # Size of the cache for result pagination (cached results for pagination done on the backend)
-    settings.setdefault('result_pagination_cache_size', 100)
-    # Names of fields to prime the cache with
-    settings.setdefault('fields_to_prime', [])
-    # Number of events on a page of count by field value results
-    settings.setdefault('count_by_field_value_page_size', 50)
-    # Number of events on a page of count by year results
-    settings.setdefault('count_by_year_page_size', 50)
-
-    for key, value in settings.iteritems():
-      setattr(self, key, value)
+    self.whoosh_index = whoosh_index
+    settings.apply(self, our_settings, default_settings.settings['querier'])
 
     self.results_pagination_cache = caching.FIFO(self.result_pagination_cache_size)
     self.response_cache = caching.Complete()
@@ -332,7 +319,8 @@ class Querier:
     """
     try:
       whoosh_query = self.handle_all_constraints(query)
-      print >> sys.stderr, "whoosh query: %s" % (repr(whoosh_query))
+      if self.verbose:
+        print >> sys.stderr, "whoosh query: %s" % (repr(whoosh_query))
       response = self.handle_all_views(query, whoosh_query)
     except Exception, e:
       message = e.value if isinstance(e, QueryHandlingError) else True
