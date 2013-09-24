@@ -6,12 +6,14 @@ setting not specified will use its default value.
 """
 settings = {
   'server': {
+    # Path to the Whoosh index directory for a running server; must be set for a running server (default may be changed by the backend program)
+    'index_dir_path': None,
+    # Path to the config file for settings (default may be changed by the backend program)
+    'settings_file_path': None,
     # Timeout before reloading all settings
     'settings_timeout': 60 * 60,
-    # Force a complete cache reset at the each settings reload
-    'reset_always': False,
-    # Force a complete cache reset at the next settings reload
-    'reset_next': False,
+    # Force a complete reset (clearing caches) at each settings reload (versus only if the Whoosh index changed)
+    'always_reset': False,
     # Verbose logging output to standard error
     'verbose': False
   },

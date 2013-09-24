@@ -1,0 +1,259 @@
+#!/usr/bin/env python2
+
+"""
+Usage: %s [opts]
+
+Options
+-h STRING  Hostname for server. Defaults to empty.
+-p INT     Port for server. Defaults to %i.
+-c FILE    Config file to load settings from. If this option is not given then
+  all server and query handling settings are left at defaults and can't be
+  changed without restarting the server. The config will be reloaded
+  periodically and can specify a new config file path which will override this
+  one.
+-i DIR     Index directory to use for data. Can be overridden by the config
+  file, but must be specified somewhere for a working server.
+
+Runs the backend as a server.
+"""
+
+import sys
+import json
+import datetime
+import traceback
+import threading
+import copy
+import Queue
+import whoosh, whoosh.index
+import wsgiref, wsgiref.simple_server
+import queries
+import settings, default_settings
+
+default_port = 1500
+
+default_server_settings = dict(default_settings.settings['server'].iteritems())
+ServerSettings = settings.make_settings_structure(default_server_settings)
+
+class State:
+  """
+  Structure class to store server state and state changes.
+  """
+  def __init__(self, **opts):
+    self.server_settings = None
+    self.querier = None
+    for key, value in opts.iteritems():
+      setattr(self, key, value)
+
+  def any_unset(self):
+    return any(v is None for v in self.__dict__.itervalues())
+
+  def update(self, other):
+    for key, value in other.__dict__.iteritems():
+      setattr(self, key, value)
+
+def clear_queue(queue):
+  """
+  Clear a thread-safe queue.
+  """
+  while True:
+    try:
+      x = queue.get_nowait()
+    except Queue.Empty:
+      return
+
+def consider_settings(settings_path, current_settings):
+  print >> sys.stderr, "consider settings"
+  file_settings = None
+  if settings_path is None:
+    print >> sys.stderr, "no settings file path, using defaults"
+    file_settings = {}
+  else:
+    while True:
+      print >> sys.stderr, "updating settings from %s" % (settings_path)
+      file_settings = settings.read_new_from_file(settings_path, current_settings)
+      new_settings_path = file_settings.get('settings_file_path')
+      if new_settings_path is not None and new_settings_path != settings_path:
+        settings_path = new_settings_path
+        print >> sys.stderr, "changing to new settings file path"
+      else:
+        break
+  if file_settings != current_settings:
+    print >> sys.stderr, "using new settings"
+    new_settings = file_settings
+  else:
+    new_settings = None
+  return settings_path, new_settings
+
+def consider_index(index_path, current_index, server_settings):
+    print >> sys.stderr, "considering index"
+    if server_settings.index_dir_path is not None and server_settings.index_dir_path != index_path:
+      index_path = server_settings.index_dir_path
+      current_index = None
+      print >> sys.stderr, "changing to new index file"
+    if current_index is None:
+      print >> sys.stderr, "opening index from %s" % (index_path)
+      print >> sys.stderr, "using new index"
+      new_index = whoosh.index.open_dir(index_path)
+    else:
+      new_index = None
+    return index_path, new_index
+
+def consider_querier_reset(current_querier, server_settings, all_settings, index, reset_index_last_modified):
+  print >> sys.stderr, "considering resetting querier"
+  if current_querier is None:
+    print >> sys.stderr, "need initial querier"
+  elif server_settings.always_reset:
+    print >> sys.stderr, "reset forced by always_reset setting"
+    current_querier = None
+  else:
+    index_last_modified = index.last_modified()
+    if index_last_modified > reset_index_last_modified:
+      print >> sys.stderr, "index modified since last reset"
+      current_querier = None
+  if current_querier is None:
+    print >> sys.stderr, "using fresh querier"
+    new_querier = queries.Querier(index, **(all_settings.get('querier') or {}))
+    print >> sys.stderr, "priming"
+    new_querier.prime()
+    print >> sys.stderr, "priming complete"
+  else:
+    new_querier = None
+  return new_querier
+
+def state_watcher(settings_path, exit_event, change_queue):
+  """
+  Watch for state changes due to settings reloads, and send them out on a
+  thread-safe queue.
+  """
+
+  all_settings = None
+  server_settings = None
+  index_path = None
+  index = None
+  querier = None
+  reset_index_last_modified = -1
+  running = True
+
+  while running:
+    changed = False
+
+    settings_path, new_settings = consider_settings(settings_path, all_settings)
+    if new_settings is not None:
+      changed = True
+      all_settings = new_settings
+      server_settings = ServerSettings(**(all_settings.get('server') or {}))
+
+    if server_settings.index_dir_path is None:
+      print >> sys.stderr, "error: no index path specified"
+      running = False
+      raise settings.MissingRequiredSetting('index_dir_path')
+    index_path, new_index = consider_index(index_path, index, server_settings)
+    if new_index is not None:
+      changed = True
+      index = new_index
+      reset_index_last_modified = -1
+
+    new_querier = consider_querier_reset(querier, server_settings, all_settings, index, reset_index_last_modified)
+    if new_querier is not None:
+      changed = True
+      querier = new_querier
+      reset_index_last_modified = index.last_modified()
+
+    if changed:
+      print >> sys.stderr, "pushing new state"
+      if change_queue.full():
+        clear_queue(change_queue)
+      change_queue.put(State(server_settings=server_settings, querier=querier))
+
+    running = not exit_event.wait(server_settings.settings_timeout)
+
+def serve(hostname, port, settings_path):
+  """
+  Serve the backend.
+  """
+
+  state = State()
+
+  new_state_queue = Queue.LifoQueue(1)
+  exit_event = threading.Event()
+  new_state_thread = threading.Thread(target=state_watcher, args=(settings_path, exit_event, new_state_queue))
+  new_state_thread.daemon = True
+  new_state_thread.start()
+
+  def app(environ, start_response):
+    print >> sys.stderr
+    print >> sys.stderr, "request at %s" % (str(datetime.datetime.now()))
+
+    need_update = state.any_unset()
+    while not new_state_queue.empty() or need_update:
+      try:
+        if need_update:
+          print >> sys.stderr, "waiting to get complete state"
+        new_state = new_state_queue.get(block=need_update)
+        state.update(new_state)
+        print >> sys.stderr, "applying new state"
+        need_update = state.any_unset()
+      except Queue.Empty:
+        # It's ok if there are no state changes
+        pass
+
+    try:
+      if environ['REQUEST_METHOD'] == 'POST':
+        body = str(environ['wsgi.input'].read(int(environ['CONTENT_LENGTH'])))
+        if state.server_settings.verbose:
+          print >> sys.stderr, "query: %s" % (body)
+        query = json.loads(body)
+      else:
+        query = {}
+      try:
+        if state.querier is None:
+          start_response("404 Not Found", [])
+          return ["Could not handle query; server may be reloading data."]
+        else:
+          response = json.dumps(state.querier.handle(query))
+          if state.server_settings.verbose:
+            print >> sys.stderr, "response: %s" % (response)
+          start_response("200 OK", [("Content-type", "application/json"), ("Access-Control-Allow-Origin", "*")])
+          return [response]
+      except:
+        print >> sys.stderr, "query response failed:"
+        traceback.print_exc(file=sys.stderr)
+    except:
+      print >> sys.stderr, "couldn't read query from post:"
+      traceback.print_exc(file=sys.stderr)
+
+    # Fail if we haven't returned already
+    start_response("404 Not Found", [])
+    return ["Could not handle query."]
+
+  try:
+    httpd = wsgiref.simple_server.make_server(hostname, port, app)
+    print >> sys.stderr, "serving"
+    httpd.serve_forever()
+  except:
+    exit_event.set()
+    raise
+
+if __name__ == '__main__':
+  import getopt
+
+  try:
+    opts, args = getopt.getopt(sys.argv[1:], "h:p:c:i:")
+    if len(args) != 0:
+      raise getopt.GetoptError("wrong number of positional arguments")
+    opts = dict(opts)
+  except getopt.GetoptError:
+    print >> sys.stderr, __doc__.strip('\n\r') % (sys.argv[0], default_port)
+    sys.exit(1)
+
+  hostname = opts['-h'] if '-h' in opts else ""
+  port = int(opts['-p']) if '-p' in opts else default_port
+  config_path = opts['-c'] if '-c' in opts else None
+  index_path = opts['-i'] if '-i' in opts else None
+
+  if config_path is not None:
+    default_server_settings['settings_file_path'] = config_path
+  if index_path is not None:
+    default_server_settings['index_dir_path'] = index_path
+
+  serve(hostname, port, config_path)

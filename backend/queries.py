@@ -4,13 +4,11 @@ Query (frontend to backend) handling.
 
 import sys
 import traceback
-import re
 import whoosh, whoosh.query
 import hashlib
 import json
 import caching
-import settings
-import default_settings
+import settings, default_settings
 
 class QueryHandlingError(Exception):
   """

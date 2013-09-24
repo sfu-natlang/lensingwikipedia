@@ -23,22 +23,23 @@ import re
 import cgi
 
 base_wikipedia_url = "https://en.wikipedia.org"
+num_arguments = 6
 
-schema = whoosh.fields.Schema(
-    id=whoosh.fields.NUMERIC(stored=True, unique=True),
-    year=whoosh.fields.NUMERIC(stored=True, sortable=True, shift_step=1),
-    eventRoot=whoosh.fields.ID(stored=True),
-    roleA0=whoosh.fields.ID(stored=True),
-    roleA1=whoosh.fields.ID(stored=True),
-    roleA2=whoosh.fields.ID(stored=True),
-    roleA3=whoosh.fields.ID(stored=True),
-    locationText=whoosh.fields.KEYWORD(stored=True, commas=True),
-    currentCountryText=whoosh.fields.KEYWORD(stored=True, commas=True),
-    personText=whoosh.fields.KEYWORD(stored=True, commas=True),
-    description=whoosh.fields.TEXT(stored=True),
-    descriptionHtml=whoosh.fields.TEXT(stored=True),
-    allPoints=whoosh.fields.KEYWORD(stored=True)
-  )
+fields = {
+  'id': whoosh.fields.NUMERIC(stored=True, unique=True),
+  'year': whoosh.fields.NUMERIC(stored=True, sortable=True, shift_step=1),
+  'eventRoot': whoosh.fields.ID(stored=True),
+  'locationText': whoosh.fields.KEYWORD(stored=True, commas=True),
+  'currentCountryText': whoosh.fields.KEYWORD(stored=True, commas=True),
+  'personText': whoosh.fields.KEYWORD(stored=True, commas=True),
+  'description': whoosh.fields.TEXT(stored=True),
+  'descriptionHtml': whoosh.fields.TEXT(stored=True),
+  'allPoints': whoosh.fields.KEYWORD(stored=True)
+}
+for i in range(num_arguments):
+  fields['roleA%i' % (i)] = whoosh.fields.ID(stored=True)
+
+schema = whoosh.fields.Schema(**fields)
 
 ref_re = re.compile("\[[0-9]+\]")
 
@@ -99,7 +100,7 @@ def make_event_doc(event):
     'descriptionHtml': unicode(make_html_description(event)),
     'allPoints': unicode(join_keywords("%fx%f" % p for p in points))
   }
-  for role_id in range(0, 4):
+  for role_id in range(num_arguments):
     key = 'roleA%i' % (role_id)
     if key in event:
       doc['roleA%i' % (role_id)] = unicode(event[key])

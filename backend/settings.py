@@ -9,6 +9,10 @@ class UnknownSetting(Exception):
   def __init__(self, setting):
     Exception.__init__(self, "unknown setting \"%s\"" % (setting))
 
+class MissingRequiredSetting(Exception):
+  def __init__(self, setting):
+    Exception.__init__(self, "missing required setting \"%s\"" % (setting))
+
 def read_from_file(path):
   """
   Reads in settings from a text file.
@@ -48,3 +52,12 @@ def apply(dest, settings, defaults):
       setattr(dest, setting, value)
     else:
       raise UnknownSetting(setting)
+
+"""
+Make a class to expand settings to an object with given defaults filled in.
+"""
+def make_settings_structure(defaults):
+  class SettingsStructure:
+    def __init__(self, **settings):
+      apply(self, settings, defaults)
+  return SettingsStructure

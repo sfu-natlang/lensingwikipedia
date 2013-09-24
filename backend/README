@@ -15,6 +15,18 @@ You can examine the index for debugging purposes with the lsindex program. Here 
 
 	./lsindex -l 10 -s year index
 
-Finally, we can run a query directly against the index.
+We can run a query directly against the index for debugging.
 
 	./querydb index examplequeries/constraints/fieldvalue.json
+
+We can start the backend server with the index.
+
+	./backend -i index
+
+For a live server we would also (or instead) want to give a config file with -c so that settings can be changed without restarting the server. See default_settings.py for the format of the config file. The config file is reloaded periodically at intervals specified by one of the settings. If the config file cannot be parsed at a reload, then the backend continues to use the previous settings. Settings in the config file can change the paths of the index directory or the config file itself. For a live server there should probably be one configuration file per instance so that these values can be changed independently if needed. If the index directory path is changed or the index is modified, the backend will reset and clear its caches. This can be forced after any config reload with the always_reset option, but there is no obvious reason to do so.
+
+	./backend -c mybackendinstance.conf -i index
+
+With the backend server running we can send it a Json query for debugging.
+
+	./querybackend http://127.0.0.1:1500 examplequeries/constraints/fieldvalue.json

@@ -1,0 +1,38 @@
+#!/usr/bin/env python2
+
+"""
+Usage: %s URL [QUERY-FILE]
+
+Arguments:
+URL         URL for the backend.
+QUERY-FILE  File to read the query from. Standard input is used if not given.
+
+Sends a query from standard input or a file to the backend and prints the
+response. Parses the query and response JSON to validate them.
+"""
+
+import sys
+import json
+import urllib2
+
+if __name__ == '__main__':
+  import getopt
+
+  try:
+    opts, args = getopt.getopt(sys.argv[1:], "")
+    if len(args) not in [1, 2]:
+      raise getopt.GetoptError("wrong number of positional arguments")
+    opts = dict(opts)
+  except getopt.GetoptError:
+    print >> sys.stderr, __doc__.strip('\n\r') % (sys.argv[0])
+    sys.exit(1)
+
+  url = args[0]
+
+  input = open(args[1]) if len(args) > 1 else sys.stdin
+  opener = urllib2.build_opener()
+  query = json.load(input)
+  req = urllib2.Request(url, json.dumps(query))
+  input.close()
+  response = json.load(opener.open(req))
+  json.dump(response, sys.stdout, sort_keys=True, indent=4)
