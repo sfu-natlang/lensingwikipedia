@@ -156,8 +156,6 @@ class Querier:
     if type == 'descriptions':
       page_num = view['page'] if 'page' in view else 0
       result = { 'more': True }
-      def on_last_page():
-        result['more'] = False
 
       with self.whoosh_index.searcher() as searcher:
         def format(hit):
@@ -165,6 +163,8 @@ class Querier:
         hits = searcher.search_page(whoosh_query, page_num + 1, pagelen=self.description_page_size, sortedby='year', reverse=True)
         print >> sys.stderr, "whoosh pre-paginated search results: %s" % (repr(hits.results))
         result['descriptions'] = [format(h) for h in hits]
+        if hits.is_last_page():
+          result['more'] = False
       return result
     else:
       raise ValueError("unknown view type \"%s\"" % (type))
