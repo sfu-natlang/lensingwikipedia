@@ -1,0 +1,126 @@
+#!/usr/bin/env python2
+
+"""
+Usage: %s WHOOSH-INDEX-DIR [DATA-FILE]
+
+Arguments:
+WHOOSH-INDEX-DIR  Directory of the Whoosh index.
+DATA-FILE     Local data file. Uses standard input if not given.
+
+Indexes event data from a file or standard input, where each input line is a
+Json representation of a event. Creates a Whoosh index for the backend.
+"""
+
+import whoosh, whoosh.index, whoosh.fields
+import os, os.path
+import json
+import sys
+import datetime
+import re
+import cgi
+
+base_wikipedia_url = "https://en.wikipedia.org"
+
+schema = whoosh.fields.Schema(
+    id=whoosh.fields.NUMERIC(stored=True, unique=True),
+    year=whoosh.fields.NUMERIC(stored=True, sortable=True, shift_step=1),
+    eventRoot=whoosh.fields.ID(stored=True),
+    roleA0=whoosh.fields.ID(stored=True),
+    roleA1=whoosh.fields.ID(stored=True),
+    roleA2=whoosh.fields.ID(stored=True),
+    roleA3=whoosh.fields.ID(stored=True),
+    locationText=whoosh.fields.KEYWORD(stored=True, commas=True),
+    currentCountryText=whoosh.fields.KEYWORD(stored=True, commas=True),
+    personText=whoosh.fields.KEYWORD(stored=True, commas=True),
+    description=whoosh.fields.TEXT(stored=True),
+    descriptionHtml=whoosh.fields.TEXT(stored=True),
+    allPoints=whoosh.fields.KEYWORD(stored=True)
+  )
+
+ref_re = re.compile("\[[0-9]+\]")
+
+def make_html_description(event):
+  replacements = list(event['wiki_info'].iteritems())
+  replacements.sort(key=lambda i: i[1]['span'][0])
+
+  def cleanup(text):
+    return cgi.escape(ref_re.sub("", text))
+
+  text = event['description']
+  last_end_index = 0
+  index_offset = 0
+  for item_text, item_info in replacements:
+    i, j = item_info['span']
+    if i < last_end_index:
+      print >> sys.stderr, "warning: span %i:%i \"%s\" overlaps previous span, not making a link" % (i, j, item_text)
+      continue
+    if 'url' in item_info:
+      url = item_info['url']
+      link = "<a href=\"%s%s\">%s</a>" % (base_wikipedia_url, url, item_text)
+      old_len = len(text)
+      text = text[:last_end_index+index_offset] + cleanup(text[last_end_index+index_offset:i+index_offset]) + link + text[j+index_offset:]
+      last_end_index = j
+      index_offset += len(text) - old_len
+  text = text[:last_end_index+index_offset] + cleanup(text[last_end_index+index_offset:])
+  return text
+
+def join_keywords(keywords):
+  return ",".join(keywords)
+
+def get_points(event):
+  def points_from(items):
+    return set((float(i['longitude']), float(i['latitude'])) for i in items.itervalues() if 'latitude' in i and 'longitude' in i)
+  points = points_from(event['wiki_info'])
+  if 'locations' in event:
+    points |= points_from(event['locations'])
+  return points
+
+if __name__ == '__main__':
+  import getopt
+
+  try:
+    opts, args = getopt.getopt(sys.argv[1:], "v")
+    if len(args) not in [1, 2]:
+      raise getopt.GetoptError("wrong number of positional arguments")
+    opts = dict(opts)
+  except getopt.GetoptError:
+    print >> sys.stderr, __doc__.strip('\n\r') % (sys.argv[0])
+    sys.exit(1)
+
+  index_path = args[0]
+  input_path = args[1] if len(args) > 1 else None
+  if not os.path.exists(index_path):
+    os.mkdir(index_path)
+  index = whoosh.index.create_in(index_path, schema)
+
+  verbose = '-v' in opts
+
+  writer = index.writer()
+
+  input_file = open(input_path) if input_path is not None else sys.stdin
+  num_added = 0
+  for line_num, line in enumerate(input_file):
+    print >> sys.stderr, "%i" % (line_num + 1)
+    event = json.loads(line)
+    points = get_points(event)
+    event_doc = {
+      'id': line_num,
+      'year': int(event['year']),
+      'eventRoot': unicode(event['eventRoot']),
+      'locationText': unicode(", ".join(v['title'] for v in event['locations'].itervalues()) if 'locations' in event else ""),
+      'currentCountryText': unicode(join_keywords(v['country'] for (k, v) in event['locations'].iteritems() if 'country' in v) if 'locations' in event else ""),
+      'personText': unicode(", ".join(v['title'] for v in event['person'].itervalues()) if 'person' in event else ""),
+      'description': unicode(event['description']),
+      'descriptionHtml': unicode(make_html_description(event)),
+      'allPoints': unicode(join_keywords("%fx%f" % p for p in points))
+    }
+    for role_id in range(0, 4):
+      key = 'roleA%i' % (role_id)
+      if key in event:
+        event_doc['roleA%i' % (role_id)] = unicode(event[key])
+    if verbose:
+      print >> sys.stderr, event_doc
+    writer.add_document(**event_doc)
+
+  print >> sys.stderr, "committing"
+  writer.commit()
