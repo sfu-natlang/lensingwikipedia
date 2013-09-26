@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+
+#
+# Script to walk through testing the backend server settings.
+#
+
+function cmd() {
+	echo "$1"
+	eval "$1"
+}
+function wait() {
+	echo "> $1"
+	echo "(press enter to continue)"
+	read
+}
+
+files=$(dirname "$0")
+settingsfile=settings.conf
+
+echo "> Setting up"
+cmd "cp $files/usefirstindex.conf $settingsfile"
+
+wait "Please start the server and a process to do repeated queries"
+
+wait "Index is first.index"
+cmd "cp $files/usesecondindex.conf $settingsfile"
+wait "Index changes to second.index"
+cmd "cp $files/usethirdindex.conf $settingsfile"
+wait "Index changes to third.index"
+cmd "cp $files/malformed.conf $settingsfile"
+wait "Error, the backend stays on third.index"
+cmd "cp $files/unknownsetting.conf $settingsfile"
+wait "Error, the backend stays on third.index"
+cmd "cp $files/alwaysreset.conf $settingsfile"
+wait "Backend starts resetting at every timeout, changes to first.index"
+cmd "cp $files/empty.conf $settingsfile"
+wait "The backend reverts to defaults, and no longer has any index unless you gave it one on the command line"
+
+echo "> Done"

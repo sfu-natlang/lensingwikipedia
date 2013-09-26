@@ -1,15 +1,13 @@
 """
-The default settings for the backend. A config file should be a single python
+The default settings for the backend. A settings file should be a single python
 dict in the same format as the one below. This file can be used as a template,
-just remove this header comment and the "settings = ". In a config file any
+just remove this header comment and the "settings = ". In a settings file any
 setting not specified will use its default value.
 """
 settings = {
   'server': {
     # Path to the Whoosh index directory for a running server; must be set for a running server (default may be changed by the backend program)
     'index_dir_path': None,
-    # Path to the config file for settings (default may be changed by the backend program)
-    'settings_file_path': None,
     # Timeout before reloading all settings
     'settings_timeout': 60 * 60,
     # Force a complete reset (clearing caches) at each settings reload (versus only if the Whoosh index changed)

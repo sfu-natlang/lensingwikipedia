@@ -1,11 +1,15 @@
 #!/usr/bin/env python2
 
 """
-Usage: %s URL [QUERY-FILE]
+Usage: %s [opts] URL [QUERY-FILE]
 
 Arguments:
 URL         URL for the backend.
 QUERY-FILE  File to read the query from. Standard input is used if not given.
+
+Options:
+-r NUM      Repeat query a given number of times.
+-s SECONDS  Seconds to sleep between repeated queries.
 
 Sends a query from standard input or a file to the backend and prints the
 response. Parses the query and response JSON to validate them.
@@ -14,12 +18,13 @@ response. Parses the query and response JSON to validate them.
 import sys
 import json
 import urllib2
+import time
 
 if __name__ == '__main__':
   import getopt
 
   try:
-    opts, args = getopt.getopt(sys.argv[1:], "")
+    opts, args = getopt.getopt(sys.argv[1:], "r:s:")
     if len(args) not in [1, 2]:
       raise getopt.GetoptError("wrong number of positional arguments")
     opts = dict(opts)
@@ -28,11 +33,21 @@ if __name__ == '__main__':
     sys.exit(1)
 
   url = args[0]
+  reps = int(opts['-r']) if '-r' in opts else 1
+  rep_sleep_time = float(opts['-s']) if '-s' in opts else None
 
   input = open(args[1]) if len(args) > 1 else sys.stdin
-  opener = urllib2.build_opener()
   query = json.load(input)
-  req = urllib2.Request(url, json.dumps(query))
   input.close()
-  response = json.load(opener.open(req))
-  json.dump(response, sys.stdout, sort_keys=True, indent=4)
+  opener = urllib2.build_opener()
+
+  for i in range(reps):
+    if reps > 1:
+      print >> sys.stderr, "repetition %i" % (i + 1)
+      if rep_sleep_time is not None and i > 0:
+        time.sleep(rep_sleep_time)
+    req = urllib2.Request(url, json.dumps(query))
+    response_str = opener.open(req).read()
+    print >> sys.stderr, "response is %i bytes" % (len(response_str))
+    response = json.loads(response_str)
+    json.dump(response, sys.stdout, sort_keys=True, indent=4)

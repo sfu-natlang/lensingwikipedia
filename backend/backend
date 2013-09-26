@@ -6,13 +6,11 @@ Usage: %s [opts]
 Options
 -h STRING  Hostname for server. Defaults to empty.
 -p INT     Port for server. Defaults to %i.
--c FILE    Config file to load settings from. If this option is not given then
-  all server and query handling settings are left at defaults and can't be
-  changed without restarting the server. The config will be reloaded
-  periodically and can specify a new config file path which will override this
-  one.
--i DIR     Index directory to use for data. Can be overridden by the config
-  file, but must be specified somewhere for a working server.
+-c FILE    Config file to load settings from. If this option is not given, then
+  the -i option must be given, all settings are left at defaults, and there is
+  no way to change settings without restarting the backend.
+-i DIR     Default index directory to use for data. Will be overridden by any
+  value given in the settings file.
 
 Runs the backend as a server.
 """
@@ -62,27 +60,19 @@ def clear_queue(queue):
       return
 
 def consider_settings(settings_path, current_settings):
-  print >> sys.stderr, "consider settings"
-  file_settings = None
+  print >> sys.stderr, "considering settings"
   if settings_path is None:
-    print >> sys.stderr, "no settings file path, using defaults"
-    file_settings = {}
+    print >> sys.stderr, "no settings file"
+    return current_settings
   else:
-    while True:
-      print >> sys.stderr, "updating settings from %s" % (settings_path)
-      file_settings = settings.read_new_from_file(settings_path, current_settings)
-      new_settings_path = file_settings.get('settings_file_path')
-      if new_settings_path is not None and new_settings_path != settings_path:
-        settings_path = new_settings_path
-        print >> sys.stderr, "changing to new settings file path"
-      else:
-        break
-  if file_settings != current_settings:
-    print >> sys.stderr, "using new settings"
-    new_settings = file_settings
-  else:
-    new_settings = None
-  return settings_path, new_settings
+    print >> sys.stderr, "updating settings from %s" % (settings_path)
+    file_settings = settings.read_new_from_file(settings_path, current_settings)
+    if file_settings != current_settings:
+      print >> sys.stderr, "using new settings"
+      new_settings = file_settings
+    else:
+      new_settings = None
+    return new_settings
 
 def consider_index(index_path, current_index, server_settings):
     print >> sys.stderr, "considering index"
@@ -126,8 +116,8 @@ def state_watcher(settings_path, exit_event, change_queue):
   thread-safe queue.
   """
 
-  all_settings = None
-  server_settings = None
+  all_settings = {}
+  server_settings = ServerSettings()
   index_path = None
   index = None
   querier = None
@@ -137,7 +127,7 @@ def state_watcher(settings_path, exit_event, change_queue):
   while running:
     changed = False
 
-    settings_path, new_settings = consider_settings(settings_path, all_settings)
+    new_settings = consider_settings(settings_path, all_settings)
     if new_settings is not None:
       changed = True
       all_settings = new_settings
@@ -248,12 +238,10 @@ if __name__ == '__main__':
 
   hostname = opts['-h'] if '-h' in opts else ""
   port = int(opts['-p']) if '-p' in opts else default_port
-  config_path = opts['-c'] if '-c' in opts else None
+  settings_path = opts['-c'] if '-c' in opts else None
   index_path = opts['-i'] if '-i' in opts else None
 
-  if config_path is not None:
-    default_server_settings['settings_file_path'] = config_path
   if index_path is not None:
     default_server_settings['index_dir_path'] = index_path
 
-  serve(hostname, port, config_path)
+  serve(hostname, port, settings_path)

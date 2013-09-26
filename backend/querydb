@@ -40,17 +40,17 @@ if __name__ == '__main__':
     sys.exit(1)
 
   whoosh_index_dir_path = args[0]
-  config_file_path = opts['-c'] if '-c' in opts else None
+  settings_file_path = opts['-c'] if '-c' in opts else None
   do_priming = '-p' in opts
   reps = int(opts['-r']) if '-r' in opts else 1
   rep_sleep_time = float(opts['-s']) if '-s' in opts else None
 
-  whoosh_index = whoosh.index.open_dir(whoosh_index_dir_path)
   input = open(args[1]) if len(args) > 1 else sys.stdin
   query = json.load(input)
   input.close()
+  whoosh_index = whoosh.index.open_dir(whoosh_index_dir_path)
 
-  backend_settings = settings.read_from_file(config_file_path) if config_file_path is not None else {}
+  backend_settings = settings.read_from_file(settings_file_path) if settings_file_path is not None else {}
   querier = queries.Querier(whoosh_index, **(backend_settings.get('querier') or {}))
   if do_priming:
     querier.prime()
