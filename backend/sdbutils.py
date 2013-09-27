@@ -54,7 +54,7 @@ class QueryPaginator:
     next_token = self.cache.get((pattern, fields, page_size, pos))
 
     # First we skip to the start of the page
-    if pos < limit and next_token is None:
+    if (limit is None or pos < limit) and next_token is None:
       # Use the counting trick to skip ahead if we don't already have a next pointer for the position
       num_skipped = 0
       next_token = None
