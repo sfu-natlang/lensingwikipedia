@@ -5,19 +5,11 @@ Query (frontend to backend) handling.
 import sys
 import traceback
 import whoosh, whoosh.query
+import whooshutils
 import hashlib
 import json
 import caching
 import settings, default_settings
-
-def split_keywords(value):
-  if isinstance(value, unicode):
-    if len(value) == 0:
-      return []
-    else:
-      return value.split(",")
-  else:
-    return [value]
 
 class QueryHandlingError(Exception):
   """
@@ -146,7 +138,7 @@ class Querier:
       for hit in hits:
         for view_id, view in views.iteritems():
           counts = response[view_id]['counts']
-          values = set(v for f in views_use_fields[view_id] if f in hit for v in split_keywords(hit[f]))
+          values = set(v for f in views_use_fields[view_id] if f in hit for v in whooshutils.split_keywords(hit[f]))
           for value in values:
             counts.setdefault(value, 0)
             counts[value] += 1

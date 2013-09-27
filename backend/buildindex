@@ -15,6 +15,7 @@ Json representation of a event. Creates a Whoosh index for the backend.
 """
 
 import whoosh, whoosh.index, whoosh.fields
+import whooshutils
 import os, os.path
 import json
 import sys
@@ -29,9 +30,9 @@ fields = {
   'id': whoosh.fields.NUMERIC(stored=True, unique=True),
   'year': whoosh.fields.NUMERIC(stored=True, sortable=True, shift_step=1),
   'eventRoot': whoosh.fields.ID(stored=True),
-  'locationText': whoosh.fields.KEYWORD(stored=True, commas=True),
-  'currentCountryText': whoosh.fields.KEYWORD(stored=True, commas=True),
-  'personText': whoosh.fields.KEYWORD(stored=True, commas=True),
+  'locationText': whoosh.fields.KEYWORD(stored=True, commas=whooshutils.keyword_field_commas),
+  'currentCountryText': whoosh.fields.KEYWORD(stored=True, commas=whooshutils.keyword_field_commas),
+  'personText': whoosh.fields.KEYWORD(stored=True, commas=whooshutils.keyword_field_commas),
   'description': whoosh.fields.TEXT(stored=True),
   'descriptionHtml': whoosh.fields.TEXT(stored=True),
   'allPoints': whoosh.fields.KEYWORD(stored=True)
@@ -72,9 +73,6 @@ def make_html_description(event):
   text = text[:last_end_index+index_offset] + cleanup(text[last_end_index+index_offset:])
   return text
 
-def join_keywords(keywords):
-  return ",".join(keywords)
-
 def get_points(event):
   def points_from(items):
     return set((float(i['longitude']), float(i['latitude'])) for i in items.itervalues() if 'latitude' in i and 'longitude' in i)
@@ -95,12 +93,12 @@ def make_event_doc(event):
     'id': line_num,
     'year': int(event['year']),
     'eventRoot': unicode(event['eventRoot']),
-    'locationText': unicode(join_keywords(locationLocationText | wikiInfoLocationText)),
-    'currentCountryText': unicode(join_keywords((v['country'] for (k, v) in event['locations'].iteritems() if 'country' in v) if 'locations' in event else [])),
-    'personText': unicode(join_keywords((v['title'] for v in event['person'].itervalues()) if 'person' in event else [])),
+    'locationText': unicode(whooshutils.join_keywords(locationLocationText | wikiInfoLocationText)),
+    'currentCountryText': unicode(whooshutils.join_keywords((v['country'] for (k, v) in event['locations'].iteritems() if 'country' in v) if 'locations' in event else [])),
+    'personText': unicode(whooshutils.join_keywords((v['title'] for v in event['person'].itervalues()) if 'person' in event else [])),
     'description': unicode(event['description']),
     'descriptionHtml': unicode(make_html_description(event)),
-    'allPoints': unicode(join_keywords("%fx%f" % p for p in points))
+    'allPoints': unicode(whooshutils.join_keywords("%fx%f" % p for p in points))
   }
   for role_id in range(num_arguments):
     key = 'roleA%i' % (role_id)
