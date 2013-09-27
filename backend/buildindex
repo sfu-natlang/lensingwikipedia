@@ -89,13 +89,15 @@ def make_event_doc(event):
   """
 
   points = get_points(event)
+  locationLocationText = set(v['title'] for v in event['locations'].itervalues()) if 'locations' in event else set()
+  wikiInfoLocationText = set(v['title'] for v in event['wiki_info'].itervalues() if 'latitude' in v and 'longitude' in v) if 'wiki_info' in event else set()
   doc = {
     'id': line_num,
     'year': int(event['year']),
     'eventRoot': unicode(event['eventRoot']),
-    'locationText': unicode(", ".join(v['title'] for v in event['locations'].itervalues()) if 'locations' in event else ""),
-    'currentCountryText': unicode(join_keywords(v['country'] for (k, v) in event['locations'].iteritems() if 'country' in v) if 'locations' in event else ""),
-    'personText': unicode(", ".join(v['title'] for v in event['person'].itervalues()) if 'person' in event else ""),
+    'locationText': unicode(join_keywords(locationLocationText | wikiInfoLocationText)),
+    'currentCountryText': unicode(join_keywords((v['country'] for (k, v) in event['locations'].iteritems() if 'country' in v) if 'locations' in event else [])),
+    'personText': unicode(join_keywords((v['title'] for v in event['person'].itervalues()) if 'person' in event else [])),
     'description': unicode(event['description']),
     'descriptionHtml': unicode(make_html_description(event)),
     'allPoints': unicode(join_keywords("%fx%f" % p for p in points))
