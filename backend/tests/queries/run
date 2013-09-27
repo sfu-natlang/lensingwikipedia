@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+
+#
+# Takes a directory of query files giving constraints and a directory of query
+# files giving views (all of which files must be complete queries), and runs a
+# given command giving each query file and each constraints set - view set pair
+# on standard input.
+#
+
+set -e
+
+if [ "$#" -lt 4 ]; then
+	echo "usage: run PATH-TO-CONSTRAINTS-QUERY-FILES PATH-TO-VIEWS-QUERY-FILES OUTPUT-DIR QUERY-COMMAND [...]" 1>&2
+	exit 1
+fi
+constraintsdir=$1
+viewsdir=$2
+outdir=$3
+shift 3
+
+[ "$(find "$outdir" -maxdepth 0 -not -empty 2>/dev/null)" ] && echo "warning: output directory is not empty" 1>&2
+mkdir -p "$outdir"
+
+{
+find "$constraintsdir" -mindepth 1 -type f | while read constraintsfile; do
+	file="$(basename $constraintsfile)"
+	echo "$file"
+	cp "$constraintsfile" "$outdir/$file"
+done
+find "$viewsdir" -mindepth 1 -type f | while read viewsfile; do
+	file="$(basename $viewsfile)"
+	echo "$file"
+	cp "$viewsfile" "$outdir/$file"
+done
+find "$constraintsdir" -mindepth 1 -type f | while read constraintsfile; do
+	find "$viewsdir" -mindepth 1 -type f | while read viewsfile; do
+		crossfile="$(basename "$constraintsfile" .json)-X-$(basename "$viewsfile" .json).json"
+		echo "$crossfile"
+		"$(dirname "$0")"/crossqueries "$constraintsfile" "$viewsfile" > "$outdir/$crossfile"
+	done
+done
+} > "$outdir/index"
+
+cat "$outdir/index" | while read queryfile; do
+	echo "running $queryfile" 1>&2
+	$@ < "$outdir/$queryfile" > "$outdir/$(basename "$queryfile" .json).out"
+done

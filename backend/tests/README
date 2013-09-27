@@ -1,3 +1,13 @@
+Testing queries (queries/)
+==========================
+
+The scripts in queries/ can do automated testing of queries, such as for regression testing. The test system is based on having separate directories of query files with the desired constraint sets and view sets, and runs pairwise tests. The example query files can serve as suitable input.
+
+For example, say we have an index test.index containing our data and start a local backend serving it. We can run:
+	./tests/queries/run examplequeries/constraints/ examplequeries/views/ querydb.out ./querydb test.index
+	./tests/queries/run examplequeries/constraints/ examplequeries/views/ querybackend.out ./querybackend http://localhost:1500
+	./tests/queries/compare querydb.out querybackend.out querydb-vs-querybackend.diff
+
 Testing backend server settings (settings/)
 ===========================================
 

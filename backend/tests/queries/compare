@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+
+#
+# Compares to output directories from the run script and indicates the queries
+# that differ. If given a directory to save diff output, it will create files
+# for the diff output of each pair of individual result files as well as a copy
+# of the summary.
+#
+# The first column of output has * whereever there is a possible difference. The
+# second column has:
+#   < test present in the first directory but not present in the second
+#   > test not present in the first directory but present in the second
+#   ? test output differs but the difference is probably just ordering
+#   ! test output differs the difference is probably not just ordering
+#
+
+set -e
+
+if [ "$#" -lt 2 -o "$#" -gt 3 ]; then
+	echo "usage: run OUTPUT-DIR-1 OUTPUT-DIR-2 [DIFF-DIR]"
+	exit 1
+fi
+outdir1=$1
+outdir2=$2
+diffdir=$3
+
+if [ "$diffdir" ]; then
+	[ "$(find "$diffdir" -maxdepth 0 -not -empty 2>/dev/null)" ] && echo "warning: output directory is not empty" 1>&2
+	mkdir -p "$diffdir"
+else
+	diffdir=$(mktemp -d)
+	echo "$diffdir"
+	trap "rm -rf \"$diffdir\"" EXIT
+fi
+indexfile="$diffdir/index"
+summaryfile="$diffdir/summary"
+
+find "$outdir1" "$outdir2" -mindepth 1 -type f -name '*.out' -exec basename {} .out \; | sort | uniq | while read queryname; do
+	difffile="$diffdir/$queryname.diff"
+	if [ -e "$outdir1/$queryname.out" -a ! -e "$outdir2/$queryname.out" ]; then
+		status="* <"
+	elif [ ! -e "$outdir1/$queryname.out" -a -e "$outdir2/$queryname.out" ]; then
+		status="* >"
+	elif diff "$outdir1/$queryname.out" "$outdir2/$queryname.out" >"$difffile"; then
+		status="  ="
+        elif "$(dirname "$0")"/diffafterorder "$difffile" 1>"$diffdir/$queryname.diffafterorder" 2>/dev/null; then
+		status="* ?"
+	else
+		status="* !"
+	fi
+	echo "$status $queryname"
+done | tee "$indexfile"
