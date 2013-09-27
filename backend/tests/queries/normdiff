@@ -9,14 +9,14 @@ than differences in content included.
 
 import sys
 import re
+import collections
 
-quoted_num_re = re.compile("^(.* )\"(-?[0-9.]+)\"(,?)")
+quoted_num_re = re.compile("\"(-?[0-9.]+)\"")
 
 def normline(line):
   line = line[1:].strip()
   match = quoted_num_re.match(line)
-  if match is not None:
-    line = "%s%s%s" % (match.group(1), match.group(2), match.group(3))
+  line = quoted_num_re.sub(lambda m: m.group(1), line)
   return line
 
 if __name__ == '__main__':
@@ -33,22 +33,26 @@ if __name__ == '__main__':
 
   input = sys.stdin if len(args) == 0 else open(args[0])
 
-  removed = set()
-  added = set()
+  removed = collections.defaultdict(int)
+  added = collections.defaultdict(int)
   for line in input:
     if line.startswith('<'):
-      removed.add(normline(line))
+      removed[normline(line)] += 1
     elif line.startswith('>'):
-      added.add(normline(line))
+      added[normline(line)] += 1
 
-  all = removed | added
+  all = set(removed.iterkeys()) | set(added.iterkeys())
   somediff = False
   for line in all:
-    if line in removed and line not in added:
-      print "< %s" % (line)
+    d = removed[line] - added[line]
+    if d != 0:
       somediff = True
-    elif line not in removed and line in added:
-      print "> %s" % (line)
-      somediff = True
+      if d > 0:
+        s = "<"
+      else:
+        s = ">"
+        d = -d
+      for i in range(d):
+        print "%s %s" % (s, line)
 
   sys.exit(1 if somediff else 0)

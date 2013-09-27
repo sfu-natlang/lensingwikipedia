@@ -106,7 +106,7 @@ class Querier:
       low, high = cnstr['low'], cnstr['high']
       return whoosh.query.NumericRange('year', low, high)
     elif type == 'referencepoints':
-      return whoosh.query.Or([whoosh.query.Term('referencePoints', str(p)) for p in cnstr['points']])
+      return whoosh.query.Or([whoosh.query.Term('referencePoints', str(p)) for p in whooshutils.escape_keywords(cnstr['points'])])
     else:
       raise ValueError("unknown constraint type \"%s\"" % (type))
 
@@ -160,7 +160,7 @@ class Querier:
 
       with self.whoosh_index.searcher() as searcher:
         def format(hit):
-          return dict((f, hit[f]) for f in ['year', 'descriptionHtml', 'eventRoot'])
+          return dict((f, hit[f]) for f in ['dbid', 'year', 'descriptionHtml', 'eventRoot'])
         hits = searcher.search_page(whoosh_query, page_num + 1, pagelen=self.description_page_size, sortedby='year', reverse=True)
         print >> sys.stderr, "whoosh pre-paginated search results: %s" % (repr(hits.results))
         result['descriptions'] = [format(h) for h in hits]

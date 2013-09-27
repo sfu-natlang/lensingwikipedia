@@ -27,7 +27,7 @@ base_wikipedia_url = "https://en.wikipedia.org"
 num_arguments = 6
 
 fields = {
-  'id': whoosh.fields.NUMERIC(stored=True, unique=True),
+  'dbid': whoosh.fields.NUMERIC(stored=True, unique=True),
   'year': whoosh.fields.NUMERIC(stored=True, sortable=True, shift_step=1),
   'eventRoot': whoosh.fields.ID(stored=True),
   'locationText': whoosh.fields.KEYWORD(stored=True, commas=whooshutils.keyword_field_commas),
@@ -90,7 +90,7 @@ def make_event_doc(event):
   locationLocationText = set(v['title'] for v in event['locations'].itervalues()) if 'locations' in event else set()
   wikiInfoLocationText = set(v['title'] for v in event['wiki_info'].itervalues() if 'latitude' in v and 'longitude' in v) if 'wiki_info' in event else set()
   doc = {
-    'id': line_num,
+    'dbid': line_num,
     'year': int(event['year']),
     'eventRoot': unicode(event['eventRoot']),
     'locationText': unicode(whooshutils.join_keywords(locationLocationText | wikiInfoLocationText)),
@@ -98,7 +98,7 @@ def make_event_doc(event):
     'personText': unicode(whooshutils.join_keywords((v['title'] for v in event['person'].itervalues()) if 'person' in event else [])),
     'description': unicode(event['description']),
     'descriptionHtml': unicode(make_html_description(event)),
-    'allPoints': unicode(whooshutils.join_keywords("%fx%f" % p for p in points))
+    'allPoints': unicode(whooshutils.join_keywords("%f,%f" % p for p in points))
   }
   for role_id in range(num_arguments):
     key = 'roleA%i' % (role_id)
