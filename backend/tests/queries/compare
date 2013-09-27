@@ -10,8 +10,8 @@
 # second column has:
 #   < test present in the first directory but not present in the second
 #   > test not present in the first directory but present in the second
-#   ? test output differs but the difference is probably just ordering
-#   ! test output differs the difference is probably not just ordering
+#   ? test output differs but the difference is probably acceptable
+#   ! test output differs the difference is probably not acceptable
 #
 
 set -e
@@ -43,7 +43,7 @@ find "$outdir1" "$outdir2" -mindepth 1 -type f -name '*.out' -exec basename {} .
 		status="* >"
 	elif diff "$outdir1/$queryname.out" "$outdir2/$queryname.out" >"$difffile"; then
 		status="  ="
-        elif "$(dirname "$0")"/diffafterorder "$difffile" 1>"$diffdir/$queryname.diffafterorder" 2>/dev/null; then
+        elif "$(dirname "$0")"/normdiff "$difffile" 1>"$diffdir/$queryname.normdiff" 2>/dev/null; then
 		status="* ?"
 	else
 		status="* !"

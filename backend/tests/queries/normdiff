@@ -8,6 +8,16 @@ than differences in content included.
 """
 
 import sys
+import re
+
+quoted_num_re = re.compile("^(.* )\"(-?[0-9.]+)\"(,?)")
+
+def normline(line):
+  line = line[1:].strip()
+  match = quoted_num_re.match(line)
+  if match is not None:
+    line = "%s%s%s" % (match.group(1), match.group(2), match.group(3))
+  return line
 
 if __name__ == '__main__':
   import getopt
@@ -27,9 +37,9 @@ if __name__ == '__main__':
   added = set()
   for line in input:
     if line.startswith('<'):
-      removed.add(line[1:].lstrip().rstrip('\n'))
+      removed.add(normline(line))
     elif line.startswith('>'):
-      added.add(line[1:].lstrip().rstrip('\n'))
+      added.add(normline(line))
 
   all = removed | added
   somediff = False
