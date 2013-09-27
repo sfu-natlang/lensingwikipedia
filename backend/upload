@@ -59,7 +59,7 @@ def make_html_description(event):
 
 def make_location_list(event):
   wiki_locs = set(ii['title'] for ii in event['wiki_info'].itervalues() if 'latitude' in ii and 'longitude' in ii)
-  other_locs = set(event['locations']) if 'locations' in event else set()
+  other_locs = set(ii['title'] for ii in event['locations'].itervalues()) if 'locations' in event else set()
   return list(wiki_locs | other_locs)
 
 def make_country_list(event):
