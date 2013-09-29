@@ -1,21 +1,29 @@
 #!/usr/bin/env python2
 
 """
-Usage: %s [opts] INPUT-WHOOSH-INDEX-DIR OUTPUT-WHOOSH-INDEX-DIR
+Usage: %s [opts] WHOOSH-INDEX-DIR [OUTPUT-WHOOSH-INDEX-DIR]
 
 Arguments:
-INPUT-WHOOSH-INDEX-DIR  Directory of the Whoosh index for the input data.
+WHOOSH-INDEX-DIR         Directory of the Whoosh index for the input data.
 OUTPUT-WHOOSH-INDEX-DIR  Directory of the Whoosh index for the output data.
 
 Options:
   -t FLOAT  Distance threshold for choosing when to start new clusters.
   -D        Do dummy clustering; find cluster sizes and centres but don't
     actually output a new index.
+  -b NUM    Number of events to keep in memory at once if writing in-place.
 
 Creates reference points for events by clustering them in geographic spherical
-coordinates. The clustering is greedy and sensitive to input order. The output
-index will have the same schema and documents as the input index except for the
-added field for reference points.
+coordinates. The clustering is greedy and sensitive to input order. The
+resulting index will have the same schema and documents as the input index
+except for the added field for reference points.
+
+If two index directory paths are given then the first will be used as input but
+not modified, and the second will be written to. If only one is given then it
+will be modified in place. The later option requires paginating through all
+events and keeping some documents in memory, with the number in memory at once
+depending on the value of the -b option. The result should be the same either
+way, up to output ordering differences.
 """
 
 import sys
@@ -117,7 +125,7 @@ def iter_events_from_index(index):
       if len(points) > 0:
         yield hit['dbid'], points
 
-def run(input_index, output_index, threshold, do_dummy):
+def run(input_index, output_index, threshold, doc_buffer_size, do_dummy):
   lookup = {}
   def assign_event_to_clusters(event_id, clusters):
     lookup[event_id] = clusters
@@ -132,13 +140,18 @@ def run(input_index, output_index, threshold, do_dummy):
       writer.add_field('referencePoints', whoosh.fields.KEYWORD(stored=True, commas=whooshutils.keyword_field_commas))
     except whoosh.fields.FieldConfigurationError:
       pass
-    with input_index.searcher() as searcher:
-      for hit in searcher.search(whoosh.query.Every(), limit=None):
-        point_vals = ["%f,%f" % (c.centre[0], c.centre[1]) for c in lookup[hit['dbid']]] if hit['dbid'] in lookup else []
-        event = dict(hit)
-        print >> sys.stderr, "event %i: %s" % (hit['dbid'], ' '.join(point_vals))
-        event['referencePoints'] = unicode(whooshutils.join_keywords(point_vals))
-        writer.add_document(**event)
+
+    def modify(event):
+      point_vals = ["%f,%f" % (c.centre[0], c.centre[1]) for c in lookup[event['dbid']]] if event['dbid'] in lookup else []
+      print >> sys.stderr, "event %i: %s" % (event['dbid'], ' '.join(point_vals))
+      event['referencePoints'] = unicode(whooshutils.join_keywords(point_vals))
+    if doc_buffer_size is not None:
+      print >> sys.stderr, "A"
+      whooshutils.update_all_in_place(input_index, writer, modify, buffer_size=doc_buffer_size)
+    else:
+      print >> sys.stderr, "B"
+      whooshutils.copy_all(input_index, writer, modify)
+
     print >> sys.stderr, "committing"
     writer.commit()
 
@@ -146,8 +159,8 @@ if __name__ == '__main__':
   import getopt
 
   try:
-    opts, args = getopt.getopt(sys.argv[1:], "t:D")
-    if len(args) != 2:
+    opts, args = getopt.getopt(sys.argv[1:], "t:Db:")
+    if len(args) not in [1, 2]:
       raise getopt.GetoptError("wrong number of positional arguments")
     opts = dict(opts)
   except getopt.GetoptError:
@@ -155,12 +168,13 @@ if __name__ == '__main__':
     sys.exit(1)
 
   input_index_path = args[0]
-  output_index_path = args[1]
+  output_index_path = args[1] if len(args) > 1 else None
   threshold = float(opts['-t']) if '-t' in opts else 0.25
   do_dummy = '-D' in opts
+  doc_buffer_size = None if output_index_path is not None else (int(opts['-b']) if '-b' in opts else 1000)
 
-  if not os.path.exists(output_index_path):
+  if output_index_path is not None and not os.path.exists(output_index_path):
     os.mkdir(output_index_path)
   input_index = whoosh.index.open_dir(input_index_path)
-  output_index = whoosh.index.create_in(output_index_path, input_index.schema.copy()) if not do_dummy else None
-  run(input_index, output_index, threshold, do_dummy)
+  output_index = (whoosh.index.create_in(output_index_path, input_index.schema.copy()) if output_index_path is not None else input_index) if not do_dummy else None
+  run(input_index, output_index, threshold, doc_buffer_size, do_dummy)

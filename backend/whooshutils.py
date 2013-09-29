@@ -3,6 +3,7 @@ Shared things and consistency settings.
 """
 
 import re
+import whoosh, whoosh.index, whoosh.query
 
 comma_char = ","
 comma_rep_char = "\t"
@@ -29,3 +30,23 @@ def split_keywords(value):
       return [comma_rep_re.sub(comma_char, p) for p in value.split(comma_char)]
   else:
     return [value]
+
+def update_all_in_place(index, writer, modify_doc, query=whoosh.query.Every(), buffer_size=100):
+  with writer.searcher() as searcher:
+    page_num = 1
+    while True:
+      hits = searcher.search_page(query, page_num, pagelen=buffer_size)
+      buf = [h.fields() for h in hits]
+      for doc in buf:
+        modify_doc(doc)
+        writer.update_document(**doc)
+      if hits.is_last_page():
+        break
+      page_num += 1
+
+def copy_all(input_index, output_writer, modify_doc, query=whoosh.query.Every()):
+  with input_index.searcher() as searcher:
+    for hit in searcher.search(query, limit=None):
+      event = dict(hit)
+      modify_doc(event)
+      output_writer.add_document(**event)
