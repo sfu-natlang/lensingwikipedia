@@ -4,7 +4,7 @@ Query (frontend to backend) handling.
 
 import sys
 import traceback
-import whoosh, whoosh.query
+import whoosh, whoosh.query, whoosh.sorting
 import whooshutils
 import hashlib
 import json
@@ -82,15 +82,6 @@ class Querier:
         return ('counts', self.count_by_referencepoint_page_size)
     return None
 
-  def expand_field(self, field):
-    """
-    Maps a requested field (which may be a pseudo-field) into a list of actual
-    database field names.
-    """
-    if field == 'role':
-      return ["roleA%i" % (an) for an in self.all_argument_numbers]
-    return [field]
-
   def constraint_to_whoosh_query(self, cnstr):
     """
     Produces a Whoosh query (using the python object format, not the text
@@ -100,13 +91,12 @@ class Querier:
 
     type = cnstr['type']
     if type == 'fieldvalue':
-      use_fields = self.expand_field(cnstr['field'])
-      return whoosh.query.Or([whoosh.query.Term(f, cnstr['value']) for f in use_fields])
+      return whoosh.query.Term(cnstr['field'], cnstr['value'])
     elif type == "timerange":
       low, high = cnstr['low'], cnstr['high']
       return whoosh.query.NumericRange('year', low, high)
     elif type == 'referencepoints':
-      return whoosh.query.Or([whoosh.query.Term('referencePoints', str(p)) for p in whooshutils.escape_keywords(cnstr['points'])])
+      return whoosh.query.Or([whoosh.query.Term('referencePoints', whooshutils.escape_keyword(p)) for p in cnstr['points']])
     else:
       raise ValueError("unknown constraint type \"%s\"" % (type))
 
@@ -125,28 +115,23 @@ class Querier:
     multiple-valued field are counted.
     """
 
-    views_use_fields = {}
+    views_need_fields = {}
     for view_id, view in views.iteritems():
-      views_use_fields[view_id] = self.expand_field(view['field'])
+      field = view['field']
+      views_need_fields.setdefault(field, [])
+      views_need_fields[field].append(view_id)
 
-    for view_id, view in views.iteritems():
-      response[view_id] = { 'counts': {} }
-
-    with self.whoosh_index.searcher() as searcher:
-      hits = searcher.search(whoosh_query, limit=None)
-      print >> sys.stderr, "whoosh search results: %s" % (repr(hits))
-      for hit in hits:
-        for view_id, view in views.iteritems():
-          counts = response[view_id]['counts']
-          values = set(v for f in views_use_fields[view_id] if f in hit for v in whooshutils.split_keywords(hit[f]))
-          for value in values:
-            counts.setdefault(value, 0)
-            counts[value] += 1
-
-    for view_id, view in views.iteritems():
-      counts = response[view_id]['counts'].items()
-      counts.sort(key=lambda (v, c): c, reverse=True)
-      response[view_id]['counts'] = counts
+    for field, views_need_field in views_need_fields.iteritems():
+      with self.whoosh_index.searcher() as searcher:
+        collector = searcher.collector(limit=None, groupedby=whoosh.sorting.FieldFacet(field, maptype=whoosh.sorting.Count, allow_overlap=True))
+        searcher.search_with_collector(whoosh_query, collector)
+        results = collector.results()
+        if self.verbose:
+          print >> sys.stderr, "whoosh search results: %s" % (repr(results))
+        counts = [(whooshutils.unescape_keyword(v), c) for (v, c) in results.groups().iteritems() if v is not None]
+        counts.sort(key=lambda (v, c): c, reverse=True)
+        for view_id in views_need_field:
+          response[view_id] = { 'counts': counts }
 
   def handle_independent_view(self, view, whoosh_query):
     """

@@ -35,7 +35,8 @@ fields = {
   'personText': whoosh.fields.KEYWORD(stored=True, commas=whooshutils.keyword_field_commas),
   'description': whoosh.fields.TEXT(stored=True),
   'descriptionHtml': whoosh.fields.TEXT(stored=True),
-  'allPoints': whoosh.fields.KEYWORD(stored=True)
+  'allPoints': whoosh.fields.KEYWORD(stored=True),
+  'role': whoosh.fields.KEYWORD(stored=True, commas=whooshutils.keyword_field_commas)
 }
 for i in range(num_arguments):
   fields['roleA%i' % (i)] = whoosh.fields.ID(stored=True)
@@ -100,10 +101,13 @@ def make_event_doc(event):
     'descriptionHtml': unicode(make_html_description(event)),
     'allPoints': unicode(whooshutils.join_keywords("%f,%f" % p for p in points))
   }
+  all_roles = []
   for role_id in range(num_arguments):
     key = 'roleA%i' % (role_id)
     if key in event:
       doc['roleA%i' % (role_id)] = unicode(event[key])
+      all_roles.append(event[key])
+  doc['role'] = unicode(whooshutils.join_keywords(all_roles))
   return doc
 
 if __name__ == '__main__':

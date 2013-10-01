@@ -17,9 +17,13 @@ keyword_field_commas = True
 def join_keywords(keywords):
   return comma_char.join(comma_re.sub(comma_rep_char, comma_rep_re.sub(" ", k.strip())) for k in keywords)
 
-# Escape keywords without merging them into a single field value
-def escape_keywords(keywords):
-  return (comma_re.sub(comma_rep_char, k.strip()) for k in keywords)
+# Escape a single keyword
+def escape_keyword(keyword):
+  return comma_re.sub(comma_rep_char, keyword.strip())
+
+# Unescape a single keyword
+def unescape_keyword(keyword):
+  return comma_rep_re.sub(comma_char, keyword) if isinstance(keyword, unicode) else keyword
 
 # Separate the value of a keyword field into separate keywords
 def split_keywords(value):
