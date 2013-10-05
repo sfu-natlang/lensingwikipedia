@@ -26,6 +26,7 @@ import cgi
 base_wikipedia_url = "https://en.wikipedia.org"
 num_arguments = 6
 
+# The schema describing a document in the index. Any fields that backend queries can access should be mentioned in the protocol description document.
 fields = {
   'dbid': whoosh.fields.NUMERIC(stored=True, unique=True),
   'year': whoosh.fields.NUMERIC(stored=True, sortable=True, shift_step=1),
