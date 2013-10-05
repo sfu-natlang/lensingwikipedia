@@ -62,7 +62,7 @@ class Querier:
   def how_to_paginate_results(self, query, view):
     """
     Function determining which views to paginate the results from at the
-    backend. Views which can be paginated by the DB should do that instead (in
+    backend. Views which can be paginated by Whoosh should do that instead (in
     their view handling code) since that is more efficient. Returns a (attribute
     name, page size) pair if the view should be paginated. Otherwise returns
     None.
@@ -138,7 +138,7 @@ class Querier:
 
   def handle_independent_view(self, view, whoosh_query):
     """
-    Handles one of the views which is done on its own independent DB query.
+    Handles one of the views which is done on its own independent Whoosh query.
     """
 
     type = view['type']
@@ -163,10 +163,10 @@ class Querier:
     Produces the JSON (as python objects) response for the view requests.
     response: Response JSON (as python objects) to put output in.
     views: The views as dictionary of JSON (as python objects) views, keyed by their IDs.
-    whoosh_query: The SimpleDB select expression for the current query.
+    whoosh_query: The Whoosh query object for the current query.
     """
 
-    # We defer all the count by field value views until the end so we can do them all on a single DB query. We also rewrite some other queries in terms of field value views (these get separate query types since they might need special handling later).
+    # We defer all the count by field value views until the end so we can do them all on a single Whoosh query. We also rewrite some other queries in terms of field value views (these get separate query types since they might need special handling later).
     field_count_views = {}
 
     for view_id, view in views.iteritems():
@@ -225,7 +225,7 @@ class Querier:
       if should_cache or how_to_paginate_result is not None:
         # If we are doing either full caching or result pagination, then prepare a cache key.
         if how_to_paginate_result is not None:
-          # For a result paginated view we don't want the page number as part of the cache key since we want to cache the whole result before pagination (for a query that can be paginated by the DB then we need the page number since we store a separate result for each page).
+          # For a result paginated view we don't want the page number as part of the cache key since we want to cache the whole result before pagination (for a query that can be paginated by Whoosh then we need the page number since we store a separate result for each page).
           if 'page' in view:
             page_num = view['page']
             del view['page']

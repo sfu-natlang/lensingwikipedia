@@ -9,8 +9,8 @@ QUERY-FILE        File to read the query from. Standard input is used if not
   given.
 
 Options:
--c FILE     Config file to load settings from. All query handling settings are
-  left at defaults if this option is not given.
+-c FILE     Config file to load querier settings from. All query handling
+  settings are left at defaults if this option is not given.
 -r NUM      Repeat query a given number of times.
 -s SECONDS  Seconds to sleep between repeated queries.
 -p          Prime the caches as the backend would.
