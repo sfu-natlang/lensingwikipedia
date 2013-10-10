@@ -28,17 +28,27 @@ function setupConstraintList(container, globalQuery) {
 		});
 	};
 
+	function removeConstraintElement(cnstr){
+		var itemElt = $("#"+cnstr.name());
+		cnstr.clear();  
+		globalQuery.update();
+		removeElement(itemElt);
+		
+	}
+	
+	
 	function addConstraintElement(cnstr) {
 		var itemElt = $("<li></li>").appendTo(listElt);
-		var cnstrElt = $("<div class=\"alert alert-constraint\" title=\"Click to remove this constraint.\"></div>").appendTo(itemElt);
+		var cnstrElt = $("<div id=\""+cnstr.name()+""\" class=\"alert alert-constraint\" title=\"Click to remove this constraint.\"></div>").appendTo(itemElt);
 		$("<button type=\"button\" class=\"close\">&times;</button>").appendTo(cnstrElt);
 		var cnstrTextElt = $("<span></span>").appendTo(cnstrElt);
 		cnstrTextElt.append(cnstr.name());
 		container.trigger('changedSize');
 		cnstrElt.click(function() {
-			// cnstr.clear();  // just for test
+			 cnstr.clear();  
 			globalQuery.update();
 			removeElement(cnstrElt);
+
 		});
 		cnstr.onChange(function(changeType, query, cnstr) {
 			if (changeType =="removed")
