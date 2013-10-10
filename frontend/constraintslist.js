@@ -36,7 +36,7 @@ function setupConstraintList(container, globalQuery) {
 		cnstrTextElt.append(cnstr.name());
 		container.trigger('changedSize');
 		cnstrElt.click(function() {
-			// cnstr.clear();  // just for test
+			cnstr.clear();
 			globalQuery.update();
 			removeElement(cnstrElt);
 		});
