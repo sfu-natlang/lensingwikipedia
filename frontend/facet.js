@@ -57,8 +57,16 @@ function setupFacet(container, globalQuery, name, field) {
 	}
 
 	var selectedValue = null;
+	var viewValue = {
+			counts: {
+				type: 'countbyfieldvalue',
+				field: field
+			}
+		};
 	var constraint = new Constraint();
 	globalQuery.addConstraint(constraint);
+	var globalQueryResultWatcher = new ResultWatcher(function () {});
+	globalQuery.addResultWatcher(globalQueryResultWatcher);
 	var ownCnstrQuery = new Query(globalQuery.backendUrl());
 	ownCnstrQuery.addConstraint(constraint);
 	var contextQuery = new Query(globalQuery.backendUrl(), 'setminus', globalQuery, ownCnstrQuery);
@@ -77,9 +85,13 @@ function setupFacet(container, globalQuery, name, field) {
 			});
 			listBoxElt.addClass('selected');
 			globalQuery.update();
+			viewValue.counts.requiredkeys = [selectedValue];
 		} else {
 			listBoxElt.removeClass('selected');
+			delete viewValue.counts['requiredkeys'];
 		}
+		globalQueryResultWatcher.set(viewValue);
+		contextQueryResultWatcher.set(viewValue);
 	}
 	function haveSelection() {
 		return selectedValue != null;
@@ -167,12 +179,8 @@ function setupFacet(container, globalQuery, name, field) {
 		if (changeType == 'removed')
 			select(null);
 	});
-	globalQuery.onResult({
-		counts: {
-			type: 'countbyfieldvalue',
-			field: field
-		}
-	}, function(result, getContinuer) {
+	globalQueryResultWatcher.set(viewValue);
+	globalQueryResultWatcher.setCallback(function(result, getContinuer) {
 		if (result.counts.hasOwnProperty('error')) {
 			setData(null);
 			loadingIndicator.error('counts', true);
@@ -186,12 +194,7 @@ function setupFacet(container, globalQuery, name, field) {
 			addData(result.counts.counts);
 		}
 	});
-	contextQueryResultWatcher.set({
-		counts: {
-			type: 'countbyfieldvalue',
-			field: field
-		}
-	});
+	contextQueryResultWatcher.set(viewValue);
 	contextQueryResultWatcher.enabled(false);
 	contextQueryResultWatcher.setCallback(function(result, getContinuer) {
 		if (result.counts.hasOwnProperty('error')) {

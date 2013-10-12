@@ -1,0 +1,12 @@
+{
+	"constraints": {
+	},
+	"views": {
+		"0": {
+			"type": "countbyfieldvalue",
+			"field": "locationText",
+			"page": 1,
+			"requiredkeys": ["Rhine", "Brazil", "Virginia", "Thailand", "akeythatprobablydoesnotappearinthedata"]
+		}
+	}
+}

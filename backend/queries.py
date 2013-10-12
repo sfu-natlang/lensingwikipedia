@@ -215,6 +215,7 @@ class Querier:
     views_cache_key = {}
     views_should_cache = {}
     views_page_num = {}
+    views_required_keys = {}
     views_how_to_paginate_result = {}
 
     for view_id, view in query['views'].iteritems():
@@ -225,12 +226,17 @@ class Querier:
       if should_cache or how_to_paginate_result is not None:
         # If we are doing either full caching or result pagination, then prepare a cache key.
         if how_to_paginate_result is not None:
-          # For a result paginated view we don't want the page number as part of the cache key since we want to cache the whole result before pagination (for a query that can be paginated by Whoosh then we need the page number since we store a separate result for each page).
+          # For a result paginated view we don't want the page number or required keys as part of the cache key since we want to cache the whole result before pagination (for a query that can be paginated by Whoosh then we need the page number since we store a separate result for each page).
           if 'page' in view:
             page_num = view['page']
             del view['page']
           else:
             page_num = 0
+          if 'requiredkeys' in view:
+            required_keys = view['requiredkeys']
+            del view['requiredkeys']
+          else:
+            required_keys = []
 
         shaer = cnstrs_shaer.copy()
         shaer.update(json.dumps(view))
@@ -250,6 +256,7 @@ class Querier:
         if how_to_paginate_result is not None:
           views_how_to_paginate_result[view_id] = how_to_paginate_result
           views_page_num[view_id] = page_num
+          views_required_keys[view_id] = set(required_keys)
           if view_response is None:
             view_response = self.results_pagination_cache.get(cache_key)
             if view_response is not None:
@@ -286,6 +293,15 @@ class Querier:
             i = page_num * page_size
             j = i + page_size
             paginated_result[paginate_attr] = result[paginate_attr][i:j]
+            need_to_prepend, need_to_append = [], []
+            for k, pair in enumerate(result[paginate_attr]):
+              key, value = pair
+              if key in views_required_keys[view_id]:
+                if k < i:
+                  need_to_prepend.append(pair)
+                elif k >= j:
+                  need_to_append.append(pair)
+            paginated_result[paginate_attr] = need_to_prepend + paginated_result[paginate_attr] + need_to_append
             paginated_result['more'] = j < len(result[paginate_attr])
             response[view_id] = paginated_result
 
