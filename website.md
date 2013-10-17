@@ -85,7 +85,7 @@ This assumes a bare bones CentOS 6 install.
 
     cd /var/www/html/checkouts/20131017/frontend
     create config.js  # see below
-    create config.mk
+    create config.mk # see below
     cp out/*.* /var/www/html/lensingwikipedia.cs.sfu.ca/.
 
 ### Sample config.js
