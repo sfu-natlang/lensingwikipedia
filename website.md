@@ -42,8 +42,8 @@ This assumes a bare bones CentOS 6 install.
 
 ### Sample index.html
 
-    Welcome to cs-champ!
-    <p><a href="http://cs-champ.cs.sfu.ca/lensingwikipedia.cs.sfu.ca">Lensing Wikipedia</a> by <a href="http://natlang.cs.sfu.ca">SFU Natlang Lab</a>
+    Welcome to natlang-web!
+    <p><a href="http://natlang-web.cs.sfu.ca/lensingwikipedia.cs.sfu.ca">Lensing Wikipedia</a> by <a href="http://natlang.cs.sfu.ca">SFU Natlang Lab</a>
 
 ## Set up data files for backend
 
@@ -91,7 +91,7 @@ This assumes a bare bones CentOS 6 install.
 ### Sample config.js
 
     // URL for the backend
-    backendUrl = "http://cs-champ.cs.sfu.ca:1510";
+    backendUrl = "http://natlang-web.cs.sfu.ca:1510";
     // Prefix for links to Wikipedia pages
     baseWikipediaUrl = "https://en.wikipedia.org";
     // Range of allowed map zoom levels
