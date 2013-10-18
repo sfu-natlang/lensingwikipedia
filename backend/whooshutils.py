@@ -5,6 +5,9 @@ Shared things and consistency settings.
 import re
 import whoosh, whoosh.index, whoosh.query
 
+# Suffix for the field name of a text field mirroring a keyword field for searching purposes
+keyword_field_free_text_suffix = "_freeText"
+
 comma_char = ","
 comma_rep_char = "\t"
 comma_re = re.compile(re.escape(comma_char))

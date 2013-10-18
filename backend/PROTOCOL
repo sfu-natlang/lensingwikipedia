@@ -46,6 +46,14 @@ For details see queries.py, especially constraint_to_sdb_query().
 		"value": /* value for the field to match */
 	}
 
+### Constrain to events that match a free text search on one or more fields:
+	{
+		"type": "fieldvalue",
+		"fields": /* optional; list of fields to search, defaults to all text fields specified by a querier setting if not given */
+		"value": /* single-token search term */,
+		"novariations": /* option; flag set if morphological variations should not be matched */
+	}
+
 ### Constrain to events in an time range (inclusive):
 	{
 		"type": "timerange",

@@ -39,8 +39,11 @@ fields = {
   'allPoints': whoosh.fields.KEYWORD(stored=True),
   'role': whoosh.fields.KEYWORD(stored=True, commas=whooshutils.keyword_field_commas)
 }
+# Fields for all arguments.
 for i in range(num_arguments):
   fields['roleA%i' % (i)] = whoosh.fields.ID(stored=True)
+# A free text field for each keyword field.
+fields.update(dict(("%s%s" % (field_name, whooshutils.keyword_field_free_text_suffix), whoosh.fields.TEXT(stored=True)) for field_name, field in fields.iteritems() if isinstance(field, whoosh.fields.KEYWORD)))
 
 schema = whoosh.fields.Schema(**fields)
 
@@ -109,6 +112,12 @@ def make_event_doc(event):
       doc['roleA%i' % (role_id)] = unicode(event[key])
       all_roles.append(event[key])
   doc['role'] = unicode(whooshutils.join_keywords(all_roles))
+
+  # Copy all keyword field values to matching free text field values for searching purposes.
+  for field_name, field in schema.items():
+    if isinstance(field, whoosh.fields.KEYWORD):
+      doc["%s%s" % (field_name, whooshutils.keyword_field_free_text_suffix)] = unicode(" ".join(whooshutils.split_keywords(doc[field_name])))
+
   return doc
 
 if __name__ == '__main__':

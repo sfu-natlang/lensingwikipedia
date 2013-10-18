@@ -1,0 +1,14 @@
+{
+	"constraints": {
+		"0": {
+			"type": "textsearch",
+			"value": "king",
+			"novariations": true
+		}
+	},
+	"views": {
+		"0": {
+			"type": "countbyyear"
+		}
+	}
+}
