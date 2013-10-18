@@ -91,7 +91,7 @@ class Querier:
 
     type = cnstr['type']
     if type == 'fieldvalue':
-      return whoosh.query.Term(cnstr['field'], cnstr['value'])
+      return whoosh.query.Term(cnstr['field'], whooshutils.escape_keyword(cnstr['value']))
     elif type == "timerange":
       low, high = cnstr['low'], cnstr['high']
       return whoosh.query.NumericRange('year', low, high)
