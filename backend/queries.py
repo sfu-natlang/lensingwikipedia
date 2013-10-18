@@ -92,6 +92,11 @@ class Querier:
     type = cnstr['type']
     if type == 'fieldvalue':
       return whoosh.query.Term(cnstr['field'], whooshutils.escape_keyword(cnstr['value']))
+    if type == 'textsearch':
+      whooshterm = whoosh.query.Term if 'novariations' in cnstr and cnstr['novariations'] else whoosh.query.Variations
+      fields = cnstr['fields'] if 'fields' in cnstr else self.fields_for_text_searches
+      value = whooshutils.escape_keyword(cnstr['value'].lower())
+      return whoosh.query.Or([whooshterm("%s%s" % (f, whooshutils.keyword_field_free_text_suffix) if isinstance(self.whoosh_index.schema[f], whoosh.fields.KEYWORD) else f, value) for f in fields])
     elif type == "timerange":
       low, high = cnstr['low'], cnstr['high']
       return whoosh.query.NumericRange('year', low, high)
