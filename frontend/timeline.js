@@ -88,12 +88,12 @@ function drawCounts(data, box, draw, scales, classStr, clipId) {
 /*
  * Draw a single complete plot, including axes.
  */
-function drawPlot(svg, box, data, classStr, matchScales, fitY, clipId) {
+function drawPlot(svg, box, data, classStr, matchScales, fitY, logY, clipId) {
 	var draw = svg.append('g')
 		.attr('transform', "translate(" + box.x + "," + box.y + ")");
 	var scales = {
 		x: d3.time.scale().range([0, box.width]),
-		y: d3.scale.linear().range([box.height, 0])
+		y: (logY ? d3.scale.log().clamp(true) : d3.scale.linear()).range([box.height, 0])
 	};
 	if (matchScales != null)
 		scales.x.domain(matchScales.x.domain());
@@ -102,6 +102,9 @@ function drawPlot(svg, box, data, classStr, matchScales, fitY, clipId) {
 	function xTickFormater(date) {
 		var year = date.getFullYear();
 		return year <= 0 ?  1 - year + "BCE" : year + "CE";
+	}
+	function yTickFormater(count) {
+		return "" + count;
 	}
 	var zeroDate = new Date(0, 0, 1);
 	zeroDate.setFullYear(1);
@@ -125,7 +128,7 @@ function drawPlot(svg, box, data, classStr, matchScales, fitY, clipId) {
 	}
 	var axes = {
 		x: d3.svg.axis().scale(scales.x).orient('bottom').tickFormat(xTickFormater).tickValues(xTickValues),
-		y: d3.svg.axis().scale(scales.y).orient('left')
+		y: d3.svg.axis().scale(scales.y).orient('left').tickFormat(yTickFormater)
 	};
 	function fitYScale() {
 		var xDom = scales.x.domain();
@@ -134,8 +137,19 @@ function drawPlot(svg, box, data, classStr, matchScales, fitY, clipId) {
 			maxY = d3.max(data, function (s) { var t = s.date.getTime(); return xDom[0] <= t && t <= xDom[1] ? s.contextCount : 0; });
 		if (maxY <= 0)
 			maxY = d3.max(data, function (s) { return s.count; });
-		scales.y.domain([0, maxY]);
+		scales.y.domain([logY ? 1 : 0, maxY]);
 		draw.select('.y.axis').call(axes.y);
+		if (logY) {
+			var ticks = scales.y.ticks();
+			var lastTick = ticks[ticks.length - 1];
+			var newTicks = [];
+			var i = 1;
+			for (; i <= lastTick; i *= 10)
+				newTicks.push(i);
+			if (i / 10 < maxY)
+				newTicks.push(maxY);
+			axes.y.tickValues(newTicks);
+		}
 	}
 	fitYScale();
 	var updatePlot = drawCounts(data, box, draw, scales, classStr, clipId);
@@ -171,8 +185,8 @@ function drawTimeline(svg, detailBox, selectBox, data, initialBrushExtent, brush
 		.append('rect')
 		.attr('width', detailBox.width)
 		.attr('height', detailBox.height);
-	var detailPlot = drawPlot(svg, detailBox, data, 'detail', null, true, clipId);
-	var selectPlot = drawPlot(svg, selectBox, data, 'selection', detailPlot.scales, false);
+	var detailPlot = drawPlot(svg, detailBox, data, 'detail', null, true, false, clipId);
+	var selectPlot = drawPlot(svg, selectBox, data, 'selection', detailPlot.scales, false, false);
 	var brush = null;
 	function updateBrush() {
 		detailPlot.updateX(brush.empty() ? selectPlot.scales.x.domain() : brush.extent());
