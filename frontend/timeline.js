@@ -88,20 +88,17 @@ function drawCounts(data, box, draw, scales, classStr, clipId) {
 /*
  * Draw a single complete plot, including axes.
  */
-function drawPlot(svg, box, data, classStr, matchScales, clipId) {
+function drawPlot(svg, box, data, classStr, matchScales, fitY, clipId) {
 	var draw = svg.append('g')
 		.attr('transform', "translate(" + box.x + "," + box.y + ")");
 	var scales = {
 		x: d3.time.scale().range([0, box.width]),
 		y: d3.scale.linear().range([box.height, 0])
 	};
-	if (matchScales != null) {
+	if (matchScales != null)
 		scales.x.domain(matchScales.x.domain());
-		scales.y.domain(matchScales.y.domain());
-	} else {
+	else
 		scales.x.domain(d3.extent(data, function (s) { return s.date; }));
-		scales.y.domain([0, d3.max(data, function (s) { return s.count; })]);
-	}
 	function xTickFormater(date) {
 		var year = date.getFullYear();
 		return year <= 0 ?  1 - year + "BCE" : year + "CE";
@@ -130,6 +127,17 @@ function drawPlot(svg, box, data, classStr, matchScales, clipId) {
 		x: d3.svg.axis().scale(scales.x).orient('bottom').tickFormat(xTickFormater).tickValues(xTickValues),
 		y: d3.svg.axis().scale(scales.y).orient('left')
 	};
+	function fitYScale() {
+		var xDom = scales.x.domain();
+		var maxY = 0;
+		if (fitY)
+			maxY = d3.max(data, function (s) { var t = s.date.getTime(); return xDom[0] <= t && t <= xDom[1] ? s.contextCount : 0; });
+		if (maxY <= 0)
+			maxY = d3.max(data, function (s) { return s.count; });
+		scales.y.domain([0, maxY]);
+		draw.select('.y.axis').call(axes.y);
+	}
+	fitYScale();
 	var updatePlot = drawCounts(data, box, draw, scales, classStr, clipId);
 	draw.append('g')
 		.attr('class', "x axis " + classStr)
@@ -140,8 +148,9 @@ function drawPlot(svg, box, data, classStr, matchScales, clipId) {
 		.call(axes.y);
 	function updateX(newXDomain) {
 		scales.x.domain(newXDomain);
-		updatePlot();
 		draw.select('.x.axis').call(axes.x);
+		fitYScale();
+		updatePlot();
 	}
 	return {
 		draw: draw,
@@ -162,9 +171,8 @@ function drawTimeline(svg, detailBox, selectBox, data, initialBrushExtent, brush
 		.append('rect')
 		.attr('width', detailBox.width)
 		.attr('height', detailBox.height);
-	var detailPlot = drawPlot(svg, detailBox, data, 'detail', null, clipId);
-
-	var selectPlot = drawPlot(svg, selectBox, data, 'selection', detailPlot.scales);
+	var detailPlot = drawPlot(svg, detailBox, data, 'detail', null, true, clipId);
+	var selectPlot = drawPlot(svg, selectBox, data, 'selection', detailPlot.scales, false);
 	var brush = null;
 	function updateBrush() {
 		detailPlot.updateX(brush.empty() ? selectPlot.scales.x.domain() : brush.extent());
