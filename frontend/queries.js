@@ -739,6 +739,7 @@ Query.prototype.update = function(postponeFinish) {
 	var query = this;
 
 	// We only go the backend if something changed and there is at least one view that needs updating.
+	var startTime = (new Date()).getTime();
 	var finish = null;
 	if (query._someConstraintChangedSinceUpdate || query._someResultWatcherChangedSinceUpdate) {
 		var resultWatchersToUpdate = {};
@@ -762,12 +763,14 @@ Query.prototype.update = function(postponeFinish) {
 			var queryJson = "{\"constraints\":" + query._getConstraintsJSON() + ",\"views\":" + query._getViewsJSON(resultWatchersToUpdate) + "}";
 			if (typeof verbose_log != 'undefined' && verbose_log.hasOwnProperty('outgoing_query') && verbose_log.outgoing_query)
 				console.log("outgoing query", query._id, queryJson);
+			var sendTime = (new Date()).getTime();
 			var post = $.post(query._backendUrl, queryJson, null, 'json');
 			query._someConstraintChangedSinceUpdate = false;
 			query._someResultWatcherChangedSinceUpdate = false;
 			query._resultWatchersChangedSinceUpdate = {};
 			finish = function () {
 				post.done(function (response) {
+					var replyTime = (new Date()).getTime();
 					if (typeof verbose_log != 'undefined' && verbose_log.hasOwnProperty('incoming_reply') && verbose_log.incoming_reply)
 						console.log("incoming reply", query._id, response);
 					var currentResultWatchersWithErrors = {};
@@ -780,6 +783,9 @@ Query.prototype.update = function(postponeFinish) {
 						currentResultWatchersWithErrors[watcher._id] = true;
 					});
 					query._updateErrorResolvedWatchers(currentResultWatchersWithErrors);
+					var doneTime = (new Date()).getTime();
+					if (typeof verbose_log != 'undefined' && verbose_log.hasOwnProperty('query_timing') && verbose_log.query_timing)
+						console.log("query timing", "prepare", (sendTime - startTime) / 1000, "wait on backend", (replyTime - sendTime) / 1000, "handle", (doneTime - replyTime) / 1000, "total", (doneTime - startTime) / 1000);
 				});
 			}
 		}
