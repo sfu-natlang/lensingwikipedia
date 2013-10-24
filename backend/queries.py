@@ -7,6 +7,7 @@ import traceback
 import whoosh, whoosh.query, whoosh.sorting
 import whooshutils
 import hashlib
+import time
 import json
 import caching
 import settings, default_settings
@@ -325,6 +326,7 @@ class Querier:
     python objects) query.
     query: The query as JSON (as python objects).
     """
+    start_time = time.time()
     try:
       whoosh_query = self.handle_all_constraints(query)
       if self.verbose:
@@ -337,4 +339,7 @@ class Querier:
         response[view_id] = { 'error': message }
       print >> sys.stderr, "error while handling query:"
       traceback.print_exc(file=sys.stderr)
+    if self.verbose:
+      done_time = time.time()
+      print >> sys.stderr, "query handling time: %0.4f" % (done_time - start_time)
     return response
