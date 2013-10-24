@@ -13,3 +13,10 @@ facets = {
 	"currentCountryText": "Current country",
 	"locationText": "Location"
 };
+// Verbose log settings that can be set in the browser console
+verbose_log = {
+	// Print out the queries being sent to the backend
+	outgoing_query: false,
+	// Print out the replies being received from the backend
+	incoming_reply: false
+}

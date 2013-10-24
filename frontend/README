@@ -19,6 +19,11 @@ After building, serve the files from either out/ or devel/.
 
 Note that config.js and config.mk are intended to isolate basic settings as much as possible, so that anyone wanting to repeatedly build the website can configure these files once and leave them in place without risk of interference from updates to the source code.
 
+Debugging
+=========
+
+The verbose_log structure in config.js sets options for verbose logging in the browser console. These options can be set at runtime in the console.
+
 Design notes
 ============
 
