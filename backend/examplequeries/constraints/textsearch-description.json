@@ -2,8 +2,7 @@
 	"constraints": {
 		"0": {
 			"type": "textsearch",
-			"value": "king",
-			"fields": ["description"]
+			"value": "description:king",
 		}
 	},
 	"views": {

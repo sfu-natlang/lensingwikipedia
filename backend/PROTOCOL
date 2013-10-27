@@ -48,10 +48,8 @@ For details see queries.py, especially constraint_to_sdb_query().
 
 ### Constrain to events that match a free text search on one or more fields:
 	{
-		"type": "fieldvalue",
-		"fields": /* optional; list of fields to search, defaults to all text fields specified by a querier setting if not given */
-		"value": /* single-token search term */,
-		"novariations": /* option; flag set if morphological variations should not be matched */
+		"type": "textsearch",
+		"value": /* search term in Whoosh's text format */
 	}
 
 ### Constrain to events in an time range (inclusive):
