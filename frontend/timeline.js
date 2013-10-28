@@ -13,7 +13,8 @@ function resultToPlotData(initialCounts, contextCounts) {
 	function patch(counts) {
 		for (year in counts) {
 			var nextYear = +year + 1;
-			if (!(nextYear in counts))
+			// Don't patch in a zero year since it is an invalid value in the input data
+			if (nextYear != 0 && !(nextYear in counts))
 				counts[nextYear] = 0;
 		}
 	}
@@ -28,10 +29,14 @@ function resultToPlotData(initialCounts, contextCounts) {
 
 	var samples = [];
 	for (year in allYears) {
+		var jsYear = +year;
+		// The input data represents n BCE as -n whereas Javascript uses 1-n
+		if (jsYear < 0)
+			jsYear += 1;
 		var date = new Date(0, 0, 1);
-		date.setFullYear(year);
+		date.setFullYear(jsYear);
 		sample = {
-			year: +year,
+			year: jsYear,
 			date: date,
 			initialCount: +initialCounts[year] || 0,
 			contextCount: +contextCounts[year] || 0
@@ -83,35 +88,70 @@ function drawCounts(data, box, draw, scales, classStr, clipId) {
 /*
  * Draw a single complete plot, including axes.
  */
-function drawPlot(svg, box, data, classStr, matchScales, clipId) {
+function drawPlot(svg, box, data, classStr, matchScales, fitY, logY, clipId) {
 	var draw = svg.append('g')
 		.attr('transform', "translate(" + box.x + "," + box.y + ")");
 	var scales = {
 		x: d3.time.scale().range([0, box.width]),
-		y: d3.scale.linear().range([box.height, 0])
+		y: (logY ? d3.scale.log().clamp(true) : d3.scale.linear()).range([box.height, 0])
 	};
-	if (matchScales != null) {
+	if (matchScales != null)
 		scales.x.domain(matchScales.x.domain());
-		scales.y.domain(matchScales.y.domain());
-	} else {
+	else
 		scales.x.domain(d3.extent(data, function (s) { return s.date; }));
-		scales.y.domain([0, d3.max(data, function (s) { return s.count; })]);
-	}
 	function xTickFormater(date) {
 		var year = date.getFullYear();
-		if (year > 0) {
-			return "" + year + "CE";
-		} else if (year < 0) {
-			return "" + (-year) + "BCE";
-		} else {
-			// !
-			return "0";
+		return year <= 0 ?  1 - year + "BCE" : year + "CE";
+	}
+	function yTickFormater(count) {
+		return "" + count;
+	}
+	var zeroDate = new Date(0, 0, 1);
+	zeroDate.setFullYear(1);
+	function xTickValues() {
+		// For any BCE tick that is aligned to a round five years and is at least five years from the next tick, we bump it up one year to produce ticks at rounder-looking dates. This is a bit of a hack but seems to work ok.
+		var ticks = scales.x.ticks();
+		var n = ticks.length - 1;
+		for (var i = 0; i < n; i++) {
+			var fullYear = ticks[i].getFullYear();
+			if (fullYear > 0)
+				break;
+			if (-fullYear % 5 != 0)
+				continue;
+			var rounded = new Date(0, 0, 1), minNext = new Date(0, 0, 1);
+			rounded.setFullYear(ticks[i].getFullYear());
+			minNext.setFullYear(ticks[i].getFullYear() + 5);
+			if (rounded.getTime() == ticks[i].getTime() && minNext.getTime() <= ticks[i + 1].getTime())
+				ticks[i].setFullYear(ticks[i].getFullYear() + 1);
 		}
+		return ticks;
 	}
 	var axes = {
-		x: d3.svg.axis().scale(scales.x).orient('bottom').tickFormat(xTickFormater),
-		y: d3.svg.axis().scale(scales.y).orient('left')
+		x: d3.svg.axis().scale(scales.x).orient('bottom').tickFormat(xTickFormater).tickValues(xTickValues),
+		y: d3.svg.axis().scale(scales.y).orient('left').tickFormat(yTickFormater)
 	};
+	function fitYScale() {
+		var xDom = scales.x.domain();
+		var maxY = 0;
+		if (fitY)
+			maxY = d3.max(data, function (s) { var t = s.date.getTime(); return xDom[0] <= t && t <= xDom[1] ? s.contextCount : 0; });
+		if (maxY <= 0)
+			maxY = d3.max(data, function (s) { return s.count; });
+		scales.y.domain([logY ? 1 : 0, maxY]);
+		draw.select('.y.axis').call(axes.y);
+		if (logY) {
+			var ticks = scales.y.ticks();
+			var lastTick = ticks[ticks.length - 1];
+			var newTicks = [];
+			var i = 1;
+			for (; i <= lastTick; i *= 10)
+				newTicks.push(i);
+			if (i / 10 < maxY)
+				newTicks.push(maxY);
+			axes.y.tickValues(newTicks);
+		}
+	}
+	fitYScale();
 	var updatePlot = drawCounts(data, box, draw, scales, classStr, clipId);
 	draw.append('g')
 		.attr('class', "x axis " + classStr)
@@ -122,8 +162,9 @@ function drawPlot(svg, box, data, classStr, matchScales, clipId) {
 		.call(axes.y);
 	function updateX(newXDomain) {
 		scales.x.domain(newXDomain);
-		updatePlot();
 		draw.select('.x.axis').call(axes.x);
+		fitYScale();
+		updatePlot();
 	}
 	return {
 		draw: draw,
@@ -144,9 +185,8 @@ function drawTimeline(svg, detailBox, selectBox, data, initialBrushExtent, brush
 		.append('rect')
 		.attr('width', detailBox.width)
 		.attr('height', detailBox.height);
-	var detailPlot = drawPlot(svg, detailBox, data, 'detail', null, clipId);
-
-	var selectPlot = drawPlot(svg, selectBox, data, 'selection', detailPlot.scales);
+	var detailPlot = drawPlot(svg, detailBox, data, 'detail', null, true, false, clipId);
+	var selectPlot = drawPlot(svg, selectBox, data, 'selection', detailPlot.scales, false, false);
 	var brush = null;
 	function updateBrush() {
 		detailPlot.updateX(brush.empty() ? selectPlot.scales.x.domain() : brush.extent());

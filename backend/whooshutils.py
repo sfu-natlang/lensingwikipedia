@@ -3,7 +3,14 @@ Shared things and consistency settings.
 """
 
 import re
-import whoosh, whoosh.index, whoosh.query
+import whoosh, whoosh.index, whoosh.query, whoosh.qparser
+
+# Separator for parts of the merged fields (must be something that whoosh will count as a distinct but otherwise unknown token, and not as whitespace)
+merge_field_sep = " _SEP_ "
+# Suffix for the field name of a text field mirroring a keyword field for searching purposes
+keyword_field_free_text_suffix = "_freeText"
+# Field name for merged version of all text and keyword fields
+all_text_merge_field = "all%s"% (keyword_field_free_text_suffix)
 
 comma_char = ","
 comma_rep_char = "\t"
@@ -24,6 +31,26 @@ def escape_keyword(keyword):
 # Unescape a single keyword
 def unescape_keyword(keyword):
   return comma_rep_re.sub(comma_char, keyword) if isinstance(keyword, unicode) else keyword
+
+class TextQueryParser(whoosh.qparser.QueryParser):
+  def __init__(self, schema):
+    super(TextQueryParser, self).__init__(all_text_merge_field, schema=schema)
+
+  def parse(self, text):
+    # We need to adjust the field names and make search terms lowercase.
+    # Note that commas here will already be interpreted by the query parser as whitespace, so we don't need to escape them.
+    def alter(node):
+      new_node = node
+      if hasattr(node, 'fieldname') and isinstance(self.schema[node.fieldname], whoosh.fields.KEYWORD):
+        new_node = node.copy()
+        new_node.fieldname = "%s%s" % (node.fieldname, keyword_field_free_text_suffix)
+      if hasattr(node, 'text'):
+        if new_node is node:
+          new_node = node.copy()
+        new_node.text = node.text.lower()
+      return new_node.apply(alter)
+    query = super(TextQueryParser, self).parse(text)
+    return alter(query)
 
 # Separate the value of a keyword field into separate keywords
 def split_keywords(value):

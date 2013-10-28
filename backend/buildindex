@@ -14,7 +14,7 @@ Indexes event data from a file or standard input, where each input line is a
 Json representation of a event. Creates a Whoosh index for the backend.
 """
 
-import whoosh, whoosh.index, whoosh.fields
+import whoosh, whoosh.index, whoosh.fields, whoosh.analysis, whoosh.support.charset
 import whooshutils
 import os, os.path
 import json
@@ -26,6 +26,8 @@ import cgi
 base_wikipedia_url = "https://en.wikipedia.org"
 num_arguments = 6
 
+text_analyzer = whoosh.analysis.RegexTokenizer() | whoosh.analysis.LowercaseFilter() | whoosh.analysis.CharsetFilter(whoosh.support.charset.accent_map) | whoosh.analysis.StopFilter() | whoosh.analysis.StemFilter()
+
 # The schema describing a document in the index. Any fields that backend queries can access should be mentioned in the protocol description document.
 fields = {
   'dbid': whoosh.fields.NUMERIC(stored=True, unique=True),
@@ -34,13 +36,18 @@ fields = {
   'locationText': whoosh.fields.KEYWORD(stored=True, commas=whooshutils.keyword_field_commas),
   'currentCountryText': whoosh.fields.KEYWORD(stored=True, commas=whooshutils.keyword_field_commas),
   'personText': whoosh.fields.KEYWORD(stored=True, commas=whooshutils.keyword_field_commas),
-  'description': whoosh.fields.TEXT(stored=True),
+  'description': whoosh.fields.TEXT(stored=True, analyzer=text_analyzer),
   'descriptionHtml': whoosh.fields.TEXT(stored=True),
   'allPoints': whoosh.fields.KEYWORD(stored=True),
   'role': whoosh.fields.KEYWORD(stored=True, commas=whooshutils.keyword_field_commas)
 }
+# Fields for all arguments.
 for i in range(num_arguments):
   fields['roleA%i' % (i)] = whoosh.fields.ID(stored=True)
+# A free text field for each keyword field.
+fields.update(dict(("%s%s" % (field_name, whooshutils.keyword_field_free_text_suffix), whoosh.fields.TEXT(stored=False, analyzer=text_analyzer)) for field_name, field in fields.iteritems() if isinstance(field, whoosh.fields.KEYWORD)))
+# A free text field merging all text and keyword fields
+fields["all%s" % (whooshutils.keyword_field_free_text_suffix)] = whoosh.fields.TEXT(stored=False, analyzer=text_analyzer)
 
 schema = whoosh.fields.Schema(**fields)
 
@@ -109,6 +116,15 @@ def make_event_doc(event):
       doc['roleA%i' % (role_id)] = unicode(event[key])
       all_roles.append(event[key])
   doc['role'] = unicode(whooshutils.join_keywords(all_roles))
+
+  # For searching purposes, copy all keyword field values to matching free text field and merge all text and keyword fields
+  fields_to_merge = ['description']
+  for field_name, field in schema.items():
+    if isinstance(field, whoosh.fields.KEYWORD):
+      doc["%s%s" % (field_name, whooshutils.keyword_field_free_text_suffix)] = unicode(whooshutils.merge_field_sep.join(whooshutils.split_keywords(doc[field_name])))
+      fields_to_merge.append(field_name)
+  doc[whooshutils.all_text_merge_field] = whooshutils.merge_field_sep.join(doc[f] for f in fields_to_merge)
+
   return doc
 
 if __name__ == '__main__':

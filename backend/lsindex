@@ -7,7 +7,9 @@ Arguments:
 WHOOSH-INDEX-DIR  Directory of the Whoosh index.
 
 Options:
--q QUERY       Optional query (in the python object format) to search for,
+-q QUERY       Optional query in the python object format to search for,
+  instead of showing all documents.
+-Q QUERY       Optional query string in the default text format to search for,
   instead of showing all documents.
 -l NUM         Limit on number of documents to show.
 -t SECONDS     Time limit before stopping the search.
@@ -23,16 +25,21 @@ This is a debugging tool, not part of the main toolchain.
 
 import whoosh, whoosh.index, whoosh.query, whoosh.sorting, whoosh.collectors
 import sys
+import whooshutils
 from whoosh.query import *
 
 def parse_query(text):
   return eval(text)
 
+def parse_query_string(text, schema):
+  parser = whooshutils.TextQueryParser(schema)
+  return parser.parse(text)
+
 if __name__ == '__main__':
   import getopt
 
   try:
-    opts, args = getopt.getopt(sys.argv[1:], "q:l:c:s:rt:")
+    opts, args = getopt.getopt(sys.argv[1:], "q:Q:l:c:s:rt:")
     if len(args) != 1:
       raise getopt.GetoptError("wrong number of positional arguments")
     opts = dict(opts)
@@ -41,12 +48,21 @@ if __name__ == '__main__':
     sys.exit(1)
 
   index = whoosh.index.open_dir(args[0])
-  query = parse_query(opts['-q']) if '-q' in opts else whoosh.query.Every()
+  python_query = parse_query(opts['-q']) if '-q' in opts else None
+  string_query = parse_query_string(opts['-Q'], index.schema) if '-Q' in opts else None
   limit = int(opts['-l']) if '-l' in opts else None
   count_on_field = opts['-c'] if '-c' in opts else None
   sort_by_field = opts['-s'] if '-s' in opts else None
   reverse_sort = '-r' in opts
   time_limit = float(opts['-t']) if '-t' in opts else None
+
+  query_parts = [p for p in [python_query, string_query] if p is not None]
+  if len(query_parts) == 0:
+    query = whoosh.query.Every()
+  elif len(query_parts) == 1:
+    query = query_parts[0]
+  else:
+    query = whoosh.query.And(query_parts)
 
   collector_opts = { 'limit': limit }
   if count_on_field is not None:

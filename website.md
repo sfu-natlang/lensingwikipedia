@@ -65,6 +65,37 @@ This assumes a bare bones CentOS 6 install.
     chmod g+w lensingwikipedia.cs.sfu.ca
     chmod g+s lensingwikipedia.cs.sfu.ca
 
+## Set up apache to provide URL alias
+
+    edit /etc/httpd/conf/httpd.conf to include the following line:
+        Include /etc/httpd/sites-enabled/*.conf
+    create file /etc/httpd/sites-available/lensingwikipedia.cs.sfu.ca.conf # see below
+    symlink above file to /etc/httpd/sites-enabled/lensingwikipedia.cs.sfu.ca.conf
+
+### sites-available/lensingwikipedia.cs.sfu.ca.conf 
+
+    <VirtualHost lensingwikipedia.cs.sfu.ca:80>
+      ServerName lensingwikipedia.cs.sfu.ca
+      ServerAdmin gripe@fas.sfu.ca
+
+      ## Vhost docroot
+      DocumentRoot /var/www/html/lensingwikipedia.cs.sfu.ca
+      <Directory /var/www/html/lensingwikipedia.cs.sfu.ca>
+        Options -Indexes FollowSymLinks MultiViews
+        AllowOverride None
+        Order allow,deny
+        allow from all
+      </Directory>
+
+      ## Logging
+      ErrorLog /var/log/httpd/lensingwikipedia.cs.sfu.ca_error.log
+      LogLevel warn
+      ServerSignature Off
+      CustomLog /var/log/httpd/lensingwikipedia.cs.sfu.ca_access.log combined
+
+    </VirtualHost>
+
+
 ## Run backend
 
     cd /var/www/html/checkouts/20131017/backend
@@ -111,3 +142,17 @@ This assumes a bare bones CentOS 6 install.
 
     MINCSS=cat
     MINJS=cat
+
+# Update the website
+
+## Restart backend
+
+    cd /var/www/html/checkouts/20131017/backend
+    nohup python2.7 backend -p 1510 -c full.conf
+
+## Pull new frontend and deploy
+
+    cd /var/www/html/checkouts/20131017/frontend
+    git pull
+    make release
+    cp out/*.* /var/www/html/lensingwikipedia.cs.sfu.ca/.

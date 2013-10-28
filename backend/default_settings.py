@@ -28,6 +28,8 @@ settings = {
     'result_pagination_cache_size': 100,
     # Names of fields to prime the cache with
     'fields_to_prime': ["role", "locationText", "personText", "currentCountryText"],
+    # Names of fields to use for text searches if no fields are specified in the query
+    'fields_for_text_searches': ["description", "role", "locationText", "personText", "currentCountryText"],
     # Number of events on a page of count by field value results
     'count_by_field_value_page_size': 50,
     # Number of events on a page of count by year results

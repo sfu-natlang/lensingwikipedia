@@ -79,17 +79,17 @@ function drawWorld(svg, group, worldData, projection) {
 		.attr("xlink:href", "#" + sphereId);
 
 	group.insert("path", ".graticule")
-		.datum(topojson.object(worldData, worldData.objects.land))
+		.datum(topojson.feature(worldData, worldData.objects.land))
 		.attr("clip-path", "url(#" + clipId + ")")
 		.attr("class", "map land")
 		.attr("d", path);
 	group.insert("path", "map .graticule")
-		.datum(topojson.object(worldData, worldData.objects.lakes))
+		.datum(topojson.feature(worldData, worldData.objects.lakes))
 		.attr("clip-path", "url(#" + clipId + ")")
 		.attr("class", "map lake")
 		.attr("d", path);
 	group.insert("path", ".graticule")
-		.datum(topojson.object(worldData, worldData.objects.rivers))
+		.datum(topojson.feature(worldData, worldData.objects.rivers))
 		.attr("clip-path", "url(#" + clipId + ")")
 		.attr("class", "map river")
 		.attr("d", path);
@@ -101,7 +101,7 @@ function drawWorld(svg, group, worldData, projection) {
 		.enter().append("path")
 		.attr("d", path);
 	group.insert("path", ".graticule")
-		.datum(topojson.mesh(worldData, worldData.objects.countries, function(a, b) { return a !== b; }))
+		.datum(topojson.feature(worldData, worldData.objects.countries, function(a, b) { return a !== b; }))
 		.attr("clip-path", "url(#" + clipId + ")")
 		.attr("class", "map currentcountryboundary")
 		.attr("d", path);
