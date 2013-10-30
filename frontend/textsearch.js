@@ -10,11 +10,11 @@
 function setupTextSearch(container, globalQuery) {
 	var outerElt = $("<div class=\"textsearch\"></div>").appendTo(container);
 
-	var searchInputElt = $("<input type=\"text\" title=\"Enter search term here.\"></input>").appendTo($("<div class=\"inputbox\"></div>").appendTo(outerElt));
-
-	var btnBoxElt = $("<div class=\"buttonbox\"></div>").appendTo(outerElt);
+	var formElt = $("<form></form>").appendTo(outerElt);
+	var searchInputElt = $("<input type=\"text\" title=\"Enter search term here.\"></input>").appendTo($("<div class=\"inputbox\"></div>").appendTo(formElt));
+	var btnBoxElt = $("<div class=\"buttonbox\"></div>").appendTo(formElt);
 	var clearElt = $("<button type=\"button\" class=\"btn btn-warning\" title=\"Clear the text search constraint.\">Clear</button>").appendTo(btnBoxElt);
-	var searchElt = $("<button type=\"button\" class=\"btn btn-primary\" title=\"Add text search constraint.\">Search</button>").appendTo(btnBoxElt);
+	var searchElt = $("<button type=\"submit\" class=\"btn btn-primary\" title=\"Add text search constraint.\">Search</button>").appendTo(btnBoxElt);
 
 	$("<div class=\"infobox\">See the <a href=\"http://pythonhosted.org/Whoosh/querylang.html\" target=\"_blank\">Whoosh documentation</a> for help.</div>").appendTo(outerElt);
 
@@ -53,5 +53,8 @@ function setupTextSearch(container, globalQuery) {
 	});
 	searchElt.bind('click', function() {
 		update(searchInputElt.val());
+	});
+	formElt.submit(function () {
+		return false;
 	});
 }
