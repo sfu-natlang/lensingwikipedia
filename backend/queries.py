@@ -12,6 +12,15 @@ import json
 import caching
 import settings, default_settings
 
+# Map from field names to use in searching to real field names
+text_search_field_map = {
+  'id': 'dbid',
+  'predicate': 'eventRoot',
+  'location': 'locationText',
+  'currentcountry': 'currentCountryText',
+  'person': 'personText'
+}.get
+
 class QueryHandlingError(Exception):
   """
   Exception for errors in query handling that should send an error message to
@@ -37,7 +46,7 @@ class Querier:
     self.results_pagination_cache = caching.FIFO(self.result_pagination_cache_size)
     self.response_cache = caching.Complete()
 
-    self.query_parser = whooshutils.TextQueryParser(schema=whoosh_index.schema)
+    self.query_parser = whooshutils.TextQueryParser(schema=whoosh_index.schema, field_map=text_search_field_map)
 
   def should_cache(self, query, view):
     """

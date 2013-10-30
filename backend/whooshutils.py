@@ -33,17 +33,28 @@ def unescape_keyword(keyword):
   return comma_rep_re.sub(comma_char, keyword) if isinstance(keyword, unicode) else keyword
 
 class TextQueryParser(whoosh.qparser.QueryParser):
-  def __init__(self, schema):
+  def __init__(self, schema, field_map=lambda x: None):
     super(TextQueryParser, self).__init__(all_text_merge_field, schema=schema)
+    self.field_map = field_map
+
+    self.remove_plugin_class(whoosh.qparser.FieldsPlugin)
+    self.add_plugin(whoosh.qparser.FieldsPlugin(remove_unknown=False))
 
   def parse(self, text):
     # We need to adjust the field names and make search terms lowercase.
     # Note that commas here will already be interpreted by the query parser as whitespace, so we don't need to escape them.
     def alter(node):
       new_node = node
-      if hasattr(node, 'fieldname') and isinstance(self.schema[node.fieldname], whoosh.fields.KEYWORD):
-        new_node = node.copy()
-        new_node.fieldname = "%s%s" % (node.fieldname, keyword_field_free_text_suffix)
+      if hasattr(node, 'fieldname'):
+        mapped_field_name = self.field_map(node.fieldname)
+        if mapped_field_name is not None:
+          if new_node is node:
+            new_node = node.copy()
+          node.fieldname = mapped_field_name
+        if isinstance(self.schema[node.fieldname], whoosh.fields.KEYWORD):
+          if new_node is node:
+            new_node = node.copy()
+          new_node.fieldname = "%s%s" % (node.fieldname, keyword_field_free_text_suffix)
       if hasattr(node, 'text'):
         if new_node is node:
           new_node = node.copy()
