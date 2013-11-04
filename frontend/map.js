@@ -202,7 +202,7 @@ function drawMarkers(svg, group, proj, initialCounts, contextCounts) {
 function makeMapControls(container, projections, minZoom, maxZoom, defaults) {
 	container.append(" \
 		<div class=\"selbox\"> \
-			<button type=\"button\" class=\"btn btn-mini btn-warning clear\" title=\"Clear the map selection.\">Clear selection</button> \
+			<button type=\"button\" class=\"btn btn-mini btn-warning clear mapclear\" title=\"Clear the map selection.\">Clear selection</button> \
 			<div class=\"btn-group mode\" data-toggle=\"buttons-radio\"></div> \
 		</div> \
 		<div class=\"viewbox\"> \
