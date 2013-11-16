@@ -75,7 +75,7 @@ def geo_cluster(events, threshold, assign_event_to_clusters):
   clusters = []
   event_clusters = {}
 
-  for i, (event, points) in enumerate(events):
+  for (i, event, points) in events:
     print >> sys.stderr, "clustering event number %i" % (i)
 
     for point in points:
@@ -104,11 +104,11 @@ def geo_cluster(events, threshold, assign_event_to_clusters):
 
 def iter_events_from_index(index):
   with index.searcher() as searcher:
-    for hit in searcher.search(whoosh.query.Every(), limit=None):
+    for i, hit in enumerate(searcher.search(whoosh.query.Every(), limit=None)):
       points_val = hit['allPoints']
       points = [tuple(float(x) for x in t.split(",")) for t in whooshutils.split_keywords(points_val)] if len(points_val) > 0 else []
       if len(points) > 0:
-        yield hit['dbid'], points
+        yield i, hit['dbid'], points
 
 def run(input_index, output_index, threshold, doc_buffer_size, do_dummy):
   lookup = {}
