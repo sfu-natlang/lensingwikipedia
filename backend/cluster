@@ -102,21 +102,6 @@ def geo_cluster(events, threshold, assign_event_to_clusters):
 
   return clusters
 
-def iter_events_from_file(input, first_id):
-  def get_points(event):
-    def points_from(items):
-      return set((float(i['longitude']), float(i['latitude'])) for i in items.itervalues() if 'latitude' in i and 'longitude' in i)
-    points = points_from(event['wiki_info'])
-    if 'locations' in event:
-      points |= points_from(event['locations'])
-    return points
-  import json
-  for id, line in enumerate(input, first_id):
-    event = json.loads(line)
-    points = get_points(event)
-    if len(points) > 0:
-      yield id, points
-
 def iter_events_from_index(index):
   with index.searcher() as searcher:
     for hit in searcher.search(whoosh.query.Every(), limit=None):
