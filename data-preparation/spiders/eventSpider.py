@@ -3,44 +3,62 @@ from scrapy.selector import HtmlXPathSelector
 from scrapy.contrib.spiders import CrawlSpider, Rule
 from scrapy.contrib.linkextractors.sgml import SgmlLinkExtractor
 import sys
+import os
 import re
 import json
 
 #from django.utils.encoding import smart_str
 
+def ensure_dir(f):
+    d = os.path.dirname(f)
+    if not os.path.exists(d):
+        os.makedirs(d)
+    fout = open(f,"w")
+    fout.close
+    
+
 class eventSpider(BaseSpider):
-	name = "eventSpider"
+	name = "eventSpiderSpider"
 	allowed_domains = ["en.wikipedia.org"]
+	outDir=''
 	outFile=''
 	endYear=0
 	def __init__(self, **kwargs):
 		BaseSpider.__init__(self)
 		try:
-			self.outFile=kwargs['outfile']
+			self.outDir=kwargs['outDir']
+			if self.outDir[-1]!= '/': self.outDir += '/'
 			self.endYear=int(kwargs['endYear'])
 		except:
-			print >>sys.stderr, "eventSpider needs 2 arguments: outfile, endYear"
+			print >>sys.stderr, "eventSpider needs 3 arguments: outDir, outFile, endYear"
 			exit(1)
 		startingAdd = "http://en.wikipedia.org/wiki/"
 		self.start_urls = []
+#		self.start_urls = [startingAdd+"2011"]
+#  		if not os.path.exists(self.outDir+"2011"):   os.makedirs(self.outDir+"2011")
 		for i in range(1500, 499, -10):
 			add = startingAdd+str(i)+"_BC"
 			self.start_urls.append(add)
+			path = self.outDir+str(i)+"_BC/"
+    			if not os.path.exists(path):   os.makedirs(path)
 		for i in range(499, 0, -1):
 			add = startingAdd+str(i)+"_BC"
 			self.start_urls.append(add)
+			path = self.outDir+str(i)+"_BC/"
+    			if not os.path.exists(path):   os.makedirs(path)
 		for i in range(1, self.endYear+1):
 			add = startingAdd+str(i)
 			self.start_urls.append(add)
+			path = self.outDir+str(i)+"/"
+   			if not os.path.exists(path):   os.makedirs(path)
 		
-		fout = open(self.outFile,"w")
-		fout.close
 
 	def parse(self,response):
 		printable = {}
 		year = response.url.split("/")[-1]
 		printable['year'] = year
-		fout = open(self.outFile,"a")
+		fPath = open(self.outDir+year+"/path.txt","w")
+		numFile = 0
 		ptr = HtmlXPathSelector(response)
 		ulDict = {}
 		roots = ptr.select('//h2')
@@ -101,7 +119,9 @@ class eventSpider(BaseSpider):
 					if str(content) != "\n":
 						text += str(content).rstrip("\n")
 				text = text.rstrip('\n')
+				text = re.sub(r'\[[0-9]+\]', r' ', text)
 				printable['description'] = text
+				
 				linked_entity = []
 				links = li.select('./a')
 				#links = hxs.select('./a')
@@ -122,11 +142,19 @@ class eventSpider(BaseSpider):
 					clnhtmlText=clnhtmlText[4:]
 				if clnhtmlText.endswith("</li>"):
 					clnhtmlText=clnhtmlText[:-5]
+				clnhtmlText = re.sub(r'<sup id=".*" class="reference">.*</sup>', r' ', clnhtmlText)
 				clnhtmlText = clnhtmlText.strip()
 				printable['html_fragment'] = clnhtmlText
-				print >> fout, json.dumps(printable)
+				fout = open(self.outDir+year+"/"+str(numFile)+".txt","w")
+				fJson = open(self.outDir+year+"/"+str(numFile)+".json","w")
+				print >> fJson, json.dumps(printable)
+				print >> fout, printable['description']
+				print >> fPath, self.outDir+year+"/"+str(numFile)+".txt"
 				#fout.write("%s\t%s\t%s\t%s\t%s\n" %(year,topic_name,text, clnhtmlText, "\t".join(linked_entity))
-		fout.close
+				fout.close
+				fJson.close
+				numFile += 1
 
+		fPath.close	
 
 

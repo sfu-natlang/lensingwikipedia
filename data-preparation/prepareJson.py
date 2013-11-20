@@ -136,20 +136,18 @@ def findSubStr(Str, subStr, last=0):
 	return b,e
 
 def addNERInfo(docId, tokDesc):
-	global eventsLst, nerLst, perDict
+	global eventsLst, perDict, locDict
 	Desc = eventsLst[docId]["description"]	
-	
+	cur_ner_info = eventsLst[docId]["ner_info"]
 	for index, label in enumerate(['person','organization', 'locations']):
-		if len(nerLst[docId][index]) > 0:
-			eventsLst[docId][label] = {}
+		if label in cur_ner_info and len(cur_ner_info[label]) > 0:
+			if label not in eventsLst[docId]: 
+				eventsLst[docId][label] = {}
 			lastInd = 0
-			for l in nerLst[docId][index]:
+			for l in cur_ner_info[label]:
 				b,e = findSubStrTok(tokDesc, l, lastInd)
-				#b,e = findSubStr(Desc, l)
 				if b < 0:
 					print "err (%s): '%s'  is not in '%s'" %(label, l, tokDesc)
-					#exit(1)
-					#print lastInd
 					continue
 				lastInd = e
 				b += 1
@@ -168,13 +166,6 @@ def addNERInfo(docId, tokDesc):
 						eventsLst[docId][label][l] = {}
 						eventsLst[docId][label][l]["span"] = (rb, re)
 						eventsLst[docId][label][l]["title"] = perDict[l]
-					for link in eventsLst[docId]['wiki_info']:
-						url = eventsLst[docId]['wiki_info'][link]['url']
-						if url in perDict:
-							eventsLst[docId][label][link] = {}
-							eventsLst[docId][label][link]["span"] = eventsLst[docId]['wiki_info'][link]['span']
-							eventsLst[docId][label][link]["title"] = perDict[url]
-						
 				else:
 					eventsLst[docId][label][l] = (rb, re)
 	
@@ -190,9 +181,8 @@ def addNERInfo(docId, tokDesc):
 				break
 	return wl, wc
 
-
 def print_doc(docs, docId, outFile):
-	global eventsLst, nerLst, woLoc, woCountry
+	global eventsLst, woLoc, woCountry
 	tokDesc = " ".join([s.sentence for s in docs])
 	setTokDesc = set(tokDesc.split())
 	setDesc = set(eventsLst[docId]["description"].split())
@@ -210,8 +200,7 @@ def print_doc(docs, docId, outFile):
 
 	for sentInd, sent in enumerate(docs):
 		preSentLen = len(" ".join([s.sentence for s in docs[:sentInd]]))
-		#print "pre sent lens: ", preSentLen
-		splitedSent = sent.sentence.split()
+		splitedSent = sent.sentence.split(" ")
 		for pred in sent.predicates:
 			printable = {}
 			for key in pred:
@@ -234,7 +223,6 @@ def print_doc(docs, docId, outFile):
 					else:
 						(rb, re) = (b,e)
 					text = Desc[rb:re]
-					#print key, pred[key]
 					if key == 'V':
 						printable["event"] = ((rb, re), text)
 						printable["eventRoot"] = pred[key][1]
@@ -243,9 +231,10 @@ def print_doc(docs, docId, outFile):
 						printable["role"+key]=pred[key][1]
 			printable["descriptionTokenized"] = tokDesc
 			for key in eventsLst[docId]:
-				#if key in printable: 
-				#	print "err,   multiple key!"
+				if key in printable: 
+					print "err,   multiple key!\n", key, tokDesc
 				#	exit(1)
+				if key == 'ner_info': continue
 				printable[key] = copy.deepcopy(eventsLst[docId][key])
 
 			print >> outFile, json.dumps(printable)
@@ -262,9 +251,11 @@ def read_fullEvents(fileName):
 		#description = str(items['description'].encode('utf8', 'ignore'))
 		description = items['description']
 		dict = {}
+		tempPersonDict = {}
+		tempLocDict = {}
 		for k in items:
 			if k == 'year':
-				if items[k].endswith("_BC"):		dict['year'] = -1*int(items[k][:-3])
+				if items[k].endswith("_BC"):	dict['year'] = -1*int(items[k][:-3])
 				else:	dict['year']= int(items[k])
 			elif k == 'urls':
 				urlDic = {}
@@ -284,22 +275,38 @@ def read_fullEvents(fileName):
 						continue
 					urlDic[text] = {}
 					urlDic[text]["url"] = url
+					if url in globalURLDict:
+						urlDic[text]['category'] = globalURLDict[url]['category']
+						if text.encode('utf-8') not in globalURLDict[url]['text']:
+							print "Warning!!!  matched urls and unmatched texts!\n%s  -- %s"%(items['year'],line)
+							print text.encode('utf-8'), globalURLDict[url]['text']
+					else:
+						print "err (urls): '%s'\n from '%s' \nis not in url.json" %(text.encode('utf-8'), description.encode('utf-8'))
+						#exit(1)
+						
 					if url in locDict:
+						tempLocDict[text]={}
 						for keyInLoc in locDict[url]:
 							urlDic[text][keyInLoc] = locDict[url][keyInLoc]
+							tempLocDict[text][keyInLoc] = locDict[url][keyInLoc]
+						tempLocDict[text]["span"] = (b,e)
 					urlDic[text]["span"] = (b,e)
 					lastInd=e
+					if url in perDict:
+						tempPersonDict[text] = {"span":(b,e), "title":perDict[url]}
 				dict["wiki_info"]=urlDic
 			else:
 				#key = str(k.encode('utf8', 'ignore'))
 				#dict[key] = str(items[k].encode('utf8', 'ignore'))
 				dict[k] = items[k]
+		if len(tempPersonDict) > 0: dict['person']=tempPersonDict
+		if len(tempLocDict) > 0: dict['locations']=tempLocDict
 		eventsLst.append(dict)
 	inFile.close
 
 def parse_SRL():
 	global eventsLst, locDict, noEvents, woLoc, woCountry, finalJsonFile
-	inFile = open(sys.argv[1], "r")
+	inFile = codecs.open(sys.argv[1], "r", "utf-8")
 	outFile = codecs.open(finalJsonFile, "w", "utf-8")
         docId=0
 	sentId=0
@@ -410,6 +417,9 @@ def read_person(fileName):
 			sys.stderr.write("           INFO  :: Invalid person entry:\n %s\n Aborting!!\n" % (line))
 			return 1
 		perDict[key] = items['title']
+		if perDict[key] == "8268 Goerdeler":
+			print  line
+			return 1
 	inFile.close
 	
 
@@ -460,11 +470,26 @@ def readNER(fileName):
 	nerLst.append((personLst,orgLst,locationLst))
 	print len(nerLst)
         inpFile.close
-	
+
+def read_url(fileName):
+	inFile = codecs.open(fileName, "r", encoding='utf-8')
+	global globalURLDict
+	globalURLDict = {}
+	for line in inFile:
+		items = json.loads(line[:-1], 'utf-8')
+		if 'url' in items:
+			key = items['url']
+		else:
+			sys.stderr.write("           INFO  :: Invalid url entry:\n %s\n Aborting!!\n" % (line))
+			exit(1)
+		globalURLDict[key] = {'text': items["text"], 'category': items["category"]}
+	print "read %d url entries from %s" %(len(globalURLDict), fileName)
+	inFile.close()
+			
 
 if __name__ == '__main__':
-	if len(sys.argv) < 6 or len(sys.argv) > 7:
-		print "usage:  python  %s <srl-data-file> <location-json-file> <person-json-file> <crawled-json-file> <NER_output> <json-output-name> [flag for computing spans]" %(sys.argv[0])
+	if len(sys.argv) < 7 or len(sys.argv) > 8:
+		print "usage:  python  %s <srl-data-file> <location-json-file> <person-json-file> <urlInfo-json-file> <crawled-json-file> <NER_output> <json-output-name> [flag for computing spans]" %(sys.argv[0])
 		print "'frame_labels.txt' and 'def_roles.txt' are supposed to be in local directory."
 		exit(1)
 	if len(sys.argv) == 8:
@@ -475,7 +500,7 @@ if __name__ == '__main__':
 	read_frames(script_dir+"frame_labels.txt")
 	read_location(sys.argv[2])
 	read_person(sys.argv[3])
-	read_fullEvents(sys.argv[4])
-	readNER(sys.argv[5])
+	read_url(sys.argv[4])
+	read_fullEvents(sys.argv[5])
 	finalJsonFile = sys.argv[6]
 	parse_SRL()
