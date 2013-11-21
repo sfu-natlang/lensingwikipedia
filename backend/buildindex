@@ -46,7 +46,7 @@ fields = {
 for i in range(num_arguments):
   fields['roleA%i' % (i)] = whoosh.fields.ID(stored=True)
 # A free text field for each keyword field.
-fields.update(dict(("%s%s" % (field_name, whooshutils.keyword_field_free_text_suffix), whoosh.fields.TEXT(stored=False, analyzer=keyword_text_analyzer)) for field_name, field in fields.iteritems() if isinstance(field, whoosh.fields.KEYWORD)))
+fields.update(dict(("%s%s" % (field_name, whooshutils.keyword_field_free_text_suffix), whoosh.fields.TEXT(stored=True, analyzer=keyword_text_analyzer)) for field_name, field in fields.iteritems() if isinstance(field, whoosh.fields.KEYWORD)))
 # A free text field merging all text and keyword fields
 fields["all%s" % (whooshutils.keyword_field_free_text_suffix)] = whoosh.fields.TEXT(stored=True, analyzer=text_analyzer)
 
