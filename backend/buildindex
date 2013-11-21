@@ -37,6 +37,7 @@ fields = {
   'locationText': whoosh.fields.KEYWORD(stored=True, commas=whooshutils.keyword_field_commas),
   'currentCountryText': whoosh.fields.KEYWORD(stored=True, commas=whooshutils.keyword_field_commas),
   'personText': whoosh.fields.KEYWORD(stored=True, commas=whooshutils.keyword_field_commas),
+  'categoryText': whoosh.fields.KEYWORD(stored=True, commas=whooshutils.keyword_field_commas),
   'description': whoosh.fields.TEXT(stored=True, analyzer=text_analyzer),
   'descriptionHtml': whoosh.fields.TEXT(stored=True),
   'allPoints': whoosh.fields.KEYWORD(stored=True),
@@ -106,6 +107,7 @@ def make_event_doc(event):
     'locationText': unicode(whooshutils.join_keywords(locationLocationText | wikiInfoLocationText)),
     'currentCountryText': unicode(whooshutils.join_keywords((v['country'] for (k, v) in event['locations'].iteritems() if 'country' in v) if 'locations' in event else [])),
     'personText': unicode(whooshutils.join_keywords((v['title'] for v in event['person'].itervalues()) if 'person' in event else [])),
+    'categoryText': unicode(whooshutils.join_keywords(c for v in (event['wiki_info'].itervalues() if 'wiki_info' else []) if 'category' in v for c in v['category'])),
     'description': unicode(event['description']),
     'descriptionHtml': unicode(make_html_description(event)),
     'allPoints': unicode(whooshutils.join_keywords("%f,%f" % p for p in points))
