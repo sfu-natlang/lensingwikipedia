@@ -18,7 +18,8 @@ text_search_field_map = {
   'predicate': 'eventRoot',
   'location': 'locationText',
   'currentcountry': 'currentCountryText',
-  'person': 'personText'
+  'person': 'personText',
+  'category': 'categoryText'
 }.get
 
 class QueryHandlingError(Exception):
