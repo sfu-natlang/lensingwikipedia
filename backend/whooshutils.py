@@ -51,7 +51,7 @@ class TextQueryParser(whoosh.qparser.QueryParser):
           if new_node is node:
             new_node = node.copy()
           node.fieldname = mapped_field_name
-        if isinstance(self.schema[node.fieldname], whoosh.fields.KEYWORD):
+        if isinstance(self.schema[node.fieldname], whoosh.fields.KEYWORD) or isinstance(self.schema[node.fieldname], whoosh.fields.ID):
           if new_node is node:
             new_node = node.copy()
           new_node.fieldname = "%s%s" % (node.fieldname, keyword_field_free_text_suffix)
