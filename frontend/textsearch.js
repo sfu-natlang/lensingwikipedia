@@ -36,7 +36,7 @@ function setupTextSearch(container, globalQuery) {
 					<li>description</li> \
 					<li>category</li> \
 					<li>role</li> \
-					<li>roleA0, roleA0, etc.</li> \
+					<li>roleA0, roleA1, etc.</li> \
 					</ul> \
 				</li> \
 			</ul> \
