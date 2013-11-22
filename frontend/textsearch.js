@@ -40,6 +40,7 @@ function setupTextSearch(container, globalQuery) {
 					</ul> \
 				</li> \
 			</ul> \
+			See the <a href=\"http://pythonhosted.org/Whoosh/querylang.html\" target=\"_blank\">Whoosh documentation</a> for syntax details. \
 		</div> \
 	");
 
