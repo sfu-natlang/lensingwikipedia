@@ -34,12 +34,14 @@ if __name__ == "__main__":
 		exit(1)
 
 	perDic = {}
+	titleDic = {}
 	for line in fper:
 		items = json.loads(line[:-1], "utf-8")				
 		#perDic[items['url']] = items
 		perDic[items['url']] = {}
 		perDic[items['url']]['title'] = items['title']
 		perDic[items['url']]['url'] = items['url']
+		titleDic[items['title']] = 1
 	fper.close
 
 	for line in fperNER:
@@ -58,6 +60,7 @@ if __name__ == "__main__":
 				perDic[text] = {}
 				perDic[text]['title'] = items['title']
 				perDic[text]['text'] = text
+				titleDic[items['title']] = 1
 	fperNER.close
 
 	for key in perDic:
@@ -65,6 +68,7 @@ if __name__ == "__main__":
 		#print >> fDict, "%s\t%s" %(key, title)
 		print >> fDict, json.dumps(perDic[key])
 
-	print "No of Persons: ", len(perDic)
+	print "No of entries: ", len(perDic)
+	print "No of persons: ", len(titleDic)
 
 	fDict.close

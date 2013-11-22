@@ -131,10 +131,8 @@ def run(input_index, output_index, threshold, doc_buffer_size, do_dummy):
       print >> sys.stderr, "event %i: %s" % (event['dbid'], ' '.join(point_vals))
       event['referencePoints'] = unicode(whooshutils.join_keywords(point_vals))
     if doc_buffer_size is not None:
-      print >> sys.stderr, "A"
       whooshutils.update_all_in_place(input_index, writer, modify, 'dbid', buffer_size=doc_buffer_size)
     else:
-      print >> sys.stderr, "B"
       whooshutils.copy_all(input_index, writer, modify)
 
     print >> sys.stderr, "committing"

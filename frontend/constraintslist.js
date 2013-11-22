@@ -82,6 +82,7 @@ function setupConstraintList(container, globalQuery) {
 	}, true);
 
 	clearAllElt.click(function() {
+		$(".mapclear").click();
 		globalQuery.clearAll();
 		globalQuery.update();
 	});

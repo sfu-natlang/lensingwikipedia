@@ -27,6 +27,7 @@ base_wikipedia_url = "https://en.wikipedia.org"
 num_arguments = 6
 
 text_analyzer = whoosh.analysis.RegexTokenizer() | whoosh.analysis.LowercaseFilter() | whoosh.analysis.CharsetFilter(whoosh.support.charset.accent_map) | whoosh.analysis.StopFilter() | whoosh.analysis.StemFilter()
+keyword_text_analyzer = whoosh.analysis.RegexTokenizer() | whoosh.analysis.LowercaseFilter() | whoosh.analysis.CharsetFilter(whoosh.support.charset.accent_map)
 
 # The schema describing a document in the index. Any fields that backend queries can access should be mentioned in the protocol description document.
 fields = {
@@ -36,6 +37,7 @@ fields = {
   'locationText': whoosh.fields.KEYWORD(stored=True, commas=whooshutils.keyword_field_commas),
   'currentCountryText': whoosh.fields.KEYWORD(stored=True, commas=whooshutils.keyword_field_commas),
   'personText': whoosh.fields.KEYWORD(stored=True, commas=whooshutils.keyword_field_commas),
+  'categoryText': whoosh.fields.KEYWORD(stored=True, commas=whooshutils.keyword_field_commas),
   'description': whoosh.fields.TEXT(stored=True, analyzer=text_analyzer),
   'descriptionHtml': whoosh.fields.TEXT(stored=True),
   'allPoints': whoosh.fields.KEYWORD(stored=True),
@@ -45,9 +47,9 @@ fields = {
 for i in range(num_arguments):
   fields['roleA%i' % (i)] = whoosh.fields.ID(stored=True)
 # A free text field for each keyword field.
-fields.update(dict(("%s%s" % (field_name, whooshutils.keyword_field_free_text_suffix), whoosh.fields.TEXT(stored=False, analyzer=text_analyzer)) for field_name, field in fields.iteritems() if isinstance(field, whoosh.fields.KEYWORD)))
+fields.update(dict(("%s%s" % (field_name, whooshutils.keyword_field_free_text_suffix), whoosh.fields.TEXT(stored=True, analyzer=keyword_text_analyzer)) for field_name, field in fields.iteritems() if isinstance(field, whoosh.fields.KEYWORD)))
 # A free text field merging all text and keyword fields
-fields["all%s" % (whooshutils.keyword_field_free_text_suffix)] = whoosh.fields.TEXT(stored=False, analyzer=text_analyzer)
+fields["all%s" % (whooshutils.keyword_field_free_text_suffix)] = whoosh.fields.TEXT(stored=True, analyzer=text_analyzer)
 
 schema = whoosh.fields.Schema(**fields)
 
@@ -105,6 +107,7 @@ def make_event_doc(event):
     'locationText': unicode(whooshutils.join_keywords(locationLocationText | wikiInfoLocationText)),
     'currentCountryText': unicode(whooshutils.join_keywords((v['country'] for (k, v) in event['locations'].iteritems() if 'country' in v) if 'locations' in event else [])),
     'personText': unicode(whooshutils.join_keywords((v['title'] for v in event['person'].itervalues()) if 'person' in event else [])),
+    'categoryText': unicode(whooshutils.join_keywords(c for v in (event['wiki_info'].itervalues() if 'wiki_info' else []) if 'category' in v for c in v['category'])),
     'description': unicode(event['description']),
     'descriptionHtml': unicode(make_html_description(event)),
     'allPoints': unicode(whooshutils.join_keywords("%f,%f" % p for p in points))

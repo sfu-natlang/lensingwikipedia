@@ -28,6 +28,7 @@ The following fields can be used for field constraints and views (described belo
 - locationText: List of location keywords.
 - currentCountryText: List of current country keywords.
 - personText: List of person keywords.
+- categoryText: List of category keywords.
 - description: Text description of the event. 
 - roleA0, roleA1, etc.: The role values for the event.
 - role: The roleA0, roleA1, etc. field values as a single keyword listr

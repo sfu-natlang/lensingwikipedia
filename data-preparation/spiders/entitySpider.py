@@ -17,13 +17,17 @@ class locationSpider(BaseSpider):
 		BaseSpider.__init__(self)
 		startingAdd = "http://en.wikipedia.org/wiki/"
 		self.inFile=kwargs['infile']
+		self.outFileURL=kwargs['outfile']
 		self.outFileLoc=kwargs['outfileLoc']
 		self.outFilePer=kwargs['outfilePer']
 		self.start_urls = []
 		self.url2locDic = {}
 		self.url2urlDic = {}
 		self.readFile(self.inFile)
+		fout = open(self.outFileURL,"w")
+		fout.close
 		fout = open(self.outFileLoc,"w")
+		fout.close
 		fout = open(self.outFilePer,"w")
 		fout.close
 	
@@ -45,7 +49,7 @@ class locationSpider(BaseSpider):
 					else:
 						self.url2locDic[header].add(items['header'])
 			except:
-				continue
+				pass
 			if 'urls' not in items: continue
 			for url in items['urls']:
 				key = url[0]
@@ -75,8 +79,18 @@ class locationSpider(BaseSpider):
 		person = {}
 		location['title'] = title
 		person['title'] = title
+		urlLst = {}
+		urlLst['title'] = title
+		try:
+			urlLst['text'] = list(self.url2locDic[url])
+			urlLst['url'] = self.url2urlDic[url]
+		except:
+			urlLst['text'] = 'UNKNOWN_TXT'
+			urlLst['url'] = url[len(startingAdr):]
+		urlLst['category'] = []
 
 		fout = open(self.outFilePer,"a")
+		foutURL = open(self.outFileURL,"a")
 		spans = ptr.select("//div[@id='mw-normal-catlinks']")
 		if len(spans) != 1:
 			spans = ptr.select("//div[@id='mw-normal-catlinks']/a[text()='Categories']")
@@ -85,6 +99,7 @@ class locationSpider(BaseSpider):
 				exit(1)
 		categories = spans[0].select("descendant::li/a")
 		cat_string = ""
+		isPerson = 0
 		for cat in categories:
 			#tmp = cat.select('@href').extract()
 			#cat_url = str(tmp[0]) if len(tmp) == 1 else ""
@@ -92,7 +107,10 @@ class locationSpider(BaseSpider):
 			cat_name = str(tmp[0].encode('utf8', 'ignore')) if len(tmp) ==1 else ''
 			#cat_string += cat_url+" "+cat_name+"\t"
 			cat_name = cat_name.strip()
-			if cat_name.endswith("births") or cat_name.endswith("deaths"):# or cat_name.startswith('Kings of'):
+			urlLst['category'].append(cat_name)
+			print cat_name
+			if not isPerson  and (cat_name.endswith("births") or cat_name.endswith("deaths") or cat_name.startswith('Kings of') or cat_name.startswith('Female') or cat_name.startswith('Women')):
+				print "Yes! it is person!!"
 				try:
 					person['text'] = list(self.url2locDic[url])
 					person['url'] = self.url2urlDic[url]
@@ -100,8 +118,12 @@ class locationSpider(BaseSpider):
 					person['text'] = 'UNKNOWN_TXT'
 					person['url'] = url[len(startingAdr):]
 				print >> fout, json.dumps(person)
-				break
+				isPerson = 1
+				#break
 		fout.close
+		print >> foutURL, json.dumps(urlLst)
+		foutURL.close
+		if isPerson: return
 
 
 		fout = open(self.outFileLoc,"a")
