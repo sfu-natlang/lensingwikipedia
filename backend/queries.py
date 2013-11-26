@@ -12,15 +12,11 @@ import json
 import caching
 import backend_settings, backend_settings_defaults
 
-# Map from field names to use in searching to real field names
-text_search_field_map = {
-  'id': 'dbid',
-  'predicate': 'eventRoot',
-  'location': 'locationText',
-  'currentcountry': 'currentCountryText',
-  'person': 'personText',
-  'category': 'categoryText'
-}.get
+# If there is a local configuration file use it, otherwise the defaults.
+try:
+  import indexing_config
+except ImportError:
+  import indexing_config_defaults as indexing_config
 
 class QueryHandlingError(Exception):
   """
@@ -47,7 +43,7 @@ class Querier:
     self.results_pagination_cache = caching.FIFO(self.result_pagination_cache_size)
     self.response_cache = caching.Complete()
 
-    self.query_parser = whooshutils.TextQueryParser(schema=whoosh_index.schema, field_map=text_search_field_map)
+    self.query_parser = whooshutils.TextQueryParser(schema=whoosh_index.schema, field_map=indexing_config.field_name_aliases)
 
   def should_cache(self, query, view):
     """

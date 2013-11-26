@@ -18,3 +18,13 @@ value_getters = [
   wikipediahistory.get_required_field_values(num_role_arguments),
   wikipediahistory.get_facet_field_values
 ]
+
+# Alias field names. Function mapping alias names to real names.
+field_name_aliases = {
+  'id': 'dbid',
+  'predicate': 'eventRoot',
+  'location': 'locationText',
+  'currentcountry': 'currentCountryText',
+  'person': 'personText',
+  'category': 'categoryText'
+}.get
