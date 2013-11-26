@@ -100,7 +100,9 @@ class Querier:
 
     type = cnstr['type']
     if type == 'fieldvalue':
-      return whoosh.query.Term(cnstr['field'], whooshutils.escape_keyword(cnstr['value']))
+      field = cnstr['field']
+      field = indexing_config.field_name_aliases(field) or field
+      return whoosh.query.Term(field, whooshutils.escape_keyword(cnstr['value']))
     if type == 'textsearch':
       return self.query_parser.parse(cnstr['value'])
     elif type == "timerange":
@@ -135,6 +137,7 @@ class Querier:
       for hit in hits:
         for view_id, view in views.iteritems():
           field = view['field']
+          field = indexing_config.field_name_aliases(field) or field
           if field in hit:
             values = set(v for v in whooshutils.split_keywords(hit[field]))
             counts = response[view_id]['counts']
