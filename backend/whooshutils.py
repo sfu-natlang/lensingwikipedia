@@ -5,6 +5,9 @@ Shared things and consistency settings.
 import re
 import whoosh, whoosh.index, whoosh.query, whoosh.qparser
 
+# Message for a commit on a large change
+large_change_commit_message = "committing (may take a long time)"
+
 # Separator for parts of the merged fields (must be something that whoosh will count as a distinct but otherwise unknown token, and not as whitespace)
 merge_field_sep = " _SEP_ "
 # Suffix for the field name of a text field mirroring a keyword field for searching purposes

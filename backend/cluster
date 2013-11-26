@@ -135,7 +135,7 @@ def run(input_index, output_index, threshold, doc_buffer_size, do_dummy):
     else:
       whooshutils.copy_all(input_index, writer, modify)
 
-    print >> sys.stderr, "committing"
+    print >> sys.stderr, whooshutils.large_change_commit_message
     writer.commit()
 
 if __name__ == '__main__':
