@@ -10,7 +10,7 @@ import hashlib
 import time
 import json
 import caching
-import settings, default_settings
+import backend_settings, backend_settings_defaults
 
 # Map from field names to use in searching to real field names
 text_search_field_map = {
@@ -42,7 +42,7 @@ class Querier:
     """
 
     self.whoosh_index = whoosh_index
-    settings.apply(self, our_settings, default_settings.settings['querier'])
+    backend_settings.apply(self, our_settings, backend_settings_defaults.settings['querier'])
 
     self.results_pagination_cache = caching.FIFO(self.result_pagination_cache_size)
     self.response_cache = caching.Complete()

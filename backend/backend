@@ -25,12 +25,12 @@ import Queue
 import whoosh, whoosh.index
 import wsgiref, wsgiref.simple_server
 import queries
-import settings, default_settings
+import backend_settings, backend_settings_defaults
 
 default_port = 1500
 
-default_server_settings = dict(default_settings.settings['server'].iteritems())
-ServerSettings = settings.make_settings_structure(default_server_settings)
+default_server_settings = dict(backend_settings_defaults.settings['server'].iteritems())
+ServerSettings = backend_settings.make_settings_structure(default_server_settings)
 
 class State:
   """
@@ -66,7 +66,7 @@ def consider_settings(settings_path, current_settings):
     return current_settings
   else:
     print >> sys.stderr, "updating settings from %s" % (settings_path)
-    file_settings = settings.read_new_from_file(settings_path, current_settings)
+    file_settings = backend_settings.read_new_from_file(settings_path, current_settings)
     if file_settings != current_settings:
       print >> sys.stderr, "using new settings"
       new_settings = file_settings
@@ -136,7 +136,7 @@ def state_watcher(settings_path, exit_event, change_queue):
     if server_settings.index_dir_path is None:
       print >> sys.stderr, "error: no index path specified"
       running = False
-      raise settings.MissingRequiredSetting('index_dir_path')
+      raise backend_settings.MissingRequiredSetting('index_dir_path')
     index_path, new_index = consider_index(index_path, index, server_settings)
     if new_index is not None:
       changed = True

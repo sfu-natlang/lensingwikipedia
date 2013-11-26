@@ -18,13 +18,14 @@ import whoosh, whoosh.index, whoosh.fields, whoosh.analysis, whoosh.support.char
 import whooshutils
 import os, os.path
 import json
+import collections
 import sys
-import datetime
-import re
-import cgi
 
-base_wikipedia_url = "https://en.wikipedia.org"
-num_arguments = 6
+# If there is a local configuration file use it, otherwise the defaults.
+try:
+  import indexing_config
+except ImportError:
+  import indexing_config_defaults as indexing_config
 
 text_analyzer = whoosh.analysis.RegexTokenizer() | whoosh.analysis.LowercaseFilter() | whoosh.analysis.CharsetFilter(whoosh.support.charset.accent_map) | whoosh.analysis.StopFilter() | whoosh.analysis.StemFilter()
 keyword_text_analyzer = whoosh.analysis.RegexTokenizer() | whoosh.analysis.LowercaseFilter() | whoosh.analysis.CharsetFilter(whoosh.support.charset.accent_map)
@@ -34,18 +35,19 @@ fields = {
   'dbid': whoosh.fields.NUMERIC(stored=True, unique=True),
   'year': whoosh.fields.NUMERIC(stored=True, sortable=True, shift_step=1),
   'eventRoot': whoosh.fields.ID(stored=True),
-  'locationText': whoosh.fields.KEYWORD(stored=True, commas=whooshutils.keyword_field_commas),
-  'currentCountryText': whoosh.fields.KEYWORD(stored=True, commas=whooshutils.keyword_field_commas),
-  'personText': whoosh.fields.KEYWORD(stored=True, commas=whooshutils.keyword_field_commas),
-  'categoryText': whoosh.fields.KEYWORD(stored=True, commas=whooshutils.keyword_field_commas),
   'description': whoosh.fields.TEXT(stored=True, analyzer=text_analyzer),
   'descriptionHtml': whoosh.fields.TEXT(stored=True),
   'allPoints': whoosh.fields.KEYWORD(stored=True),
   'role': whoosh.fields.KEYWORD(stored=True, commas=whooshutils.keyword_field_commas)
 }
 # Fields for all arguments.
-for i in range(num_arguments):
+for i in range(indexing_config.num_role_arguments):
   fields['roleA%i' % (i)] = whoosh.fields.ID(stored=True)
+# Extra keyword fields.
+for field_name in indexing_config.extra_keyword_field_names:
+  if field_name in fields:
+    print >> sys.stderr, "warning: duplicate field name '%s'" % (field_name)
+  fields[field_name] = whoosh.fields.KEYWORD(stored=True, commas=whooshutils.keyword_field_commas)
 # A free text field for each keyword field.
 fields.update(dict(("%s%s" % (field_name, whooshutils.keyword_field_free_text_suffix), whoosh.fields.TEXT(stored=True, analyzer=keyword_text_analyzer)) for field_name, field in fields.iteritems() if isinstance(field, whoosh.fields.KEYWORD) or isinstance(field, whoosh.fields.ID)))
 # A free text field merging all text and keyword fields
@@ -53,72 +55,23 @@ fields["all%s" % (whooshutils.keyword_field_free_text_suffix)] = whoosh.fields.T
 
 schema = whoosh.fields.Schema(**fields)
 
-ref_re = re.compile("\[[0-9]+\]")
-
-def make_html_description(event):
-  """
-  Expand a description to HTML with suitable markup.
-  """
-
-  replacements = list(event['wiki_info'].iteritems())
-  replacements.sort(key=lambda i: i[1]['span'][0])
-
-  def cleanup(text):
-    return cgi.escape(ref_re.sub("", text))
-
-  text = event['description']
-  last_end_index = 0
-  index_offset = 0
-  for item_text, item_info in replacements:
-    i, j = item_info['span']
-    if i < last_end_index:
-      print >> sys.stderr, "warning: span %i:%i \"%s\" overlaps previous span, not making a link" % (i, j, item_text)
-      continue
-    if 'url' in item_info:
-      url = item_info['url']
-      link = "<a href=\"%s%s\">%s</a>" % (base_wikipedia_url, url, item_text)
-      old_len = len(text)
-      text = text[:last_end_index+index_offset] + cleanup(text[last_end_index+index_offset:i+index_offset]) + link + text[j+index_offset:]
-      last_end_index = j
-      index_offset += len(text) - old_len
-  text = text[:last_end_index+index_offset] + cleanup(text[last_end_index+index_offset:])
-  return text
-
-def get_points(event):
-  def points_from(items):
-    return set((float(i['longitude']), float(i['latitude'])) for i in items.itervalues() if 'latitude' in i and 'longitude' in i)
-  points = points_from(event['wiki_info'])
-  if 'locations' in event:
-    points |= points_from(event['locations'])
-  return points
-
 def make_event_doc(event):
   """
   Convert a Json event to a document for Whoosh.
   """
 
-  points = get_points(event)
-  locationLocationText = set(v['title'] for v in event['locations'].itervalues()) if 'locations' in event else set()
-  wikiInfoLocationText = set(v['title'] for v in event['wiki_info'].itervalues() if 'latitude' in v and 'longitude' in v) if 'wiki_info' in event else set()
-  doc = {
-    'dbid': line_num,
-    'year': int(event['year']),
-    'eventRoot': unicode(event['eventRoot']),
-    'locationText': unicode(whooshutils.join_keywords(locationLocationText | wikiInfoLocationText)),
-    'currentCountryText': unicode(whooshutils.join_keywords((v['country'] for (k, v) in event['locations'].iteritems() if 'country' in v) if 'locations' in event else [])),
-    'personText': unicode(whooshutils.join_keywords((v['title'] for v in event['person'].itervalues()) if 'person' in event else [])),
-    'categoryText': unicode(whooshutils.join_keywords(c for v in (event['wiki_info'].itervalues() if 'wiki_info' else []) if 'category' in v for c in v['category'])),
-    'description': unicode(event['description']),
-    'descriptionHtml': unicode(make_html_description(event)),
-    'allPoints': unicode(whooshutils.join_keywords("%f,%f" % p for p in points))
-  }
-  all_roles = []
-  for role_id in range(num_arguments):
-    key = 'roleA%i' % (role_id)
-    if key in event:
-      doc['roleA%i' % (role_id)] = unicode(event[key])
-      all_roles.append(event[key])
-  doc['role'] = unicode(whooshutils.join_keywords(all_roles))
+  # Create a document with values from all the value getters
+  doc = { 'dbid': line_num }
+  for value_getter in indexing_config.value_getters:
+    values = value_getter(event)
+    for field_name, value in values.iteritems():
+      if field_name in doc:
+        print >> sys.stderr, "warning: value already set for field '%s'" % (field_name)
+      if isinstance(value, str):
+        value = unicode(str)
+      elif not isinstance(value, unicode) and isinstance(value, collections.Iterable):
+        value = unicode(whooshutils.join_keywords(value))
+      doc[field_name] = value
 
   # For searching purposes, copy all keyword field values to matching free text field and merge all text and keyword fields
   fields_to_merge = ['description']
