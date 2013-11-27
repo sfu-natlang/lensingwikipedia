@@ -27,7 +27,7 @@ endif
 
 # List of the component files.
 LIBCSS=lib/bootstrap/css/bootstrap.min.css lib/bootstrap/css/bootstrap-responsive.min.css
-OWNCSS=loadingindicator.css constraintslist.css eventdescriptionslist.css facet.css timeline.css map.css textsearch.css main.css
+OWNCSS=loadingindicator.css constraintslist.css eventdescriptionslist.css facet.css timeline.css map.css textsearch.css main.css config.css
 LIBJS=lib/jquery.min.js lib/jquery.cookie.min.js lib/d3/d3.v3.min.js lib/d3/topojson.v1.min.js lib/d3/d3.geo.projection.v0.min.js lib/d3/d3.geo.polyhedron.v0.min.js lib/bootstrap/js/bootstrap.min.js
 OWNJS=utils.js layoututils.js d3utils.js loadingindicator.js queries.js constraintslist.js eventdescriptionslist.js facet.js timeline.js map.js textsearch.js config.js
 FILES=index.html about.html map.json search.png favicon.ico $(OTHERFILES)
@@ -56,8 +56,12 @@ devel: $(addprefix $(DEVELOUT)/, $(LIBCSS) $(OWNCSS) $(LIBJS) $(OWNJS) $(FILES))
 .DEFAULT: devel
 .PHONY: release devel clean-intermediate clean
 
-# Use default config file if one is not already there.
+# Use default Javascript config file if one is not already there.
 config.js: config.def.js
+	cp $^ $@
+
+# Use default CSS config file (for extra CSS) if one is not already there.
+config.css: config.def.css
 	cp $^ $@
 
 # Substitute the CSS and Javascript include lists into the index file.
