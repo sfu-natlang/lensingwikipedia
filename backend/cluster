@@ -75,7 +75,7 @@ def geo_cluster(events, threshold, assign_event_to_clusters):
   clusters = []
   event_clusters = {}
 
-  for i, (event, points) in enumerate(events):
+  for (i, event, points) in events:
     print >> sys.stderr, "clustering event number %i" % (i)
 
     for point in points:
@@ -102,28 +102,13 @@ def geo_cluster(events, threshold, assign_event_to_clusters):
 
   return clusters
 
-def iter_events_from_file(input, first_id):
-  def get_points(event):
-    def points_from(items):
-      return set((float(i['longitude']), float(i['latitude'])) for i in items.itervalues() if 'latitude' in i and 'longitude' in i)
-    points = points_from(event['wiki_info'])
-    if 'locations' in event:
-      points |= points_from(event['locations'])
-    return points
-  import json
-  for id, line in enumerate(input, first_id):
-    event = json.loads(line)
-    points = get_points(event)
-    if len(points) > 0:
-      yield id, points
-
 def iter_events_from_index(index):
   with index.searcher() as searcher:
-    for hit in searcher.search(whoosh.query.Every(), limit=None):
+    for i, hit in enumerate(searcher.search(whoosh.query.Every(), limit=None)):
       points_val = hit['allPoints']
       points = [tuple(float(x) for x in t.split(",")) for t in whooshutils.split_keywords(points_val)] if len(points_val) > 0 else []
       if len(points) > 0:
-        yield hit['dbid'], points
+        yield i, hit['dbid'], points
 
 def run(input_index, output_index, threshold, doc_buffer_size, do_dummy):
   lookup = {}
@@ -146,13 +131,11 @@ def run(input_index, output_index, threshold, doc_buffer_size, do_dummy):
       print >> sys.stderr, "event %i: %s" % (event['dbid'], ' '.join(point_vals))
       event['referencePoints'] = unicode(whooshutils.join_keywords(point_vals))
     if doc_buffer_size is not None:
-      print >> sys.stderr, "A"
-      whooshutils.update_all_in_place(input_index, writer, modify, buffer_size=doc_buffer_size)
+      whooshutils.update_all_in_place(input_index, writer, modify, 'dbid', buffer_size=doc_buffer_size)
     else:
-      print >> sys.stderr, "B"
       whooshutils.copy_all(input_index, writer, modify)
 
-    print >> sys.stderr, "committing"
+    print >> sys.stderr, whooshutils.large_change_commit_message
     writer.commit()
 
 if __name__ == '__main__':
