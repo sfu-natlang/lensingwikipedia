@@ -1,3 +1,9 @@
+#
+# Makefile to build the webpage.
+#
+# If there is a config.mk, this makefile will call it. The config file can alter the component file variables or override the default program variables.
+#
+
 # List of the component files.
 LIBCSS=lib/bootstrap/css/bootstrap.min.css lib/bootstrap/css/bootstrap-responsive.min.css
 OWNCSS=loadingindicator.css constraintslist.css eventdescriptionslist.css facet.css timeline.css map.css textsearch.css main.css wikipediahistory.css
