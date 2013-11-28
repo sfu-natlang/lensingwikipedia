@@ -10,7 +10,7 @@
 function setupEventDescriptionsList(container, globalQuery) {
 	var outerElt = $("<div class=\"eventdescriptionslist\"></div>").appendTo(container);
 	var loadingIndicator = new LoadingIndicator(outerElt);
-	var listElt = $("<dl></dl>").appendTo(outerElt);
+	var listElt = createDescriptionList(outerElt);
 	var moreBoxElt = $("<div class=\"buttonbox\"></div>").appendTo(outerElt);
 	var moreElt = $("<button type=\"button\" class=\"btn\" disabled=\"true\">More</button>").appendTo(moreBoxElt);
 
@@ -26,26 +26,10 @@ function setupEventDescriptionsList(container, globalQuery) {
 		}
 	}
 
-	function resetList() {
-		listElt.find("dt,dd").remove();
-	}
-	function addToList(descriptions) {
-		$.each(descriptions, function (i, event) {
-			var yearText = event.year > 0 ? event.year + " CE" : -event.year + " BCE";
-			var yearUrl = baseWikipediaUrl + "/wiki/" + (event.year > 0 ? event.year : -event.year + "BC");
-			var tooltipText = "Event ID " + event.dbid + " in " + event.year;
-			if (event.hasOwnProperty('eventRoot'))
-				tooltipText += ", predicate stem '" + event.eventRoot + "'";
-			tooltipText += ".";
-			var descElt = $("<dt title=\"" + tooltipText + "\"><a href=\"" + yearUrl + "\">" + yearText + "</a></dt>" + "<dd>" + event.descriptionHtml + "</dd>").appendTo(listElt);
-			descElt.find("a").attr('target', '_blank');
-		});
-	}
-
 	globalQuery.onChange(function() {
 		loadingIndicator.enabled(true);
 		setMoreEnabled(false);
-		resetList();
+		clearDescriptionList(listElt);
 	});
 
 	var continuer = null;
@@ -62,8 +46,8 @@ function setupEventDescriptionsList(container, globalQuery) {
 		} else {
 			loadingIndicator.error('descriptions', false);
 			loadingIndicator.enabled(false);
-			resetList();
-			addToList(result.descriptions.descriptions);
+			clearDescriptionList(listElt);
+			addToDescriptionList(result.descriptions.descriptions, listElt);
 			continuer = getContinuer();
 			setMoreEnabled(continuer.hasMore());
 		}
@@ -72,7 +56,7 @@ function setupEventDescriptionsList(container, globalQuery) {
 	moreElt.click(function() {
 		if (continuer != null)
 			continuer.fetchNext(function(result) {
-				addToList(result.descriptions.descriptions);
+				addToDescriptionList(result.descriptions.descriptions, listElt);
 				setMoreEnabled(continuer.hasMore());
 			});
 	});

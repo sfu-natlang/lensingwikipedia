@@ -2,86 +2,14 @@
 Extracting data to index from Json data for The Aviation Herald.
 """
 
-import sys
-import datetime
-import re
-import cgi
+import json
 
-facet_field_names = ['locationText', 'currentCountryText', 'personText', 'categoryText']
+facet_field_names = ['title', 'url', 'sentence', 'sentenceSpan', 'descriptionReplacements', 'locationText', 'currentCountryText', 'personText', 'categoryText']
+description_field_names = ['title', 'url', 'sentence', 'sentenceSpan', 'description', 'descriptionReplacements', 'sentence', 'dbid', 'eventRoot', 'year']
 
-base_wikipedia_url = "https://en.wikipedia.org"
-ref_re = re.compile("\[[0-9]+\]")
-
-def make_html_description(event):
-  """
-  Expand a description to HTML with suitable markup.
-  """
-
-  replacements = list(event['wiki_info'].iteritems()) if 'wiki_info' in event else []
-  replacements.sort(key=lambda i: i[1]['span'][0])
-
-  full_desc = event['description']
-
-  # Work out which replacement is the first of the list of references
-  first_refs_id = -1
-  last_end_index = 0
-  for item_id, (item_text, item_info) in enumerate(replacements):
-    i, j = item_info['span']
-    last_span = full_desc[last_end_index:i]
-    if full_desc[last_end_index:i].strip() != "":
-      first_refs_id = -1
-    if item_text.startswith("http://flightaware.com"):
-      if first_refs_id < 0:
-        first_refs_id = item_id
-    else:
-      first_refs_id = -1
-    last_end_index = j
-
-  def cleanup(text):
-    return cgi.escape(ref_re.sub("", text))
-
-  def replace(text, init_index_offset=0):
-    # Do all the link span replacement while cleaning up everything outside the span
-    last_end_index = 0
-    index_offset = -init_index_offset
-    for item_id, (item_text, item_info) in enumerate(replacements):
-      i, j = item_info['span']
-      if i < init_index_offset or j > init_index_offset + len(text):
-        continue
-      if i < last_end_index:
-        print >> sys.stderr, "warning: span %i:%i \"%s\" overlaps previous span, not making a link" % (i, j, item_text)
-        continue
-      if 'url' in item_info:
-        url = item_info['url']
-        if not url.startswith("http://"):
-          url = "%s%s" % (base_wikipedia_url, url)
-        if item_text == url:
-          item_text = "<span class=\"icon-globe\"></span>"
-        link = "<a href=\"%s\">%s</a>" % (url, item_text)
-        if first_refs_id >= 0 and item_id >= first_refs_id:
-          link = "<li>%s</li>" % (link)
-          if item_id == first_refs_id:
-            link = "<ul class=\"eventrefs\">%s" % (link)
-          if item_id == len(replacements) - 1:
-            link = "%s</ul>" % (link)
-        old_len = len(text)
-        text = text[:last_end_index+index_offset] + cleanup(text[last_end_index+index_offset:i+index_offset]) + link + text[j+index_offset:]
-        last_end_index = j
-        index_offset += len(text) - old_len
-    text = text[:last_end_index+index_offset] + cleanup(text[last_end_index+index_offset:])
-    return text
-
-  sent_start_index, sent_end_index = event['sentence']['span']
-  sent_part = full_desc[sent_start_index:sent_end_index]
-  sent_part = replace(sent_part, sent_start_index)
-
-  refs_start_index = replacements[first_refs_id][1]['span'][0] if first_refs_id >= 0 else len(full_desc)
-  refs_part = full_desc[refs_start_index:]
-  refs_part = replace(refs_part, refs_start_index)
-
-  text = "<a class=\"eventtitle\" href=\"%s\">%s</a> %s %s" % (event['url'], event['title'], sent_part, refs_part)
-
-  return text
+def format_replacement(replacements):
+  keep_keys = ['span', 'url']
+  return json.dumps(dict((t, dict((k, v) for (k, v) in r.iteritems() if k in keep_keys)) for (t, r) in replacements.iteritems()))
 
 def get_points(event):
   """
@@ -108,7 +36,6 @@ def get_required_field_values(num_role_arguments):
       'year': int(event['year']),
       'eventRoot': event['eventRoot'],
       'description': event['description'],
-      'descriptionHtml': make_html_description(event),
       'allPoints': ["%f,%f" % p for p in points]
     }
     all_roles = []
@@ -130,6 +57,11 @@ def get_facet_field_values(event):
   locationLocationText = set(v['title'] for v in event['locations'].itervalues()) if 'locations' in event else set()
   wikiInfoLocationText = set(v['title'] for v in event['wiki_info'].itervalues() if 'latitude' in v and 'longitude' in v) if 'wiki_info' in event else set()
   values = {
+    'title': event['title'],
+    'url': event['url'],
+    'sentence': event['sentence']['text'],
+    'sentenceSpan': [str(i) for i in event['sentence']['span']],
+    'descriptionReplacements': format_replacement(event['wiki_info']),
     'locationText': locationLocationText | wikiInfoLocationText,
     'currentCountryText': [v['country'] for (k, v) in event['locations'].iteritems() if 'country' in v] if 'locations' in event else [],
     'personText': [v['title'] for v in event['person'].itervalues()] if 'person' in event else [],
