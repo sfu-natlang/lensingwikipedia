@@ -162,7 +162,7 @@ class Querier:
 
       with self.whoosh_index.searcher() as searcher:
         def format(hit):
-          return dict((f, hit[f]) for f in ['dbid', 'year', 'descriptionHtml', 'eventRoot'])
+          return dict((f, hit[f]) for f in indexing_config.description_field_names)
         hits = searcher.search_page(whoosh_query, page_num + 1, pagelen=self.description_page_size, sortedby='year', reverse=True)
         print >> sys.stderr, "whoosh pre-paginated search results: %s" % (repr(hits.results))
         result['descriptions'] = [format(h) for h in hits]

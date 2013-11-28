@@ -5,41 +5,17 @@ Extracting data to index from Json data for Wikipedia history.
 import sys
 import datetime
 import re
-import cgi
+import json
 
-facet_field_names = ['locationText', 'currentCountryText', 'personText', 'categoryText']
+facet_field_names = ['descriptionReplacements', 'locationText', 'currentCountryText', 'personText', 'categoryText']
+description_field_names = ['description', 'descriptionReplacements', 'dbid', 'eventRoot', 'year']
 
 base_wikipedia_url = "https://en.wikipedia.org"
 ref_re = re.compile("\[[0-9]+\]")
 
-def make_html_description(event):
-  """
-  Expand a description to HTML with suitable markup.
-  """
-
-  replacements = list(event['wiki_info'].iteritems())
-  replacements.sort(key=lambda i: i[1]['span'][0])
-
-  def cleanup(text):
-    return cgi.escape(ref_re.sub("", text))
-
-  text = event['description']
-  last_end_index = 0
-  index_offset = 0
-  for item_text, item_info in replacements:
-    i, j = item_info['span']
-    if i < last_end_index:
-      print >> sys.stderr, "warning: span %i:%i \"%s\" overlaps previous span, not making a link" % (i, j, item_text)
-      continue
-    if 'url' in item_info:
-      url = item_info['url']
-      link = "<a href=\"%s%s\">%s</a>" % (base_wikipedia_url, url, item_text)
-      old_len = len(text)
-      text = text[:last_end_index+index_offset] + cleanup(text[last_end_index+index_offset:i+index_offset]) + link + text[j+index_offset:]
-      last_end_index = j
-      index_offset += len(text) - old_len
-  text = text[:last_end_index+index_offset] + cleanup(text[last_end_index+index_offset:])
-  return text
+def format_replacement(replacements):
+  keep_keys = ['span', 'url']
+  return json.dumps(dict((t, dict((k, v) for (k, v) in r.iteritems() if k in keep_keys)) for (t, r) in replacements.iteritems()))
 
 def get_points(event):
   """
@@ -64,7 +40,7 @@ def get_required_field_values(num_role_arguments):
       'year': int(event['year']),
       'eventRoot': event['eventRoot'],
       'description': event['description'],
-      'descriptionHtml': make_html_description(event),
+      'descriptionReplacements': format_replacement(event['wiki_info']),
       'allPoints': ["%f,%f" % p for p in points]
     }
     all_roles = []

@@ -36,7 +36,6 @@ fields = {
   'year': whoosh.fields.NUMERIC(stored=True, sortable=True, shift_step=1),
   'eventRoot': whoosh.fields.ID(stored=True),
   'description': whoosh.fields.TEXT(stored=True, analyzer=text_analyzer),
-  'descriptionHtml': whoosh.fields.TEXT(stored=True),
   'allPoints': whoosh.fields.KEYWORD(stored=True),
   'role': whoosh.fields.KEYWORD(stored=True, commas=whooshutils.keyword_field_commas)
 }
