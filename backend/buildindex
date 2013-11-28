@@ -68,7 +68,7 @@ def make_event_doc(event):
       if field_name in doc:
         print >> sys.stderr, "warning: value already set for field '%s'" % (field_name)
       if isinstance(value, str):
-        value = unicode(str)
+        value = unicode(value)
       elif not isinstance(value, unicode) and isinstance(value, collections.Iterable):
         value = unicode(whooshutils.join_keywords(value))
       doc[field_name] = value
