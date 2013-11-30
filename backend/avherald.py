@@ -7,6 +7,15 @@ import json
 facet_field_names = ['title', 'url', 'sentence', 'sentenceSpan', 'descriptionReplacements', 'locationText', 'currentCountryText', 'personText', 'categoryText']
 description_field_names = ['title', 'url', 'sentence', 'sentenceSpan', 'description', 'descriptionReplacements', 'sentence', 'dbid', 'eventRoot', 'year']
 
+field_name_aliases = {
+  'id': 'dbid',
+  'predicate': 'eventRoot',
+  'location': 'locationText',
+  'currentcountry': 'currentCountryText',
+  'person': 'personText',
+  'category': 'categoryText'
+}.get
+
 def format_replacement(replacements):
   keep_keys = ['span', 'url']
   return json.dumps(dict((t, dict((k, v) for (k, v) in r.iteritems() if k in keep_keys)) for (t, r) in replacements.iteritems()))
