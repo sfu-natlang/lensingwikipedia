@@ -54,7 +54,7 @@ function addToDescriptionList(descriptions, listElt) {
 		return text;
 	}
 
-	$.each(descriptions, function (i, event) {
+	$.each(descriptions, function (id, event) {
 		event.descriptionReplacements = JSON.parse(event.descriptionReplacements);
 
 		// Find reference links and remove them from replacements
@@ -71,7 +71,8 @@ function addToDescriptionList(descriptions, listElt) {
 		if (i > 0)
 			event.description = event.description.substring(0, i);
 
-		var sentenceStartIndex = event.sentenceSpan[0], sentenceEndIndex = event.sentenceSpan[1];
+		var sentenceSpan = event.sentenceSpan.split(",");
+		var sentenceStartIndex = +sentenceSpan[0];
 		var replacements = prepareReplacements(event);
 
 		var tooltipText = "Event ID " + event.dbid + " in " + event.year;
@@ -79,7 +80,7 @@ function addToDescriptionList(descriptions, listElt) {
 			tooltipText += ", predicate stem '" + event.eventRoot + "'";
 		tooltipText += ".";
 
-		var shortDesc = replace(event.sentence, replacements, event.sentenceStartIndex);
+		var shortDesc = replace(event.sentence, replacements, sentenceStartIndex);
 		var longDesc = replace(event.description, replacements);
 
 		var refsElt = $("<ul class=\"eventrefs\"></ul>");
