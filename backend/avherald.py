@@ -4,13 +4,15 @@ Extracting data to index from Json data for The Aviation Herald.
 
 import json
 
-facet_field_names = ['title', 'url', 'sentence', 'sentenceSpan', 'descriptionReplacements', 'locationText', 'currentCountryText', 'personText', 'categoryText']
+facet_field_names = ['title', 'url', 'sentence', 'sentenceSpan', 'descriptionReplacements', 'locationText', 'airportText', 'airportLocationText', 'airportLocationText', 'currentCountryText', 'personText', 'categoryText']
 description_field_names = ['title', 'url', 'sentence', 'sentenceSpan', 'description', 'descriptionReplacements', 'sentence', 'dbid', 'eventRoot', 'year']
 
 field_name_aliases = {
   'id': 'dbid',
   'predicate': 'eventRoot',
   'location': 'locationText',
+  'airport': 'airportText',
+  'airportlocation': 'airportLocationText',
   'currentcountry': 'currentCountryText',
   'person': 'personText',
   'category': 'categoryText'
@@ -71,13 +73,17 @@ def get_facet_field_values(event):
 
   locationLocationText = set(v['title'] for v in event['locations'].itervalues()) if 'locations' in event else set()
   wikiInfoLocationText = set(v['title'] for v in event['wiki_info'].itervalues() if 'latitude' in v and 'longitude' in v) if 'wiki_info' in event else set()
+  allLocationText = locationLocationText | wikiInfoLocationText
+  airportText = set(v['title'] for v in event['airport'].itervalues()) if 'airport' in event else set()
   values = {
     'title': event['title'],
     'url': event['url'],
     'sentence': event['sentence']['text'],
     'sentenceSpan': [str(i) for i in event['sentence']['span']],
     'descriptionReplacements': format_replacement(event['wiki_info']),
-    'locationText': locationLocationText | wikiInfoLocationText,
+    'locationText': allLocationText,
+    'airportText': airportText,
+    'airportLocationText': allLocationText | airportText,
     'currentCountryText': [v['country'] for (k, v) in event['locations'].iteritems() if 'country' in v] if 'locations' in event else [],
     'personText': [v['title'] for v in event['person'].itervalues()] if 'person' in event else [],
     'categoryText': [c for v in (event['wiki_info'].itervalues() if 'wiki_info' else []) if 'category' in v for c in v['category']]
