@@ -43,12 +43,18 @@ def get_required_field_values(num_role_arguments):
       'descriptionReplacements': format_replacement(event['wiki_info']),
       'allPoints': ["%f,%f" % p for p in points]
     }
+    all_arguments = []
     all_roles = []
-    for role_id in range(num_role_arguments):
-      key = 'roleA%i' % (role_id)
+    for id in range(num_role_arguments):
+      key = 'A%i' % (id)
       if key in event:
-        values['roleA%i' % (role_id)] = event[key]
+        values['A%i' % (id)] = event[key][1]
+        all_arguments.append(event[key][1])
+      key = 'roleA%i' % (id)
+      if key in event:
+        values['roleA%i' % (id)] = event[key]
         all_roles.append(event[key])
+    values['argument'] = all_arguments
     values['role'] = all_roles
     return values
 
