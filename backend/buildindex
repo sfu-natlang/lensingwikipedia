@@ -37,10 +37,12 @@ fields = {
   'eventRoot': whoosh.fields.ID(stored=True),
   'description': whoosh.fields.TEXT(stored=True, analyzer=text_analyzer),
   'allPoints': whoosh.fields.KEYWORD(stored=True),
+  'argument': whoosh.fields.KEYWORD(stored=True, commas=whooshutils.keyword_field_commas),
   'role': whoosh.fields.KEYWORD(stored=True, commas=whooshutils.keyword_field_commas)
 }
-# Fields for all arguments.
+# Fields for all arguments and their roles.
 for i in range(indexing_config.num_role_arguments):
+  fields['A%i' % (i)] = whoosh.fields.ID(stored=True)
   fields['roleA%i' % (i)] = whoosh.fields.ID(stored=True)
 # Extra keyword fields.
 for field_name in indexing_config.extra_keyword_field_names:
