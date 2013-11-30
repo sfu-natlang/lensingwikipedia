@@ -30,11 +30,12 @@ function addToDescriptionList(descriptions, listElt) {
 		}
 
 		var lastEndIndex = 0,
+		    endIndexOffset = initIndexOffset + text.length,
 		    indexOffset = -initIndexOffset;
 		$.each(replacements, function (id, item) {
 			var itemText = item[0], itemInfo = item[1];
 			var i = itemInfo.span[0], j = itemInfo.span[1];
-			if (i < initIndexOffset || j > initIndexOffset + text.length) {
+			if (i < initIndexOffset || j > endIndexOffset) {
 				// continue
 			} else if (i < lastEndIndex) {
 				console.log("warning: span " + i + ":" + j + " \"" + itemText + "\" overlaps previous span, not making a link");
