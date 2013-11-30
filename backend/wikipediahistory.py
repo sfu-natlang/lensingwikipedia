@@ -10,6 +10,15 @@ import json
 facet_field_names = ['descriptionReplacements', 'locationText', 'currentCountryText', 'personText', 'categoryText']
 description_field_names = ['description', 'descriptionReplacements', 'dbid', 'eventRoot', 'year']
 
+field_name_aliases = {
+  'id': 'dbid',
+  'predicate': 'eventRoot',
+  'location': 'locationText',
+  'currentcountry': 'currentCountryText',
+  'person': 'personText',
+  'category': 'categoryText'
+}.get
+
 base_wikipedia_url = "https://en.wikipedia.org"
 ref_re = re.compile("\[[0-9]+\]")
 

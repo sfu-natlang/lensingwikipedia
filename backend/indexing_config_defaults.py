@@ -23,11 +23,4 @@ value_getters = [
 ]
 
 # Alias field names. Function mapping alias names to real names.
-field_name_aliases = {
-  'id': 'dbid',
-  'predicate': 'eventRoot',
-  'location': 'locationText',
-  'currentcountry': 'currentCountryText',
-  'person': 'personText',
-  'category': 'categoryText'
-}.get
+field_name_aliases = wikipediahistory.field_name_aliases
