@@ -4,7 +4,7 @@ Extracting data to index from Json data for The Aviation Herald.
 
 import json
 
-facet_field_names = ['title', 'url', 'sentence', 'sentenceSpan', 'descriptionReplacements', 'locationText', 'airportText', 'currentCountryText', 'personText', 'categoryText']
+facet_field_names = ['title', 'url', 'sentence', 'sentenceSpan', 'descriptionReplacements', 'locationText', 'airportText', 'currentCountryText', 'organizationText', 'personText', 'categoryText']
 description_field_names = ['title', 'url', 'sentence', 'sentenceSpan', 'description', 'descriptionReplacements', 'sentence', 'dbid', 'eventRoot', 'year']
 
 field_name_aliases = {
@@ -14,6 +14,7 @@ field_name_aliases = {
   'airport': 'airportText',
   'currentcountry': 'currentCountryText',
   'person': 'personText',
+  'organization': 'organizationText',
   'category': 'categoryText'
 }.get
 
@@ -82,6 +83,7 @@ def get_facet_field_values(event):
     'locationText': locationLocationText | wikiInfoLocationText | airportText,
     'airportText': airportText,
     'currentCountryText': [v['country'] for (k, v) in event['locations'].iteritems() if 'country' in v] if 'locations' in event else [],
+    'organizationText': [v['title'] for v in event['organization'].itervalues()] if 'organization' in event else [],
     'personText': [v['title'] for v in event['person'].itervalues()] if 'person' in event else [],
     'categoryText': [c for v in (event['wiki_info'].itervalues() if 'wiki_info' else []) if 'category' in v for c in v['category']]
   }
