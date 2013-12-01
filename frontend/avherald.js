@@ -12,9 +12,11 @@ function addToDescriptionList(descriptions, listElt) {
 	function prepareReplacements(event) {
 		var replacements = [];
 		$.each(event.descriptionReplacements, function (itemText, itemInfo) {
-			replacements.push([itemText, itemInfo]);
+			$.each(itemInfo['span'], function (spanId, span) {
+				replacements.push({ text: itemText, url: itemInfo['url'], span: span });
+			});
 		});
-		replacements.sort(function (repA, repB) { return repA[1].span[0] - repB[1].span[0] });
+		replacements.sort(function (repA, repB) { return repA.span[0] - repB.span[0] });
 		return replacements;
 	}
 
@@ -31,23 +33,26 @@ function addToDescriptionList(descriptions, listElt) {
 
 		var lastEndIndex = 0,
 		    endIndexOffset = initIndexOffset + text.length,
-		    indexOffset = -initIndexOffset;
+		    indexOffset = -initIndexOffset,
+		    seen = {};
 		$.each(replacements, function (id, item) {
-			var itemText = item[0], itemInfo = item[1];
-			var i = itemInfo.span[0], j = itemInfo.span[1];
+			var i = item.span[0], j = item.span[1];
 			if (i < initIndexOffset || j > endIndexOffset) {
 				// continue
+			} else if (seen.hasOwnProperty(item.text)) {
+				// continue
 			} else if (i < lastEndIndex) {
-				console.log("warning: span " + i + ":" + j + " \"" + itemText + "\" overlaps previous span, not making a link");
-			} else if (itemInfo.hasOwnProperty('url')) {
-				var url = itemInfo.url;
+				console.log("warning: span " + i + ":" + j + " \"" + item.text + "\" overlaps previous span, not making a link");
+			} else if (item.hasOwnProperty('url')) {
+				var url = item.url;
 				if (text.lastIndexOf("http://", 0) !== 0)
 					url = baseWikipediaUrl + url;
-				var link = "<a href=\"" + url + "\">" + itemText + "</a>";
+				var link = "<a href=\"" + url + "\">" + item.text + "</a>";
 				var oldLen = text.length;
 				text = text.substring(0, lastEndIndex + indexOffset) + clean(text.substring(lastEndIndex + indexOffset, i + indexOffset)) + link + text.substring(j + indexOffset, text.length);
 				lastEndIndex = j;
 				indexOffset += text.length - oldLen;
+				seen[item.text] = true;
 			}
 		});
 		text = text.substring(0, lastEndIndex + indexOffset) + clean(text.substring(lastEndIndex + indexOffset, text.length));
