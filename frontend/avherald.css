@@ -32,3 +32,6 @@
         font-size: large;
         padding-left: 0.5em;
 }
+.eventdescriptionslist .predicate {
+	font-weight: bold;
+}

@@ -4,8 +4,8 @@ Extracting data to index from Json data for The Aviation Herald.
 
 import json
 
-facet_field_names = ['title', 'url', 'sentence', 'sentenceSpan', 'descriptionReplacements', 'locationText', 'airportText', 'currentCountryText', 'organizationText', 'personText', 'categoryText']
-description_field_names = ['title', 'url', 'sentence', 'sentenceSpan', 'description', 'descriptionReplacements', 'sentence', 'dbid', 'eventRoot', 'year']
+facet_field_names = ['title', 'url', 'sentence', 'sentenceSpan', 'event', 'eventSpan', 'descriptionReplacements', 'locationText', 'airportText', 'currentCountryText', 'organizationText', 'personText', 'categoryText']
+description_field_names = ['title', 'url', 'sentence', 'sentenceSpan', 'description', 'descriptionReplacements', 'sentence', 'dbid', 'eventRoot', 'event', 'eventSpan', 'year']
 
 field_name_aliases = {
   'id': 'dbid',
@@ -79,6 +79,8 @@ def get_facet_field_values(event):
     'url': event['url'],
     'sentence': event['sentence']['text'],
     'sentenceSpan': [str(i) for i in event['sentence']['span']],
+    'event': event['event'][1],
+    'eventSpan': [str(i) for i in event['event'][0]],
     'descriptionReplacements': format_replacement(event['wiki_info']),
     'locationText': locationLocationText | wikiInfoLocationText | airportText,
     'airportText': airportText,

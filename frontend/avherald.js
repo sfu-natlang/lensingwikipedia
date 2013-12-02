@@ -9,13 +9,18 @@ function clearDescriptionList(listElt) {
 	listElt.find("dt,dd").remove();
 }
 function addToDescriptionList(descriptions, listElt) {
-	function prepareReplacements(event) {
+	function prepareReplacements(event, eventText, eventSpan) {
 		var replacements = [];
 		$.each(event.descriptionReplacements, function (itemText, itemInfo) {
 			$.each(itemInfo['span'], function (spanId, span) {
-				replacements.push({ text: itemText, url: itemInfo['url'], span: span });
+				var url = itemInfo['url'];
+				if (url.lastIndexOf("http://", 0) !== 0)
+					url = baseWikipediaUrl + url;
+				var link = "<a href=\"" + url + "\">" + itemText + "</a>";
+				replacements.push({ src: itemText, dst: link, span: span });
 			});
 		});
+		replacements.push({ src: eventText, dst: "<emph class=\"predicate\">" + eventText + "</emph>", span: eventSpan });
 		replacements.sort(function (repA, repB) { return repA.span[0] - repB.span[0] });
 		return replacements;
 	}
@@ -39,20 +44,16 @@ function addToDescriptionList(descriptions, listElt) {
 			var i = item.span[0], j = item.span[1];
 			if (i < initIndexOffset || j > endIndexOffset) {
 				// continue
-			} else if (seen.hasOwnProperty(item.text)) {
+			} else if (seen.hasOwnProperty(item.src)) {
 				// continue
 			} else if (i < lastEndIndex) {
-				console.log("warning: span " + i + ":" + j + " \"" + item.text + "\" overlaps previous span, not making a link");
-			} else if (item.hasOwnProperty('url')) {
-				var url = item.url;
-				if (text.lastIndexOf("http://", 0) !== 0)
-					url = baseWikipediaUrl + url;
-				var link = "<a href=\"" + url + "\">" + item.text + "</a>";
+				console.log("warning: span " + i + ":" + j + " \"" + item.src + "\" overlaps previous span, not making a link");
+			} else {
 				var oldLen = text.length;
-				text = text.substring(0, lastEndIndex + indexOffset) + clean(text.substring(lastEndIndex + indexOffset, i + indexOffset)) + link + text.substring(j + indexOffset, text.length);
+				text = text.substring(0, lastEndIndex + indexOffset) + clean(text.substring(lastEndIndex + indexOffset, i + indexOffset)) + item.dst + text.substring(j + indexOffset, text.length);
 				lastEndIndex = j;
 				indexOffset += text.length - oldLen;
-				seen[item.text] = true;
+				seen[item.src] = true;
 			}
 		});
 		text = text.substring(0, lastEndIndex + indexOffset) + clean(text.substring(lastEndIndex + indexOffset, text.length));
@@ -79,7 +80,8 @@ function addToDescriptionList(descriptions, listElt) {
 
 		var sentenceSpan = event.sentenceSpan.split(",");
 		var sentenceStartIndex = +sentenceSpan[0];
-		var replacements = prepareReplacements(event);
+		var eventSpan = event.eventSpan.split(",").map(function (x) { return +x });
+		var replacements = prepareReplacements(event, event.event, eventSpan);
 
 		var tooltipText = "Event ID " + event.dbid + " in " + event.year;
 		if (event.hasOwnProperty('eventRoot'))
