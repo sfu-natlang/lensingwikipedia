@@ -7,7 +7,7 @@ import datetime
 import re
 import json
 
-facet_field_names = ['descriptionReplacements', 'locationText', 'currentCountryText', 'personText', 'categoryText']
+facet_field_names = ['descriptionReplacements', 'locationText', 'currentCountryText', 'personText', 'categoryText', 'organizationText']
 description_field_names = ['description', 'descriptionReplacements', 'dbid', 'eventRoot', 'year']
 
 field_name_aliases = {
@@ -16,7 +16,8 @@ field_name_aliases = {
   'location': 'locationText',
   'currentcountry': 'currentCountryText',
   'person': 'personText',
-  'category': 'categoryText'
+  'category': 'categoryText',
+  'organization': 'organizationText'
 }.get
 
 base_wikipedia_url = "https://en.wikipedia.org"
@@ -80,6 +81,7 @@ def get_facet_field_values(event):
     'locationText': locationLocationText | wikiInfoLocationText,
     'currentCountryText': [v['country'] for (k, v) in event['locations'].iteritems() if 'country' in v] if 'locations' in event else [],
     'personText': [v['title'] for v in event['person'].itervalues()] if 'person' in event else [],
-    'categoryText': [c for v in (event['wiki_info'].itervalues() if 'wiki_info' else []) if 'category' in v for c in v['category']]
+    'categoryText': [c for v in (event['wiki_info'].itervalues() if 'wiki_info' else []) if 'category' in v for c in v['category']],
+    'organizationText': [v['title'] for v in event['organization'].itervalues()] if 'organization' in event else []
   }
   return values
