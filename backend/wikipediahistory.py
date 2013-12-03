@@ -7,8 +7,8 @@ import datetime
 import re
 import json
 
-facet_field_names = ['descriptionReplacements', 'locationText', 'currentCountryText', 'personText', 'categoryText', 'organizationText']
-description_field_names = ['description', 'descriptionReplacements', 'dbid', 'eventRoot', 'year']
+facet_field_names = ['event', 'descriptionReplacements', 'locationText', 'currentCountryText', 'personText', 'categoryText', 'organizationText']
+description_field_names = ['event', 'description', 'descriptionReplacements', 'dbid', 'eventRoot', 'year']
 
 field_name_aliases = {
   'id': 'dbid',
@@ -78,6 +78,7 @@ def get_facet_field_values(event):
   locationLocationText = set(v['title'] for v in event['locations'].itervalues()) if 'locations' in event else set()
   wikiInfoLocationText = set(v['title'] for v in event['wiki_info'].itervalues() if 'latitude' in v and 'longitude' in v) if 'wiki_info' in event else set()
   values = {
+    'event': event['event'][1],
     'locationText': locationLocationText | wikiInfoLocationText,
     'currentCountryText': [v['country'] for (k, v) in event['locations'].iteritems() if 'country' in v] if 'locations' in event else [],
     'personText': [v['title'] for v in event['person'].itervalues()] if 'person' in event else [],
