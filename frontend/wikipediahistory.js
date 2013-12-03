@@ -30,7 +30,7 @@ function addToDescriptionList(descriptions, listElt) {
 		handleSingleSpans(event);
 		var replacements = prepareReplacements(event, baseWikipediaUrl);
 		var descHtml = replace(event.description, replacements);
-		var descElt = $("<dt title=\"" + tooltipText + "\"><a href=\"" + yearUrl + "\">" + yearText + "</a></dt>" + "<dd>" + descHtml + "</dd>").appendTo(listElt);
+		var descElt = $("<dt title=\"" + tooltipText + "\"><a href=\"" + yearUrl + "\">" + yearText + "</a>: " + event.event + "</dt>" + "<dd>" + descHtml + "</dd>").appendTo(listElt);
 		descElt.find("a").attr('target', '_blank');
 	});
 }
