@@ -2,6 +2,9 @@
  * Things especially specific to the Wikipedia history domain.
  */
 
+// Prefix for links to Wikipedia pages
+baseWikipediaUrl = "https://en.wikipedia.org";
+
 function createDescriptionList(container) {
 	return $("<dl></dl>").appendTo(container);
 }
@@ -25,7 +28,7 @@ function addToDescriptionList(descriptions, listElt) {
 			tooltipText += ", predicate stem '" + event.eventRoot + "'";
 		tooltipText += ".";
 		handleSingleSpans(event);
-		var replacements = prepareReplacements(event);
+		var replacements = prepareReplacements(event, baseWikipediaUrl);
 		var descHtml = replace(event.description, replacements);
 		var descElt = $("<dt title=\"" + tooltipText + "\"><a href=\"" + yearUrl + "\">" + yearText + "</a></dt>" + "<dd>" + descHtml + "</dd>").appendTo(listElt);
 		descElt.find("a").attr('target', '_blank');

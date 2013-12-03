@@ -5,7 +5,7 @@
 /*
  * Prepare replacements for an event structure to be used by the other functions.
  */
-function prepareReplacements(event, extraReplacements) {
+function prepareReplacements(event, baseUrl, extraReplacements) {
 	if (extraReplacements == null)
 		extraReplacements = [];
 	
@@ -16,7 +16,7 @@ function prepareReplacements(event, extraReplacements) {
 		$.each(itemInfo.span, function (spanId, span) {
 			var url = itemInfo.url;
 			if (url.lastIndexOf("http://", 0) !== 0)
-				url = baseWikipediaUrl + url;
+				url = baseUrl + url;
 			var link = "<a href=\"" + url + "\">" + itemText + "</a>";
 			replacements.push({ src: itemText, dst: link, span: span });
 		});
