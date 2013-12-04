@@ -14,3 +14,10 @@
 .eventdescriptionslist button {
 	margin: 0em auto 1em auto;
 }
+.eventdescriptionslist .eventfulldescription {
+	font-size: 80%;
+	display: none;
+}
+.eventdescriptionslist .eventfulldescription.expanded {
+	display: block;
+}
