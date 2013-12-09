@@ -21,3 +21,6 @@
 .eventdescriptionslist .eventfulldescription.expanded {
 	display: block;
 }
+.eventdescriptionslist .predicate {
+	font-weight: bold;
+}
