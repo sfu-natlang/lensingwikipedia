@@ -6,6 +6,10 @@
  * Prepare replacements for an event structure to be used by the other functions.
  */
 function prepareReplacements(event, baseUrl, extraReplacements) {
+	function isAbsoluteUrl(url) {
+		return url.search(/^[a-z][a-z0-9+.-]+:/i) == 0;
+	}
+
 	if (extraReplacements == null)
 		extraReplacements = [];
 	
@@ -15,7 +19,7 @@ function prepareReplacements(event, baseUrl, extraReplacements) {
 	$.each(descriptionReplacements, function (itemText, itemInfo) {
 		$.each(itemInfo.span, function (spanId, span) {
 			var url = itemInfo.url;
-			if (url.lastIndexOf("http://", 0) !== 0)
+			if (!isAbsoluteUrl(url))
 				url = baseUrl + url;
 			var link = "<a href=\"" + url + "\">" + itemText + "</a>";
 			replacements.push({ src: itemText, dst: link, span: span });
