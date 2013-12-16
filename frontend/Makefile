@@ -79,7 +79,7 @@ $(RELEASEOUT)/about.html $(DEVELOUT)/about.html: %/about.html: $(SCRATCH)/%.css.
 # CSS and Javascript files for release output.
 $(RELEASEOUT)/lib.css: $(SCRATCH)/lib.css.cat libheader
 	@mkdir -p $(@D)
-	(cat libheader $^) > $@
+	(cat libheader $^ | sed -e 's|"\.\./img/glyphicons-halflings.png"|"lib/bootstrap/img/glyphicons-halflings.png"|g') > $@
 $(RELEASEOUT)/lw.css: $(SCRATCH)/own.css.cat
 	@mkdir -p $(@D)
 	$(MINCSS) $^ > $@
