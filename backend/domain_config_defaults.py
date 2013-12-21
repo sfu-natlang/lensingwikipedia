@@ -1,7 +1,7 @@
 """
-Configuration for indexing.
+Configuration for the data domain; how to index and otherwise handle data.
 
-If making only local changes, don't alter the default indexing configuration;
+If making only local changes, don't alter the default data domain configuration;
 see the readme for more information.
 """
 

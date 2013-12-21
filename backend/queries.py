@@ -14,9 +14,9 @@ import backend_settings, backend_settings_defaults
 
 # If there is a local configuration file use it, otherwise the defaults.
 try:
-  import indexing_config
+  import domain_config
 except ImportError:
-  import indexing_config_defaults as indexing_config
+  import domain_config_defaults as domain_config
 
 class QueryHandlingError(Exception):
   """
@@ -43,7 +43,7 @@ class Querier:
     self.results_pagination_cache = caching.FIFO(self.result_pagination_cache_size)
     self.response_cache = caching.Complete()
 
-    self.query_parser = whooshutils.TextQueryParser(schema=whoosh_index.schema, field_map=indexing_config.field_name_aliases)
+    self.query_parser = whooshutils.TextQueryParser(schema=whoosh_index.schema, field_map=domain_config.field_name_aliases)
 
   def should_cache(self, query, view):
     """
@@ -101,7 +101,7 @@ class Querier:
     type = cnstr['type']
     if type == 'fieldvalue':
       field = cnstr['field']
-      field = indexing_config.field_name_aliases(field) or field
+      field = domain_config.field_name_aliases(field) or field
       return whoosh.query.Term(field, whooshutils.escape_keyword(cnstr['value']))
     if type == 'textsearch':
       return self.query_parser.parse(cnstr['value'])
@@ -137,7 +137,7 @@ class Querier:
       for hit in hits:
         for view_id, view in views.iteritems():
           field = view['field']
-          field = indexing_config.field_name_aliases(field) or field
+          field = domain_config.field_name_aliases(field) or field
           if field in hit:
             values = set(v for v in whooshutils.split_keywords(hit[field]))
             counts = response[view_id]['counts']
@@ -162,7 +162,7 @@ class Querier:
 
       with self.whoosh_index.searcher() as searcher:
         def format(hit):
-          return dict((f, hit[f]) for f in indexing_config.description_field_names)
+          return dict((f, hit[f]) for f in domain_config.description_field_names)
         hits = searcher.search_page(whoosh_query, page_num + 1, pagelen=self.description_page_size, sortedby='year', reverse=True)
         print >> sys.stderr, "whoosh pre-paginated search results: %s" % (repr(hits.results))
         result['descriptions'] = [format(h) for h in hits]
