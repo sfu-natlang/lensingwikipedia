@@ -4,7 +4,7 @@
 
 /*
  * Build URL link replacements from Json data.
- * replacementsInfo: Json data for replacements (string or parsed).
+ * replacementsInfo: parsed Json data for replacements
  * baseUrl: URL prefix for links that don't look like an absolute URL
  */
 function makeURLReplacements(replacementsInfo, baseUrl) {
