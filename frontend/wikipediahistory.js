@@ -2,6 +2,9 @@
  * Things especially specific to the Wikipedia history domain.
  */
 
+// Prefix for links to Wikipedia pages
+baseWikipediaUrl = "https://en.wikipedia.org";
+
 function createDescriptionList(container) {
 	return $("<dl></dl>").appendTo(container);
 }
@@ -9,48 +12,59 @@ function clearDescriptionList(listElt) {
 	listElt.find("dt,dd").remove();
 }
 function addToDescriptionList(descriptions, listElt) {
-	function formatDescription(text, replacements) {
-		function clean(text) {
-			var escapes = { '&': '&amp;', '<': '&lt;', '>': '&gt;' };
-			return text.replace(/\[[0-9]+\]|[&<>]/g, function (old) {
-				return escapes.hasOwnProperty(old) ? escapes[old] : "";
-			});
-		}
-
-		var replacementsOrder = [];
-		$.each(replacements, function (itemText, itemInfo) {
-			replacementsOrder.push(itemText);
+	// This is to handle data that contains a single span per item rather than a list
+	function handleSingleSpans(event) {
+		event.descriptionReplacements = JSON.parse(event.descriptionReplacements);
+		$.each(event.descriptionReplacements, function (itemText, itemInfo) {
+			itemInfo.span = [itemInfo.span];
 		});
-		replacementsOrder.sort(function (repA, repB) { return replacements[repA].span[0] - replacements[repB].span[0] });
-
-		var lastEndIndex = 0,
-		    indexOffset = 0;
-		$.each(replacementsOrder, function (id, itemText) {
-			var itemInfo = replacements[itemText];
-			var i = itemInfo.span[0], j = itemInfo.span[1];
-			if (i < lastEndIndex) {
-				console.log("warning: span " + i + ":" + j + " \"" + itemText + "\" overlaps previous span, not making a link");
-			} else if (itemInfo.hasOwnProperty('url')) {
-				var link = "<a href=\"" + baseWikipediaUrl + itemInfo.url + "\">" + itemText + "</a>";
-				var oldLen = text.length;
-				text = text.substring(0, lastEndIndex + indexOffset) + clean(text.substring(lastEndIndex + indexOffset, i + indexOffset)) + link + text.substring(j + indexOffset, text.length);
-				lastEndIndex = j;
-				indexOffset += text.length - oldLen;
-			}
-		});
-		text = text.substring(0, lastEndIndex + indexOffset) + clean(text.substring(lastEndIndex + indexOffset, text.length));
-		return text;
 	}
 
 	$.each(descriptions, function (i, event) {
+		var sentenceSpan = event.sentenceSpan.split(",").map(function (i) { return +i; });
+
+		handleSingleSpans(event);
+		var replacements = makeURLReplacements(event.descriptionReplacements, baseWikipediaUrl);
+		replacements = replacements.concat([
+			{
+				src: event.event,
+				span: event.eventSpan.split(",").map(function (i) { return +i; }),
+				pre: "<emph class=\"predicate\">",
+				post: "</emph>"
+			},
+			{
+				src: event.sentence,
+				span: sentenceSpan,
+				pre: "<emph class=\"sentence\">",
+				post: "</emph>"
+			}
+		]);
+		replacements = normalizeReplacements(replacements);
+
 		var yearText = event.year > 0 ? event.year + " CE" : -event.year + " BCE";
+
 		var yearUrl = baseWikipediaUrl + "/wiki/" + (event.year > 0 ? event.year : -event.year + "BC");
 		var tooltipText = "Event ID " + event.dbid + " in " + event.year;
 		if (event.hasOwnProperty('eventRoot'))
 			tooltipText += ", predicate stem '" + event.eventRoot + "'";
 		tooltipText += ".";
-		var descHtml = formatDescription(event.description, JSON.parse(event.descriptionReplacements));
-		var descElt = $("<dt title=\"" + tooltipText + "\"><a href=\"" + yearUrl + "\">" + yearText + "</a></dt>" + "<dd>" + descHtml + "</dd>").appendTo(listElt);
-		descElt.find("a").attr('target', '_blank');
+
+		var shortDesc = applyReplacements(event.sentence, replacements, sentenceSpan[0]);
+		var longDesc = applyReplacements(event.description, replacements);
+
+		var dtElt = $("<dt title=\"" + tooltipText + "\"><a href=\"" + yearUrl + "\">" + yearText + "</a>: " + event.eventRoot + "</dt>").appendTo(listElt);
+		var ddElt = $("<dd>" + shortDesc + "</dd>").appendTo(listElt);
+		dtElt.find("a").attr('target', '_blank');
+		ddElt.find("a").attr('target', '_blank');
+
+		// Expansion to long description
+		if (event.description != event.sentence) {
+			var expandFullElt = $("<span class=\"icon-plus\"></span>").appendTo(ddElt);
+			var fullElt = $("<div class=\"eventfulldescription\">" + longDesc + "</div>").appendTo(ddElt);
+			expandFullElt.click(function () {
+				$(this).toggleClass('icon-plus icon-minus');
+				fullElt.toggleClass('expanded');
+			});
+		}
 	});
 }

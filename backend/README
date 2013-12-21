@@ -41,12 +41,12 @@ We can then start a backend using this configuration file:
 
 Note that the index path is relative to wherever the backend is started. Setting an absolute path may be safer.
 
-Indexing configuration
-----------------------
+Data domain configuration
+-------------------------
 
-To alter easily adjustable aspects of the data indexing, copy indexing_config_defaults.py to indexing_config.py and edit it. This file can provide names for extra keyword fields (especially for facets) and functions that provided values for both the required fields and extra keyword fields. The default configuration relies on wikipediahistory.py. You can either add extra keyword fields on top of those managed by the later file, or you can copy the code from it and edit it as needed.
+To alter easily adjustable aspects of how data is handled, copy domain_config_defaults.py to domain_config.py and edit it. This file can provide names for extra keyword fields (especially for facets) and functions that provide values for both the required fields and extra keyword fields. The default configuration relies on wikipediahistory.py. You can either add extra keyword fields on top of those managed by the later file, or you can copy the code from it and edit it as needed.
 
-Local changes (that aren't part of the main project) should go in indexing_config.py and any new files needed, not in indexing_config_defaults.py or wikipediahistory.py.
+Local changes (that aren't part of the main project) should go in domain_config.py and any new files needed, not in domain_config_defaults.py or wikipediahistory.py.
 
 Backend behaviour and configuration
 -----------------------------------
