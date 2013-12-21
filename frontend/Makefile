@@ -26,6 +26,8 @@ OWNCSS=loadingindicator.css constraintslist.css eventdescriptionslist.css facet.
 LIBJS=lib/jquery.min.js lib/jquery.cookie.min.js lib/d3/d3.v3.min.js lib/d3/topojson.v1.min.js lib/d3/d3.geo.projection.v0.min.js lib/d3/d3.geo.polyhedron.v0.min.js lib/bootstrap/js/bootstrap.min.js
 # Project Javascript files to add to the build.
 OWNJS=utils.js layoututils.js d3utils.js loadingindicator.js queries.js constraintslist.js eventdescriptionslist.js facet.js timeline.js map.js textsearch.js descriptions.js
+# Partial HTML files to include on the about page.
+ABOUTFILES=aboutlensingwikipedia.html
 # Project files to include in the output.
 FILES=index.html about.html map.json search.png favicon.ico lib/bootstrap/img/glyphicons-halflings.png
 # Path for output of the release site.
@@ -81,10 +83,10 @@ $(RELEASEOUT)/index.html $(DEVELOUT)/index.html: %/index.html: $(SCRATCH)/%.css.
 	@mkdir -p $(@D)
 	awk "/{CSS}/ { system(\"cat $(SCRATCH)/$*.css.list.html\"); d=1 } /{JS}/ { system(\"cat $(SCRATCH)/$*.js.list.html\"); d=1 } !d { print } { d=0 }" index.html > $@
 
-# Substitute the CSS list into the about file.
-$(RELEASEOUT)/about.html $(DEVELOUT)/about.html: %/about.html: $(SCRATCH)/%.css.list.html about.html
+# Substitute the CSS list and the about file text into the about page file.
+$(RELEASEOUT)/about.html $(DEVELOUT)/about.html: %/about.html: $(SCRATCH)/%.css.list.html $(SCRATCH)/about.cat about.html
 	@mkdir -p $(@D)
-	awk "/{CSS}/ { system(\"cat $(SCRATCH)/$*.css.list.html\"); d=1 } !d { print } { d=0 }" about.html > $@
+	awk "/{CSS}/ { system(\"cat $(SCRATCH)/$*.css.list.html\"); d=1 } /{ABOUT}/ { system(\"cat $(SCRATCH)/about.cat\"); d=1 } !d { print } { d=0 }" about.html > $@
 
 # CSS and Javascript files for release output.
 $(RELEASEOUT)/lib.css: $(SCRATCH)/lib.css.cat libheader
@@ -115,6 +117,10 @@ $(SCRATCH)/$(DEVELOUT).%.list: $(SCRATCH)/lib.%.list $(SCRATCH)/own.%.list
 %.js.list.html: %.js.list
 	@mkdir -p $(@D)
 	awk '{ printf("\t\t<script src=\"%s\"></script>\n", $$0) }' $^ > $@
+
+# Concatenated about files.
+$(SCRATCH)/about.cat: $(ABOUTFILES)
+	cat $^ > $@
 
 # Concatenated CSS and Javascript files and lists of the component filenames.
 $(SCRATCH)/lib.css.cat $(SCRATCH)/lib.css.list: $(LIBCSS)
