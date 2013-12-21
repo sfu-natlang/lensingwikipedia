@@ -7,7 +7,7 @@ Usage
 
 We assume here the backend is already running and has data. To set up the frontend, run the makefile once to generate settings.mk and settings.js and then change the latter to use the URL of your backend:
 	backendUrl = "http://example.net:1500";
-You can also override other settings in settings.js; see below for details.
+Alternatively you can create a settings.mk manually. Either way you can also override other settings. See below for more information on the config files.
 
 By default make uses uglifyjs for Javascript minimization and csso for CSS minimization. You can change these choices by setting MINJS and MINCSS respectively in settings.mk. Alternatively you can set these variables in the environment before calling make. If you don't want to do minimization for one or both components, set the relevant variable(s) to "cat".
 
