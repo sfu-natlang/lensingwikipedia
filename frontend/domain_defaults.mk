@@ -7,3 +7,4 @@
 # Use Wikipedia history files.
 OWNCSS:=$(OWNCSS) wikipediahistory.css
 OWNJS:=$(OWNJS) wikipediahistory.js wikipediahistory_config_defaults.js
+ABOUTFILE:=wikipediahistory_about.html
