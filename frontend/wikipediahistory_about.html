@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>About Lensing Wikipedia</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		{CSS}
+	</head>
+	<body class="about">
+		<h1>About Lensing Wikipedia</h1>
+
+		<h2>What is it</h2>
+
+		<p>
+		This is version 2.0 of the Lensing Wikipedia visual browser.
+		</p>
+
+		<p>
+		Lensing Wikipedia is an interface to visually browse through human history as represented in <a target="_blank" href="http://wikipedia.org/">Wikipedia</a>. Wikipedia contains several summary pages of human history, for example <a target="_blank" href="http://en.wikipedia.org/wiki/409_BC">409 BC</a> is a page summarizing important events in 409 B.C. We took the English descriptions from these pages and performed <a target="_blank" href="http://en.wikipedia.org/wiki/Semantic_role_labeling">Semantic Role Labelling</a> on the sentences describing events in order to extract the predicates (verbs) in the sentence and the arguments for each predicate. We used locations in the text to provide a latitude and longitude for each predicate. Each predicate is then shown in three different linked views: a geographical view, a temporal view and a view of the relationship between the predicates and various entities in the text. After all of the data was processed we have about 20,000 predicates that we use in our visualization.
+		</p>
+
+		<h2>Credits</h2>
+
+		<p>
+		This web site was developed by <a target="_blank" href="http://www.cs.sfu.ca/~anoop">Anoop Sarkar</a>, <a target="_blank" href="http://www.cs.sfu.ca/~msiahban/personal">Maryam Siahbani</a>, Ravikiran Vadlapudi, and <a target="_blank" href="http://www.cs.sfu.ca/~mwhitney/personal">Max Whitney</a>. They are all from the <a target="_blank" href="http://natlang.cs.sfu.ca">Natural Language Laboratory</a> at the <a target="_blank" href="http://cs.sfu.ca">School of Computing Science</a> at <a target="_blank" href="http://www.sfu.ca">Simon Fraser University</a>.
+		</p>
+		<h2>Acknowledgements</h2>
+		<p>This work was partially funded through a <a href="http://www.nserc-crsng.gc.ca/Professors-Professeurs/RPP-PP/CRD-RDC_eng.asp" target="_blank">Collaborative Research and Development (CRD)</a> grant from <a href="http://nserc.ca" target="_blank">NSERC, Canada</a> based on a generous contribution by <a href="http://www.boeing.ca/" target="_blank">Boeing</a> and <a href="http://www.aeroinfo.com/" target="_blank">AeroInfo Systems</a>.</p>
+		<p>We used the following data and software to build this visualization:
+		    <ul>
+			<li><a href="http://wikipedia.org/" target="_blank">Wikipedia</a>, of course.</li>
+			<li><a href="http://d3js.org" target="_blank">d3</a> for the timeline and the map views.</li>
+			<li><a href="http://www.naturalearthdata.com/" target="_blank">Natural Earth</a> for the map data.</li>
+			<li><a href="http://jquery.com/" target="_blank">jquery</a> and <a href="https://github.com/carhartl/jquery-cookie" target="_blank">jquery cookie library</a>.</li>
+			<li><a href="http://twitter.github.io/bootstrap/" target="_blank">bootstrap</a>.</li>
+			<li><a href="http://glyphicons.com/" target="_blank">Glyphicons</a>.</li>
+			<li><a href="https://bitbucket.org/mchaput/whoosh/wiki/Home" target="_blank">Whoosh</a> for indexing and searching.</li>
+		    </ul>
+		</p>
+	</body>
+</html>
