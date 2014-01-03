@@ -5,19 +5,28 @@ The frontend interfaces with the backend by sending queries in a JSON format. Se
 Usage
 =====
 
-We assume here the backend is already running and has data. To set up the frontend, first copy config.def.js to config.js and edit it. Most importantly, change backendUrl to be the URL of your backend:
+We assume here the backend is already running and has data. To set up the frontend, run the makefile once to generate settings.mk and settings.js and then change the latter to use the URL of your backend:
 	backendUrl = "http://example.net:1500";
-Change any other settings as needed, especially to match the data and the backend's settings. If you do not make your own config.js then the build process will copy config.def.js as it is, and assume that the backend is running locally.
+Alternatively you can create a settings.mk manually. Either way you can also override other settings. See below for more information on the config files.
+
+By default make uses uglifyjs for Javascript minimization and csso for CSS minimization. You can change these choices by setting MINJS and MINCSS respectively in settings.mk. Alternatively you can set these variables in the environment before calling make. If you don't want to do minimization for one or both components, set the relevant variable(s) to "cat".
 
 Now use make to run the build process. There are two main targets:
-	release -- Build the site with packed and minimized CSS and Javascript files. Outputs to out/.
-	devel -- Build the site with independent CSS and Javascript files. Useful for development and debugging. Outputs to devel/.
-
-By default make uses uglifyjs for Javascript minimization and csso for CSS minimization. You can change these by setting by creating a file called config.mk which sets variables MINJS and MINCSS respectively. Alternatively you can set these variables in the environment before calling make. If you don't want to do minimization for one or both components, set the relevant variable(s) to "cat". See the Makefile for details and other settings you can change.
+	release -- Build the site with packed and minimized CSS and Javascript files. Outputs to out/ by default.
+	devel -- Build the site with independent CSS and Javascript files. Useful for development and debugging. Outputs to devel/ by default.
 
 After building, serve the files from either out/ or devel/.
 
-Note that config.js and config.mk are intended to isolate basic settings as much as possible, so that anyone wanting to repeatedly build the website can configure these files once and leave them in place without risk of interference from updates to the source code.
+Configuration
+=============
+
+Configuration works by the makefile first including domain.mk and then including settings.mk. These files can override the settings variables at the top of the makefile, and especially can add Javascript and CSS files to the build by appending to the appropriate variables. This configuration system is intended to allow the common codebase, code for a data domain, and installation specific settings to be maintained in separate files without interfering with each other.
+
+Configuration for the data domain goes in domain.mk and any files it references. In general it would add at least one Javacript file and one CSS file to the build. The defaults are for the Wikipedia history domain.
+
+Configuration for a specific installation goes in settings.mk. In general it would add at least one Javacript file to the build, which can set the backend URL and override any default settings from the data domain Javacript as desired.
+
+See the top of Makefile for the makefile variables the config files can override, and wikipediahistory_config_defaults.js for the Javacript config variables of the default domain.
 
 Debugging
 =========

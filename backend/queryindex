@@ -25,7 +25,7 @@ import json
 import time
 import whoosh, whoosh.index
 import queries
-import settings
+import backend_settings
 
 if __name__ == '__main__':
   import getopt

@@ -4,19 +4,3 @@
 	padding: 0;
 	overflow-y: scroll;
 }
-.eventdescriptionslist dl {
-	margin: 0 0.5em 0 0.5em;
-	padding: 0;
-}
-.eventdescriptionslist dl dd {
-	margin: 1em;
-	padding: 0;
-}
-.eventdescriptionslist .buttonbox {
-	text-align: center;
-	margin: 0;
-	padding: 0;
-}
-.eventdescriptionslist button {
-	margin: 0em auto 1em auto;
-}

@@ -41,6 +41,13 @@ We can then start a backend using this configuration file:
 
 Note that the index path is relative to wherever the backend is started. Setting an absolute path may be safer.
 
+Data domain configuration
+-------------------------
+
+To alter easily adjustable aspects of how data is handled, copy domain_config_defaults.py to domain_config.py and edit it. This file can provide names for extra keyword fields (especially for facets) and functions that provide values for both the required fields and extra keyword fields. The default configuration relies on wikipediahistory.py. You can either add extra keyword fields on top of those managed by the later file, or you can copy the code from it and edit it as needed.
+
+Local changes (that aren't part of the main project) should go in domain_config.py and any new files needed, not in domain_config_defaults.py or wikipediahistory.py.
+
 Backend behaviour and configuration
 -----------------------------------
 
@@ -54,7 +61,7 @@ The settings reload and any necessary index loading and cache priming is done in
 
 Note that the configuration file is configuration for a backend instance, not configuration for the data. In general each live instance of the backend should have its own configuration file so that its settings can be changed without restarting.
 
-See default_settings.py for a list of settings and the format of a configuration file. In general you would want to at least set the index path and make sure that the all_argument_numbers and fields_to_prime querier settings match your data.
+See backend_settings_defaults.py for a list of settings and the format of a configuration file. In general you would want to at least set the index path and make sure that the all_argument_numbers and fields_to_prime querier settings match your data.
 
 Testing queries
 ---------------

@@ -1,39 +1,61 @@
-# Use any defaults from config file.
--include config.mk
-
-# Minimizer programs. Should take a filename for input on the command line and output to stdout.
-ifndef MINCSS
-	MINCSS=csso
-endif
-ifndef MINJS
-	MINJS=uglifyjs
-endif
-
-# Extra files to include in the output.
-ifndef OTHERFILES
-	OTHERFILES=
-endif
-
-# Directory names.
-ifndef RELEASEOUT
-	RELEASEOUT=out
-endif
-ifndef DEVELOUT
-	DEVELOUT=devel
-endif
-ifndef SCRATCH
-	SCRATCH=scratch
-endif
-
-# List of the component files.
-LIBCSS=lib/bootstrap/css/bootstrap.min.css lib/bootstrap/css/bootstrap-responsive.min.css
-OWNCSS=loadingindicator.css constraintslist.css eventdescriptionslist.css facet.css timeline.css map.css textsearch.css main.css
-LIBJS=lib/jquery.min.js lib/jquery.cookie.min.js lib/d3/d3.v3.min.js lib/d3/topojson.v1.min.js lib/d3/d3.geo.projection.v0.min.js lib/d3/d3.geo.polyhedron.v0.min.js lib/bootstrap/js/bootstrap.min.js
-OWNJS=utils.js layoututils.js d3utils.js loadingindicator.js queries.js constraintslist.js eventdescriptionslist.js facet.js timeline.js map.js textsearch.js config.js
-FILES=index.html about.html map.json search.png favicon.ico $(OTHERFILES)
+#
+# Makefile to build the webpage.
+#
+# This makefile will include first domain.mk if it exists and then settings.mk
+# if it exists. Those files can alter the config variables at the top of this
+# file. The can also Javascript config variables by adding an Javascript file
+# to the build.
+#
 
 all: release
 test: devel
+
+#
+# Settings that can be altered by the config files.
+#
+
+# CSS minimizer program. Should take a filename for input on the command line and output to stdout.
+MINCSS=csso
+# Javascript minimizer program. Should take a filename for input on the command line and output to stdout.
+MINJS=uglifyjs
+# Library CSS file to add to the build; each should include appropriate credits and licence information.
+LIBCSS=lib/bootstrap/css/bootstrap.min.css lib/bootstrap/css/bootstrap-responsive.min.css
+# Site-specific CSS files to add to the build.
+OWNCSS=loadingindicator.css constraintslist.css eventdescriptionslist.css facet.css timeline.css map.css textsearch.css main.css
+# Library JS file to add to the build; each should include appropriate credits and licence information.
+LIBJS=lib/jquery.min.js lib/jquery.cookie.min.js lib/d3/d3.v3.min.js lib/d3/topojson.v1.min.js lib/d3/d3.geo.projection.v0.min.js lib/d3/d3.geo.polyhedron.v0.min.js lib/bootstrap/js/bootstrap.min.js
+# Project Javascript files to add to the build.
+OWNJS=utils.js layoututils.js d3utils.js loadingindicator.js queries.js constraintslist.js eventdescriptionslist.js facet.js timeline.js map.js textsearch.js descriptions.js
+# HTML files to use as the about page. If a line has "{CSS}" on it then it will be replaced with all the CSS includes.
+ABOUTFILE=
+# Project files to include in the output.
+FILES=index.html about.html map.json search.png favicon.ico lib/bootstrap/img/glyphicons-halflings.png
+# Path for output of the release site.
+RELEASEOUT=out
+# Path for output of the development site.
+DEVELOUT=devel
+# Working directory for intermediate files.
+SCRATCH=scratch
+
+#
+# Handling the config files.
+#
+
+# Defaults for configs.
+domain.mk: domain_defaults.mk
+	cp $^ $@
+settings.js: settings_defaults.js
+	cp $^ $@
+settings.mk: settings_defaults.mk
+	cp $^ $@
+
+# Use both config files in order.
+include domain.mk
+include settings.mk
+
+#
+# Build.
+#
 
 #
 # Target to build release version, with packing and minimization.
@@ -56,24 +78,20 @@ devel: $(addprefix $(DEVELOUT)/, $(LIBCSS) $(OWNCSS) $(LIBJS) $(OWNJS) $(FILES))
 .DEFAULT: devel
 .PHONY: release devel clean-intermediate clean
 
-# Use default config file if one is not already there.
-config.js: config.def.js
-	cp $^ $@
-
 # Substitute the CSS and Javascript include lists into the index file.
 $(RELEASEOUT)/index.html $(DEVELOUT)/index.html: %/index.html: $(SCRATCH)/%.css.list.html $(SCRATCH)/%.js.list.html index.html
 	@mkdir -p $(@D)
 	awk "/{CSS}/ { system(\"cat $(SCRATCH)/$*.css.list.html\"); d=1 } /{JS}/ { system(\"cat $(SCRATCH)/$*.js.list.html\"); d=1 } !d { print } { d=0 }" index.html > $@
 
-# Substitute the CSS list into the about file.
-$(RELEASEOUT)/about.html $(DEVELOUT)/about.html: %/about.html: $(SCRATCH)/%.css.list.html about.html
+# Substitute the CSS list and the about file text into the about page file.
+$(RELEASEOUT)/about.html $(DEVELOUT)/about.html: %/about.html: $(SCRATCH)/%.css.list.html $(ABOUTFILE)
 	@mkdir -p $(@D)
-	awk "/{CSS}/ { system(\"cat $(SCRATCH)/$*.css.list.html\"); d=1 } !d { print } { d=0 }" about.html > $@
+	awk "/{CSS}/ { system(\"cat $(SCRATCH)/$*.css.list.html\"); d=1 } !d { print } { d=0 }" $(ABOUTFILE) > $@
 
 # CSS and Javascript files for release output.
 $(RELEASEOUT)/lib.css: $(SCRATCH)/lib.css.cat libheader
 	@mkdir -p $(@D)
-	(cat libheader $^) > $@
+	(cat libheader $^ | sed -e 's|"\.\./img/glyphicons-halflings.png"|"lib/bootstrap/img/glyphicons-halflings.png"|g') > $@
 $(RELEASEOUT)/lw.css: $(SCRATCH)/own.css.cat
 	@mkdir -p $(@D)
 	$(MINCSS) $^ > $@
