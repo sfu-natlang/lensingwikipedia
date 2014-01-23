@@ -4,4 +4,4 @@
 # See the readme file for information about how the config files are used.
 #
 
-OWNJS:=$(OWNJS) settings.js
+OWNJS:=$(OWNJS) frontendsettings.js
