@@ -41,6 +41,8 @@ LIBJS=$(addprefix $(SRC)/, lib/jquery.min.js lib/jquery.cookie.min.js lib/d3/d3.
 OWNJS=$(addprefix $(SRC)/, utils.js layoututils.js d3utils.js loadingindicator.js queries.js constraintslist.js eventdescriptionslist.js facet.js timeline.js map.js textsearch.js descriptions.js)
 # HTML files to use as the about page. If a line has "{CSS}" on it then it will be replaced with all the CSS includes.
 ABOUTFILE=
+# HTML fragment file to use as the header on the index page.
+HEADERFILE=
 # Project files to include in the output.
 FILES=$(addprefix $(SRC)/, index.html map.json search.png favicon.ico lib/bootstrap/img/glyphicons-halflings.png)
 
@@ -108,7 +110,7 @@ $(SCRATCH)/otherreleasefiles.d: $(FILES)
 # Substitute the CSS and Javascript include lists into the index file.
 $(RELEASEOUT)/index.html $(DEVELOUT)/index.html: %/index.html: $(SCRATCH)/%.css.list.html $(SCRATCH)/%.js.list.html $(SRC)/index.html
 	@mkdir -p $(@D)
-	awk "/{CSS}/ { system(\"cat $(SCRATCH)/$*.css.list.html\"); d=1 } /{JS}/ { system(\"cat $(SCRATCH)/$*.js.list.html\"); d=1 } !d { print } { d=0 }" $(SRC)/index.html > $@
+	awk "/{CSS}/ { system(\"cat $(SCRATCH)/$*.css.list.html\"); d=1 } /{JS}/ { system(\"cat $(SCRATCH)/$*.js.list.html\"); d=1 } /{HEADER}/ { printf(\"\t\t\t\"); system(\"cat $(HEADERFILE)\"); d=1 } !d { print } { d=0 }" $(SRC)/index.html > $@
 
 # Substitute the CSS list and the about file text into the about page file.
 $(RELEASEOUT)/about.html $(DEVELOUT)/about.html: %/about.html: $(SCRATCH)/%.css.list.html $(ABOUTFILE)
