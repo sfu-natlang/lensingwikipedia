@@ -2,4 +2,4 @@
 
 OWNJS:=$(OWNJS) wikipediahistory_config_defaults.js avherald.js
 OWNCSS:=$(OWNCSS) avherald.css
-ABOUTFILE:=wikipediahistory_about.html
+ABOUTFILE:=avherald_about.html
