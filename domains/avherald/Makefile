@@ -10,12 +10,10 @@ BACKENDOUTPUT=backend
 all: backend release devel
 
 backend: $(BACKENDPATH)
-	@mkdir -p $(BACKENDOUTPUT)
-	find $(BACKENDPATH) -maxdepth 1 \( -name '*.py' -o -executable \) \( -not -type d \) -exec cp {} $(BACKENDOUTPUT) \;
-	cp *.py $(BACKENDOUTPUT)
+	SRC=$(BACKENDPATH) CONFIG=. OUT=$(BACKENDOUTPUT) make -f $(BACKENDPATH)/Makefile build
 
 clean:
-	rm -rf $(BACKENDOUTPUT)
+	OUT=$(BACKENDOUTPUT) make -f "$(BACKENDPATH)"/Makefile $@
 	SRC=$(FRONTENDPATH) make -f "$(FRONTENDPATH)"/Makefile $@
 
 %:
