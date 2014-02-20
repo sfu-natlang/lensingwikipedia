@@ -3,7 +3,7 @@ import re
 import json
 import copy
 import codecs
-import stredit
+from aligntable import  alignTable
 import os
 
 frameLabel = {}
@@ -135,7 +135,7 @@ def findSubStr(Str, subStr, last=0):
 		
 	return b,e
 
-def addNERInfo(docId, tokDesc):
+def addNERInfo(docId, tokDesc, alignObj):
 	global eventsLst, perDict, locDict
 	Desc = eventsLst[docId]["description"]	
 	cur_ner_info = eventsLst[docId]["ner_info"]
@@ -152,7 +152,7 @@ def addNERInfo(docId, tokDesc):
 				lastInd = e
 				b += 1
 				if COMP_SPAN_FLAG:
-					(rb, re) = stredit.streditmap(Desc,tokDesc,b,e)
+					(rb, re) = alignObj.mapSpan(b,e)
 				else:
 					(rb,re) = (b,e)
 				if label == 'locations':
@@ -193,16 +193,31 @@ def print_doc(docs, docId, outFile):
 		print len(setDesc & setTokDesc), setDesc & setTokDesc
 		exit(1)
 	Desc = eventsLst[docId]["description"]	
-
-	wl,wc = addNERInfo(docId, tokDesc)
+	if COMP_SPAN_FLAG:
+		alignObj = alignTable(Desc, tokDesc)
+	else:
+		alignObj = None
+	wl,wc = addNERInfo(docId, tokDesc, alignObj)
 	woLoc+=wl
 	woCountry+=wc
 
 	for sentInd, sent in enumerate(docs):
 		preSentLen = len(" ".join([s.sentence for s in docs[:sentInd]]))
 		splitedSent = sent.sentence.split(" ")
+
+		## extracting current sentence from original text
+		b = preSentLen+1
+                if preSentLen > 0: b += 1
+		e = b+len(sent.sentence)
+		if e > len(tokDesc): e = len(tokDesc)
+		if COMP_SPAN_FLAG:
+			sentSpan = alignObj.mapSpan(b,e)
+		else:
+			sentSpan = (b,e)
+			
 		for pred in sent.predicates:
 			printable = {}
+			printable["sentence"] = {"text": Desc[sentSpan[0]:sentSpan[1]], "span": sentSpan}
 			for key in pred:
 				if key=='V' or key in frameLabel["defPred"]:
 				#if key in ["V", "A0", "A1", "AM-MOD", "AM-NEG", "A2", "A3", "A4"]:
@@ -219,10 +234,11 @@ def print_doc(docs, docId, outFile):
 						print tokDesc
 						exit(1)
 					if COMP_SPAN_FLAG:
-						(rb, re) = stredit.streditmap(Desc,tokDesc,b,e)
+						(rb, re) = alignObj.mapSpan(b,e)
+						text = Desc[rb:re]
 					else:
 						(rb, re) = (b,e)
-					text = Desc[rb:re]
+						text = pred[key][0]
 					if key == 'V':
 						printable["event"] = ((rb, re), text)
 						printable["eventRoot"] = pred[key][1]
