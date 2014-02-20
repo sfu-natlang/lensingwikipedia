@@ -28,9 +28,9 @@ SCRATCH?=scratch
 #
 
 # CSS minimizer program. Should take a filename for input on the command line and output to stdout.
-MINCSS=csso
+MINCSS=cat
 # Javascript minimizer program. Should take a filename for input on the command line and output to stdout.
-MINJS=uglifyjs
+MINJS=cat
 # Library CSS file to add to the build; each should include appropriate credits and licence information.
 LIBCSS=$(addprefix $(SRC)/, lib/bootstrap/css/bootstrap.min.css lib/bootstrap/css/bootstrap-responsive.min.css)
 # Site-specific CSS files to add to the build.
