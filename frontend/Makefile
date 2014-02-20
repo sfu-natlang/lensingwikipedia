@@ -86,23 +86,24 @@ devel: $(addprefix $(DEVELOUT)/, $(notdir $(LIBCSS) $(LIBJS) $(OWNCSS) $(OWNJS) 
 # Devel build files are mostly copied directly with directory flattening.
 #
 
-develfiles.d: $(LIBCSS) $(LIBJS) $(OWNCSS) $(OWNJS) $(FILES)
+$(SCRATCH)/develfiles.d: $(LIBCSS) $(LIBJS) $(OWNCSS) $(OWNJS) $(FILES)
+	@mkdir -p $(@D)
 	for f in $(LIBCSS) $(LIBJS) $(OWNCSS) $(OWNJS) $(FILES); do \
 		echo -e "$(DEVELOUT)/$$(basename "$${f}"): $$f\n\t@mkdir -p \$$(@D)\n\tcp \$$< \$$@\n"; \
 	done > $@
 
-include develfiles.d
+-include $(SCRATCH)/develfiles.d
 
 #
 # Any extra files expected in release output are copied directly.
 #
 
-otherreleasefiles.d: $(FILES)
+$(SCRATCH)/otherreleasefiles.d: $(FILES)
 	for f in $(FILES); do \
 		echo -e "$(RELEASEOUT)/$$(basename "$${f}"): $$f\n\t@mkdir -p \$$(@D)\n\tcp \$$< \$$@\n"; \
 	done > $@
 
-include otherreleasefiles.d
+-include $(SCRATCH)/otherreleasefiles.d
 
 # Substitute the CSS and Javascript include lists into the index file.
 $(RELEASEOUT)/index.html $(DEVELOUT)/index.html: %/index.html: $(SCRATCH)/%.css.list.html $(SCRATCH)/%.js.list.html $(SRC)/index.html
@@ -164,7 +165,7 @@ $(RELEASEOUT)/about.html $(DEVELOUT)/about.html: $(ABOUTFILE)
 
 # Clean up intermediate build files but not the output.
 clean-intermediate:
-	rm -rf develfiles.d otherreleasefiles.d $(SCRATCH)
+	rm -rf $(SCRATCH)
 
 # Clean up all build files.
 clean: clean-intermediate
