@@ -5,14 +5,16 @@ The frontend interfaces with the backend by sending queries in a JSON format. Se
 Usage
 =====
 
-We assume here the backend is already running and has data. To set up the frontend, run the makefile once to generate settings.mk and settings.js and then change the latter to use the URL of your backend:
+We assume here the backend is already running and has data. To set up the frontend, first setup a frontenddomain.mk and any associated files (see below). In general you would keep these in another directory along with another makefile which calls the one here.
+
+Once domain code is in place, generate a frontendsettings.mk and associated Javascript file manually or by running the makefile once to create a default. The default will create a frontendsettings.js that sets the backend URL as follows; modify it for the real URL:
 	backendUrl = "http://example.net:1500";
-Alternatively you can create a settings.mk manually. Either way you can also override other settings. See below for more information on the config files.
+Either way you can also override other settings. See below for more information on the config files.
 
 By default make uses uglifyjs for Javascript minimization and csso for CSS minimization. You can change these choices by setting MINJS and MINCSS respectively in settings.mk. Alternatively you can set these variables in the environment before calling make. If you don't want to do minimization for one or both components, set the relevant variable(s) to "cat".
 
 Now use make to run the build process. There are two main targets:
-	release -- Build the site with packed and minimized CSS and Javascript files. Outputs to out/ by default.
+	release -- Build the site with packed and minimized CSS and Javascript files. Outputs to release/ by default.
 	devel -- Build the site with independent CSS and Javascript files. Useful for development and debugging. Outputs to devel/ by default.
 
 After building, serve the files from either out/ or devel/.
@@ -20,13 +22,13 @@ After building, serve the files from either out/ or devel/.
 Configuration
 =============
 
-Configuration works by the makefile first including domain.mk and then including settings.mk. These files can override the settings variables at the top of the makefile, and especially can add Javascript and CSS files to the build by appending to the appropriate variables. This configuration system is intended to allow the common codebase, code for a data domain, and installation specific settings to be maintained in separate files without interfering with each other.
+Configuration works by the makefile first including frontenddomain.mk and then including frontendsettings.mk. These files can override the settings variables at the top of the makefile, and especially can add Javascript and CSS files to the build by appending to the appropriate variables. This configuration system is intended to allow the common codebase, code for a data domain, and installation specific settings to be maintained in separate files without interfering with each other.
 
-Configuration for the data domain goes in domain.mk and any files it references. In general it would add at least one Javacript file and one CSS file to the build. The defaults are for the Wikipedia history domain.
+Configuration for the data domain goes in frontenddomain.mk and any files it references. In general it would add at least one Javacript file and one CSS file to the build.
 
-Configuration for a specific installation goes in settings.mk. In general it would add at least one Javacript file to the build, which can set the backend URL and override any default settings from the data domain Javacript as desired.
+Configuration for a specific installation goes in frontendsettings.mk. In general it would add at least one Javacript file to the build, which can set the backend URL and override any default settings from the data domain Javacript as desired.
 
-See the top of Makefile for the makefile variables the config files can override, and wikipediahistory_config_defaults.js for the Javacript config variables of the default domain.
+See the top of Makefile for the makefile variables the config files can override.
 
 Debugging
 =========

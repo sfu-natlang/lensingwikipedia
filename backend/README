@@ -3,6 +3,13 @@ Backend stuff, including the index builder.
 Usage and introduction
 ======================
 
+Domain-specific code
+--------------------
+
+To use the backend you first need to create a backend_domain_config.py and any other needed file containing domain-specific code. This file can provide names for extra keyword fields (especially for facets) and functions that provide values for both the required fields and extra keyword fields.
+
+After the domain code is in place then the following steps will work.
+
 Creating an index from the data
 -------------------------------
 
@@ -40,13 +47,6 @@ We can then start a backend using this configuration file:
 	backend -c demo.conf
 
 Note that the index path is relative to wherever the backend is started. Setting an absolute path may be safer.
-
-Data domain configuration
--------------------------
-
-To alter easily adjustable aspects of how data is handled, copy domain_config_defaults.py to domain_config.py and edit it. This file can provide names for extra keyword fields (especially for facets) and functions that provide values for both the required fields and extra keyword fields. The default configuration relies on wikipediahistory.py. You can either add extra keyword fields on top of those managed by the later file, or you can copy the code from it and edit it as needed.
-
-Local changes (that aren't part of the main project) should go in domain_config.py and any new files needed, not in domain_config_defaults.py or wikipediahistory.py.
 
 Backend behaviour and configuration
 -----------------------------------
