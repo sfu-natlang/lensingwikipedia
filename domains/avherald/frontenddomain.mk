@@ -1,5 +1,5 @@
 # Data domain config for avherald.
 
-OWNJS:=$(OWNJS) wikipediahistory_config_defaults.js avherald.js
+OWNJS:=$(OWNJS) avherald_config_defaults.js avherald.js
 OWNCSS:=$(OWNCSS) avherald.css
 ABOUTFILE:=avherald_about.html

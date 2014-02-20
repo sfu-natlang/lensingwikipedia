@@ -1,5 +1,5 @@
 /*
- * Things especially specific to the The Aviation Herald domain.
+ * Things especially specific to the Avherald domain.
  */
 
 // Prefix for links to Wikipedia pages
