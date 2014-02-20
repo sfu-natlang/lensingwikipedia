@@ -39,12 +39,18 @@ OWNCSS=$(addprefix $(SRC)/, loadingindicator.css constraintslist.css eventdescri
 LIBJS=$(addprefix $(SRC)/, lib/jquery.min.js lib/jquery.cookie.min.js lib/d3/d3.v3.min.js lib/d3/topojson.v1.min.js lib/d3/d3.geo.projection.v0.min.js lib/d3/d3.geo.polyhedron.v0.min.js lib/bootstrap/js/bootstrap.min.js)
 # Project Javascript files to add to the build.
 OWNJS=$(addprefix $(SRC)/, utils.js layoututils.js d3utils.js loadingindicator.js queries.js constraintslist.js eventdescriptionslist.js facet.js timeline.js map.js textsearch.js descriptions.js)
-# HTML files to use as the about page. If a line has "{CSS}" on it then it will be replaced with all the CSS includes.
-ABOUTFILE=
-# HTML fragment file to use as the header on the index page.
-HEADERFILE=
-# Project files to include in the output.
-FILES=$(addprefix $(SRC)/, index.html map.json search.png favicon.ico lib/bootstrap/img/glyphicons-halflings.png)
+# HTML fragment to use in the HTML head section (adding to any fixed lines).
+HEADFILE=
+# HTML fragment file to use as the header in the page layout.
+BODYHEADERFILE=
+# Project HTML files to use as the about page. If a line contains a {} delimited keyword with optional surrounding whitespace, it will be replaced with other text indented to the same level as the opening brace. Valid replacements are:
+#   {CSS} the needed CSS includes
+#   {JS} the needed Javascript includes
+#   {HEAD} the HTML head section fragment as used on the index page
+#   {BODYHEADER} the header HTML fragment as used on the index page.
+HTMLFILES=$(addprefix $(SRC)/, index.html)
+# Other project files to include in the output.
+FILES=$(addprefix $(SRC)/, map.json search.png lib/bootstrap/img/glyphicons-halflings.png)
 
 #
 # Handling the config files.
@@ -66,12 +72,12 @@ include frontendsettings.mk
 #
 # Target to build release version, with packing and minimization.
 #
-release: $(addprefix $(RELEASEOUT)/, lib.css lw.css lib.js lw.js $(notdir $(FILES)))
+release: $(addprefix $(RELEASEOUT)/, lib.css lw.css lib.js lw.js $(notdir $(HTMLFILES) $(FILES)))
 
 #
 # Target to build development version. No packing or minimization.
 #
-devel: $(addprefix $(DEVELOUT)/, $(notdir $(LIBCSS) $(LIBJS) $(OWNCSS) $(OWNJS) $(FILES)))
+devel: $(addprefix $(DEVELOUT)/, $(notdir $(LIBCSS) $(LIBJS) $(OWNCSS) $(OWNJS) $(HTMLFILES) $(FILES)))
 
 #
 # The main purpose of this makefile is to automate optional packing and
@@ -85,7 +91,18 @@ devel: $(addprefix $(DEVELOUT)/, $(notdir $(LIBCSS) $(LIBJS) $(OWNCSS) $(OWNJS) 
 .PHONY: release devel clean-intermediate clean
 
 #
-# Devel build files are mostly copied directly with directory flattening.
+# HTML files get other files substituted in.
+#
+
+$(SCRATCH)/htmlfiles.d: $(SRC)/htmlreplace.awk $(HTMLFILES)
+	for f in $(HTMLFILES); do \
+		echo -e "$(RELEASEOUT)/$$(basename "$${f}") $(DEVELOUT)/$$(basename "$${f}"): %/$$(basename "$${f}"): $${f} $(SCRATCH)/%.css.list.html $(SCRATCH)/%.js.list.html\n\t@mkdir -p \$$(@D)\n\tawk -f $< -v scratchprefix=\"$(SCRATCH)/\$$*\" -v headfile=\"$(HEADFILE)\" -v bodyheaderfile=\"$(BODYHEADERFILE)\" $$< > \$$@\n"; \
+	done > $@
+
+-include $(SCRATCH)/htmlfiles.d 
+
+#
+# Other devel build files are mostly copied directly with directory flattening.
 #
 
 $(SCRATCH)/develfiles.d: $(LIBCSS) $(LIBJS) $(OWNCSS) $(OWNJS) $(FILES)
@@ -106,16 +123,6 @@ $(SCRATCH)/otherreleasefiles.d: $(FILES)
 	done > $@
 
 -include $(SCRATCH)/otherreleasefiles.d
-
-# Substitute the CSS and Javascript include lists into the index file.
-$(RELEASEOUT)/index.html $(DEVELOUT)/index.html: %/index.html: $(SCRATCH)/%.css.list.html $(SCRATCH)/%.js.list.html $(SRC)/index.html
-	@mkdir -p $(@D)
-	awk "/{CSS}/ { system(\"cat $(SCRATCH)/$*.css.list.html\"); d=1 } /{JS}/ { system(\"cat $(SCRATCH)/$*.js.list.html\"); d=1 } /{HEADER}/ { printf(\"\t\t\t\"); system(\"cat $(HEADERFILE)\"); d=1 } !d { print } { d=0 }" $(SRC)/index.html > $@
-
-# Substitute the CSS list and the about file text into the about page file.
-$(RELEASEOUT)/about.html $(DEVELOUT)/about.html: %/about.html: $(SCRATCH)/%.css.list.html $(ABOUTFILE)
-	@mkdir -p $(@D)
-	awk "/{CSS}/ { system(\"cat $(SCRATCH)/$*.css.list.html\"); d=1 } !d { print } { d=0 }" $(ABOUTFILE) > $@
 
 # CSS and Javascript files for release output.
 $(RELEASEOUT)/lib.css: $(SCRATCH)/lib.css.cat $(SRC)/libheader
@@ -144,10 +151,10 @@ $(SCRATCH)/$(DEVELOUT).%.list: $(SCRATCH)/lib.%.list $(SCRATCH)/own.%.list
 # CSS and Javascript include lists formatted for inclusion in HTML.
 %.css.list.html: %.css.list
 	@mkdir -p $(@D)
-	awk '{ printf("\t\t<link rel=\"stylesheet\" type=\"text/css\" href=\"%s\">\n", $$0) }' $^ > $@
+	awk '{ printf("<link rel=\"stylesheet\" type=\"text/css\" href=\"%s\">\n", $$0) }' $^ > $@
 %.js.list.html: %.js.list
 	@mkdir -p $(@D)
-	awk '{ printf("\t\t<script src=\"%s\"></script>\n", $$0) }' $^ > $@
+	awk '{ printf("<script src=\"%s\"></script>\n", $$0) }' $^ > $@
 
 # Concatenated CSS and Javascript files and lists of the component filenames.
 $(SCRATCH)/lib.css.cat $(SCRATCH)/lib.css.list: $(LIBCSS)
@@ -159,11 +166,6 @@ $(SCRATCH)/%.cat $(SCRATCH)/%.list:
 	cat $^ > $(@D)/$*.cat
 	echo $^ | tr ' ' '\n' > $(@D)/$*.list
 $(SCRATCH)/%.list: $(SCRATCH)/%.cat
-
-# The about file just gets copied.
-$(RELEASEOUT)/about.html $(DEVELOUT)/about.html: $(ABOUTFILE)
-	@mkdir -p $(@D)
-	cp -r $< $@
 
 # Clean up intermediate build files but not the output.
 clean-intermediate:
