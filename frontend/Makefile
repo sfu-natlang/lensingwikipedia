@@ -160,7 +160,7 @@ $(SCRATCH)/%.list: $(SCRATCH)/%.cat
 # The about file just gets copied.
 $(RELEASEOUT)/about.html $(DEVELOUT)/about.html: $(ABOUTFILE)
 	@mkdir -p $(@D)
-	cp $< $@
+	cp -r $< $@
 
 # Clean up intermediate build files but not the output.
 clean-intermediate:
