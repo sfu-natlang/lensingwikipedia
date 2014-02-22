@@ -45,17 +45,6 @@ This assumes a bare bones CentOS 6 install.
     Welcome to natlang-web!
     <p><a href="http://natlang-web.cs.sfu.ca/lensingwikipedia.cs.sfu.ca">Lensing Wikipedia</a> by <a href="http://natlang.cs.sfu.ca">SFU Natlang Lab</a>
 
-## Set up data files for backend
-
-    cd /var/www/html
-    sudo mkdir data
-    sudo chown anoop data
-    chgrp cs-natlang data
-    chmod g+w data
-    chmod g+s data
-    cd data
-    # create full.index in data/20131017 (use current date) using instructions in backend/README
-
 ## Set up space for deployed website
 
     cd /var/www/html
@@ -95,11 +84,30 @@ This assumes a bare bones CentOS 6 install.
 
     </VirtualHost>
 
+## Build backend
+
+To use the backend we first need to build the domain-specific programs.
+
+    cd /var/www/html/checkouts/20131017/domains/wikipediahistory
+    make backend
+
+Now the appropriate programs are in /var/www/html/checkouts/20131017/domains/wikipediahistory/backend
+
+## Set up data files for backend
+
+    cd /var/www/html
+    sudo mkdir data
+    sudo chown anoop data
+    chgrp cs-natlang data
+    chmod g+w data
+    chmod g+s data
+    cd data
+    # create full.index in data/20131017 (use current date) using instructions in the backend README
 
 ## Run backend
 
-    cd /var/www/html/checkouts/20131017/backend
-    create full.conf # see below
+    cd /var/www/html/checkouts/20131017/domains/wikipediahistory/backend
+    # create full.conf as below
     nohup python2.7 backend -p 1510 -c full.conf
 
 ### Sample full.conf
@@ -114,45 +122,32 @@ This assumes a bare bones CentOS 6 install.
     
 ## Configure frontend and deploy
 
-    cd /var/www/html/checkouts/20131017/frontend
-    create config.js  # see below
-    create config.mk # see below
+    cd /var/www/html/checkouts/20131017/domains/wikipediahistory
+    make frontendsettings.mk frontendsettings.js
+    # edit frontendsettings.js to match the sample below
+
+The make command above creates default settings files. If you already have your own use them instead. If you want to do any Javascript or CSS minimization set commands in frontendsettings.mk. See the frontend README for more details on settings.
+
     make release
-    cp out/*.* /var/www/html/lensingwikipedia.cs.sfu.ca/.
+    cp release/*.* /var/www/html/lensingwikipedia.cs.sfu.ca/.
 
-### Sample config.js
+### Sample frontendsettings.js
 
-    // URL for the backend
+    // URL for the backend.
     backendUrl = "http://natlang-web.cs.sfu.ca:1510";
-    // Prefix for links to Wikipedia pages
-    baseWikipediaUrl = "https://en.wikipedia.org";
-    // Range of allowed map zoom levels
-    minMapZoom = 1, maxMapZoom = 5;
-    // URL for the map data file (can be relative to the path where the frontend is running)
-    mapDataUrl = "map.json";
-    // List of facets by field name (to ask the backend for) and title (to show the user)
-    facets = {
-        "role": "Role",
-        "personText": "Person",
-        "currentCountryText": "Current country",
-        "locationText": "Location"
-    };
-
-### Sample config.mk file
-
-    MINCSS=cat
-    MINJS=cat
 
 # Update the website
 
 ## Restart backend
 
-    cd /var/www/html/checkouts/20131017/backend
+    cd /var/www/html/checkouts/20131017/domains/wikipediahistory/backend
     nohup python2.7 backend -p 1510 -c full.conf
+
+Note that you do not always need to restart the backed to change to new data; see the backend README.
 
 ## Pull new frontend and deploy
 
-    cd /var/www/html/checkouts/20131017/frontend
+    cd /var/www/html/checkouts/20131017/domains/wikipediahistory
     git pull
     make release
-    cp out/*.* /var/www/html/lensingwikipedia.cs.sfu.ca/.
+    cp release/*.* /var/www/html/lensingwikipedia.cs.sfu.ca/.
