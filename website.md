@@ -2,6 +2,10 @@
 
 This assumes a bare bones CentOS 6 install.
 
+## Choose a domain
+
+The instructions below assume we are building the main Lensing Wikipedia site. We therefore use the domains/wikipediahistory/ directory for the backend and frontend. For a different domain use the appropriate sub-directory in domains/ instead, and adjust local paths and URLs as needed.
+
 ## Set up packages on CentOS 6
 
     sudo yum check-update
