@@ -95,7 +95,7 @@ To use the backend we first need to build the domain-specific programs.
     cd /var/www/html/checkouts/20131017/domains/wikipediahistory
     make backend
 
-Now the appropriate programs are in /var/www/html/checkouts/20131017/domains/wikipediahistory/backend
+Now the appropriate programs are in @/var/www/html/checkouts/20131017/domains/wikipediahistory/backend@
 
 ## Set up data files for backend
 
