@@ -19,6 +19,8 @@ class locationSpider(BaseSpider):
 		self.outFile=kwargs['outfile']
 		self.start_urls = []
 		self.url2locDic = {}
+		#self.url2locDic = {"http://en.wikipedia.org/wiki/Air_trans":"Air trans"}
+		#self.start_urls = ["http://en.wikipedia.org/wiki/Air_trans"]
 		self.readFile(self.inFile)
 		fout = codecs.open(self.outFile,"w", encoding='utf-8')
 		fout.close
@@ -42,37 +44,28 @@ class locationSpider(BaseSpider):
 		ulDict = {}
 		h1 = ptr.select('//h1/span')
 		title = h1[0].select('descendant::text()').extract()[0].encode('utf8','ignore')
-		spans = ptr.select('//span')
-		latFlag = 0
-		location = {}
-		location['title'] = title
-		isLocation = 0
-		for span in spans:
-			classes = span.select('@class').extract()
-			class_name = str(classes[0]) if len(classes) > 0 else ''
-		
-			if class_name == 'latitude':
-				latitude=span.select('text()').extract()[0].encode('utf8','ignore')
-				latFlag = 1
-			elif latFlag and class_name == 'longitude':
-				longitude=span.select('text()').extract()[0].encode('utf8','ignore')
-				location['latitude'] = latitude
-				location['longitude'] = longitude
-				try:
-					text = self.url2locDic[url]
-					location['text'] = text
-					location['url'] = "/wiki/"+"_".join(text.split())
-					
-				except:
-					startingAdd1 = "http://en.wikipedia.org"
-					location['url'] = "/wiki/"+url[len(startingAdd1):]
-					location['text'] = " ".join(url[len(startingAdd1)+6:].split("_"))
-				isLocation = 1
-				break
-		if not isLocation: return
-
-		location['category'] = []
-
+		org = {}
+		is_org = 0
+		org['title'] = title
+		spans = ptr.select("//div[@id='mw-content-text']")
+		if len(spans)>1:
+			print "more than one <div id='mw-content-text'> in\t", url
+			exit(1)
+		elif len(spans) == 1:
+			tables = spans[0].select("descendant::table[@class = 'infobox*']")
+			if len(tables) > 1:
+				print "more than one infobox in\t", url
+				exit(1)
+			if len(tables) ==1:
+				tds = tables[0].select("/tbody/tr/td::text()'")
+				for cell in tds:
+					if cell.startswith("Founded") or cell.startswith("Key people") or cell.startswith("Company"):
+						is_org = 1
+						break
+			#tables = spans[0].select("descendant::table")
+			#for tab in tables:
+			#	if tab.
+			
 		spans = ptr.select("//div[@id='mw-normal-catlinks']")
 		if len(spans) != 1:
 			spans = ptr.select("//div[@id='mw-normal-catlinks']/a[text()='Categories']")
@@ -81,7 +74,7 @@ class locationSpider(BaseSpider):
 				exit(1)
 		categories = spans[0].select("descendant::li/a")
 		cat_string = ""
-		isPerson = 0
+		org['category'] = []
 		for cat in categories:
 			#tmp = cat.select('@href').extract()
 			#cat_url = str(tmp[0]) if len(tmp) == 1 else ""
@@ -89,10 +82,18 @@ class locationSpider(BaseSpider):
 			cat_name = str(tmp[0].encode('utf8', 'ignore')) if len(tmp) ==1 else ''
 			#cat_string += cat_url+" "+cat_name+"\t"
 			cat_name = cat_name.strip()
-			location['category'].append(cat_name)
-		print >> fout, json.dumps(location)
+			org['category'].append(cat_name)
+			if not is_org and (cat_name.startswith("Companies") or (cat_name.find("established in") >= 0  or (cat_name.find("companies") >= 0))):
+				is_org = 1
+				try:
+					text = self.url2locDic[url]
+					org['text'] = text
+					org['url'] = "/wiki/"+"_".join(text.split())
+				except:
+					startingAdd1 = "http://en.wikipedia.org/wiki/"
+					org['url'] = "/wiki/"+url[len(startingAdd1):]
+					org['text'] = " ".join(url[len(startingAdd1)+6:].split("_"))
+		if is_org: print >> fout, json.dumps(org)
+
 		fout.close
-
-
-
 
