@@ -3,7 +3,7 @@ Utilities for reading and using settings.
 """
 
 import sys
-import default_settings
+import backend_settings_defaults
 
 class UnknownSetting(Exception):
   def __init__(self, setting):
@@ -26,7 +26,7 @@ def read_from_file(path):
         check_settings(value, def_value)
   with open(path) as input_file:
     settings = eval(input_file.read())
-    check_settings(settings, default_settings.settings)
+    check_settings(settings, backend_settings_defaults.settings)
     return settings
 
 def read_new_from_file(path, old_settings, old_settings_name="previous"):

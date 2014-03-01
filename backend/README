@@ -3,6 +3,13 @@ Backend stuff, including the index builder.
 Usage and introduction
 ======================
 
+Domain-specific code
+--------------------
+
+To use the backend you first need to create a backend_domain_config.py and any other needed file containing domain-specific code. This file can provide names for extra keyword fields (especially for facets) and functions that provide values for both the required fields and extra keyword fields.
+
+After the domain code is in place then the following steps will work.
+
 Creating an index from the data
 -------------------------------
 
@@ -54,7 +61,7 @@ The settings reload and any necessary index loading and cache priming is done in
 
 Note that the configuration file is configuration for a backend instance, not configuration for the data. In general each live instance of the backend should have its own configuration file so that its settings can be changed without restarting.
 
-See default_settings.py for a list of settings and the format of a configuration file. In general you would want to at least set the index path and make sure that the all_argument_numbers and fields_to_prime querier settings match your data.
+See backend_settings_defaults.py for a list of settings and the format of a configuration file. In general you would want to at least set the index path and make sure that the all_argument_numbers and fields_to_prime querier settings match your data.
 
 Testing queries
 ---------------

@@ -10,17 +10,10 @@ import hashlib
 import time
 import json
 import caching
-import settings, default_settings
+import backend_settings, backend_settings_defaults
 
-# Map from field names to use in searching to real field names
-text_search_field_map = {
-  'id': 'dbid',
-  'predicate': 'eventRoot',
-  'location': 'locationText',
-  'currentcountry': 'currentCountryText',
-  'person': 'personText',
-  'category': 'categoryText'
-}.get
+# Use the domain config file.
+import backend_domain_config
 
 class QueryHandlingError(Exception):
   """
@@ -42,12 +35,12 @@ class Querier:
     """
 
     self.whoosh_index = whoosh_index
-    settings.apply(self, our_settings, default_settings.settings['querier'])
+    backend_settings.apply(self, our_settings, backend_settings_defaults.settings['querier'])
 
     self.results_pagination_cache = caching.FIFO(self.result_pagination_cache_size)
     self.response_cache = caching.Complete()
 
-    self.query_parser = whooshutils.TextQueryParser(schema=whoosh_index.schema, field_map=text_search_field_map)
+    self.query_parser = whooshutils.TextQueryParser(schema=whoosh_index.schema, field_map=backend_domain_config.field_name_aliases)
 
   def should_cache(self, query, view):
     """
@@ -104,7 +97,9 @@ class Querier:
 
     type = cnstr['type']
     if type == 'fieldvalue':
-      return whoosh.query.Term(cnstr['field'], whooshutils.escape_keyword(cnstr['value']))
+      field = cnstr['field']
+      field = backend_domain_config.field_name_aliases(field) or field
+      return whoosh.query.Term(field, whooshutils.escape_keyword(cnstr['value']))
     if type == 'textsearch':
       return self.query_parser.parse(cnstr['value'])
     elif type == "timerange":
@@ -139,6 +134,7 @@ class Querier:
       for hit in hits:
         for view_id, view in views.iteritems():
           field = view['field']
+          field = backend_domain_config.field_name_aliases(field) or field
           if field in hit:
             values = set(v for v in whooshutils.split_keywords(hit[field]))
             counts = response[view_id]['counts']
@@ -163,7 +159,7 @@ class Querier:
 
       with self.whoosh_index.searcher() as searcher:
         def format(hit):
-          return dict((f, hit[f]) for f in ['dbid', 'year', 'descriptionHtml', 'eventRoot'])
+          return dict((f, hit[f]) for f in backend_domain_config.description_field_names)
         hits = searcher.search_page(whoosh_query, page_num + 1, pagelen=self.description_page_size, sortedby='year', reverse=True)
         print >> sys.stderr, "whoosh pre-paginated search results: %s" % (repr(hits.results))
         result['descriptions'] = [format(h) for h in hits]
