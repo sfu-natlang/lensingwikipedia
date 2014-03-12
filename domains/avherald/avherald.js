@@ -47,9 +47,9 @@ function addToDescriptionList(descriptions, listElt) {
 		if (i > 0)
 			event.description = event.description.substring(0, i);
 
-		var tooltipText = "Event ID " + event.dbid + " in " + event.year;
-		if (event.hasOwnProperty('eventRoot'))
-			tooltipText += ", predicate stem '" + event.eventRoot + "'";
+		var tooltipText = "Event ID " + event.id + " in " + event.year;
+		if (event.hasOwnProperty('predicate'))
+			tooltipText += ", predicate stem '" + event.predicate + "'";
 		tooltipText += ".";
 
 		var shortDesc = applyReplacements(event.sentence, replacements, sentenceSpan[0]);

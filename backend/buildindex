@@ -29,9 +29,9 @@ keyword_text_analyzer = whoosh.analysis.RegexTokenizer() | whoosh.analysis.Lower
 
 # The schema describing a document in the index. Any fields that backend queries can access should be mentioned in the protocol description document.
 fields = {
-  'dbid': whoosh.fields.NUMERIC(stored=True, unique=True),
+  'id': whoosh.fields.NUMERIC(stored=True, unique=True),
   'year': whoosh.fields.NUMERIC(stored=True, sortable=True, shift_step=1),
-  'eventRoot': whoosh.fields.ID(stored=True),
+  'predicate': whoosh.fields.ID(stored=True),
   'description': whoosh.fields.TEXT(stored=True, analyzer=text_analyzer),
   'allPoints': whoosh.fields.KEYWORD(stored=True),
   'argument': whoosh.fields.KEYWORD(stored=True, commas=whooshutils.keyword_field_commas),
@@ -59,7 +59,7 @@ def make_event_doc(event):
   """
 
   # Create a document with values from all the value getters
-  doc = { 'dbid': line_num }
+  doc = { 'id': line_num }
   for value_getter in backend_domain_config.value_getters:
     values = value_getter(event)
     for field_name, value in values.iteritems():

@@ -4,19 +4,10 @@ Extracting data to index from Json data for The Aviation Herald.
 
 import json
 
-facet_field_names = ['title', 'url', 'sentence', 'sentenceSpan', 'event', 'eventSpan', 'descriptionReplacements', 'locationText', 'airportText', 'currentCountryText', 'organizationText', 'personText', 'categoryText']
-description_field_names = ['title', 'url', 'sentence', 'sentenceSpan', 'description', 'descriptionReplacements', 'sentence', 'dbid', 'eventRoot', 'event', 'eventSpan', 'year']
+facet_field_names = ['title', 'url', 'sentence', 'sentenceSpan', 'event', 'eventSpan', 'descriptionReplacements', 'location', 'airport', 'currentcountry', 'organization', 'person', 'category']
+description_field_names = ['title', 'url', 'sentence', 'sentenceSpan', 'description', 'descriptionReplacements', 'sentence', 'id', 'predicate', 'event', 'eventSpan', 'year']
 
-field_name_aliases = {
-  'id': 'dbid',
-  'predicate': 'eventRoot',
-  'location': 'locationText',
-  'airport': 'airportText',
-  'currentcountry': 'currentCountryText',
-  'person': 'personText',
-  'organization': 'organizationText',
-  'category': 'categoryText'
-}.get
+field_name_aliases = {}.get
 
 def format_replacement(replacements):
   keep_keys = ['span', 'url']
@@ -45,7 +36,7 @@ def get_required_field_values(num_role_arguments):
     points = get_points(event)
     values = {
       'year': int(event['year']),
-      'eventRoot': event['eventRoot'],
+      'predicate': event['eventRoot'],
       'description': event['description'],
       'allPoints': ["%f,%f" % p for p in points]
     }
@@ -71,9 +62,9 @@ def get_facet_field_values(event):
   Get values for the extra keyword field values.
   """
 
-  locationLocationText = set(v['title'] for v in event['locations'].itervalues()) if 'locations' in event else set()
-  wikiInfoLocationText = set(v['title'] for v in event['wiki_info'].itervalues() if 'latitude' in v and 'longitude' in v) if 'wiki_info' in event else set()
-  airportText = set(v['title'] for v in event['airport'].itervalues()) if 'airport' in event else set()
+  locationLocation = set(v['title'] for v in event['locations'].itervalues()) if 'locations' in event else set()
+  wikiInfoLocation = set(v['title'] for v in event['wiki_info'].itervalues() if 'latitude' in v and 'longitude' in v) if 'wiki_info' in event else set()
+  airport = set(v['title'] for v in event['airport'].itervalues()) if 'airport' in event else set()
   values = {
     'title': event['title'],
     'url': event['url'],
@@ -82,11 +73,11 @@ def get_facet_field_values(event):
     'event': event['event'][1],
     'eventSpan': [str(i) for i in event['event'][0]],
     'descriptionReplacements': format_replacement(event['wiki_info']),
-    'locationText': locationLocationText | wikiInfoLocationText | airportText,
-    'airportText': airportText,
-    'currentCountryText': [v['country'] for (k, v) in event['locations'].iteritems() if 'country' in v] if 'locations' in event else [],
-    'organizationText': [v['title'] for v in event['organization'].itervalues()] if 'organization' in event else [],
-    'personText': [v['title'] for v in event['person'].itervalues()] if 'person' in event else [],
-    'categoryText': [c for v in (event['wiki_info'].itervalues() if 'wiki_info' else []) if 'category' in v for c in v['category']]
+    'location': locationLocation | wikiInfoLocation | airport,
+    'airport': airport,
+    'currentcountry': [v['country'] for (k, v) in event['locations'].iteritems() if 'country' in v] if 'locations' in event else [],
+    'organization': [v['title'] for v in event['organization'].itervalues()] if 'organization' in event else [],
+    'person': [v['title'] for v in event['person'].itervalues()] if 'person' in event else [],
+    'category': [c for v in (event['wiki_info'].itervalues() if 'wiki_info' else []) if 'category' in v for c in v['category']]
   }
   return values
