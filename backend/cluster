@@ -108,7 +108,7 @@ def iter_events_from_index(index):
       points_val = hit['allPoints']
       points = [tuple(float(x) for x in t.split(",")) for t in whooshutils.split_keywords(points_val)] if len(points_val) > 0 else []
       if len(points) > 0:
-        yield i, hit['dbid'], points
+        yield i, hit['id'], points
 
 def run(input_index, output_index, threshold, doc_buffer_size, do_dummy):
   lookup = {}
@@ -127,11 +127,11 @@ def run(input_index, output_index, threshold, doc_buffer_size, do_dummy):
       pass
 
     def modify(event):
-      point_vals = ["%f,%f" % (c.centre[0], c.centre[1]) for c in lookup[event['dbid']]] if event['dbid'] in lookup else []
-      print >> sys.stderr, "event %i: %s" % (event['dbid'], ' '.join(point_vals))
+      point_vals = ["%f,%f" % (c.centre[0], c.centre[1]) for c in lookup[event['id']]] if event['id'] in lookup else []
+      print >> sys.stderr, "event %i: %s" % (event['id'], ' '.join(point_vals))
       event['referencePoints'] = unicode(whooshutils.join_keywords(point_vals))
     if doc_buffer_size is not None:
-      whooshutils.update_all_in_place(input_index, writer, modify, 'dbid', buffer_size=doc_buffer_size)
+      whooshutils.update_all_in_place(input_index, writer, modify, 'id', buffer_size=doc_buffer_size)
     else:
       whooshutils.copy_all(input_index, writer, modify)
 

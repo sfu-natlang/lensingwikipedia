@@ -44,15 +44,15 @@ function addToDescriptionList(descriptions, listElt) {
 		var yearText = event.year > 0 ? event.year + " CE" : -event.year + " BCE";
 
 		var yearUrl = baseWikipediaUrl + "/wiki/" + (event.year > 0 ? event.year : -event.year + "BC");
-		var tooltipText = "Event ID " + event.dbid + " in " + event.year;
-		if (event.hasOwnProperty('eventRoot'))
-			tooltipText += ", predicate stem '" + event.eventRoot + "'";
+		var tooltipText = "Event ID " + event.id + " in " + event.year;
+		if (event.hasOwnProperty('predicate'))
+			tooltipText += ", predicate stem '" + event.predicate + "'";
 		tooltipText += ".";
 
 		var shortDesc = applyReplacements(event.sentence, replacements, sentenceSpan[0]);
 		var longDesc = applyReplacements(event.description, replacements);
 
-		var dtElt = $("<dt title=\"" + tooltipText + "\"><a href=\"" + yearUrl + "\">" + yearText + "</a>: " + event.eventRoot + "</dt>").appendTo(listElt);
+		var dtElt = $("<dt title=\"" + tooltipText + "\"><a href=\"" + yearUrl + "\">" + yearText + "</a>: " + event.predicate + "</dt>").appendTo(listElt);
 		var ddElt = $("<dd>" + shortDesc + "</dd>").appendTo(listElt);
 		dtElt.find("a").attr('target', '_blank');
 		ddElt.find("a").attr('target', '_blank');

@@ -9,9 +9,9 @@ mapDataUrl = "map.json";
 // List of facets by field name (to ask the backend for) and title (to show the user)
 facets = {
 	"role": "Role",
-	"personText": "Person",
-	"currentCountryText": "Current country",
-	"locationText": "Location"
+	"person": "Person",
+	"currentcountry": "Current country",
+	"location": "Location"
 };
 // Verbose log settings that can be set in the browser console
 verbose_log = {

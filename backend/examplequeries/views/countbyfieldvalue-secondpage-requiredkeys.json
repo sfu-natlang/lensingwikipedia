@@ -4,7 +4,7 @@
 	"views": {
 		"0": {
 			"type": "countbyfieldvalue",
-			"field": "locationText",
+			"field": "location",
 			"page": 1,
 			"requiredkeys": ["Rhine", "Brazil", "Virginia", "Thailand", "akeythatprobablydoesnotappearinthedata"]
 		}
