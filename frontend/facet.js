@@ -175,8 +175,8 @@ function setupFacet(container, globalQuery, name, field) {
 		if (haveSelection())
 			setData(curData);
 	});
-	constraint.onChange(function (changeType) {
-		if (changeType == 'removed')
+	constraint.onChange(function (changeType, query) {
+		if (changeType == 'removed' && query == ownCnstrQuery)
 			select(null);
 	});
 	globalQueryResultWatcher.set(viewValue);
