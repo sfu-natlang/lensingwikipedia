@@ -444,7 +444,7 @@ Query.prototype._setupSetminus = function (query1, query2) {
 	}, true);
 	query2.onChange(function (changeType, _, cnstr) {
 		if (changeType == 'added' || changeType == 'current') {
-			if (query1._constraints.hasOwnProperty(cnstr._id) && !query2._constraints.hasOwnProperty(cnstr._id))
+			if (query1._constraints.hasOwnProperty(cnstr._id))
 				query._removeConstraint(cnstr);
 		} else if (changeType == 'removed') {
 			if (query1._constraints.hasOwnProperty(cnstr._id) && cnstr._value != null)

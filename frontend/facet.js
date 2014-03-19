@@ -2,6 +2,8 @@
  * Facet control.
  */
 
+facetDefaultIsConjunctive = true;
+
 /*
  * Setup the control in some container element.
  * container: container element as a jquery selection
@@ -9,7 +11,11 @@
  * name: name for the facet, to show the user
  * field: field name to use in requesting views from the backend
  */
-function setupFacet(container, globalQuery, name, field) {
+function setupFacet(container, globalQuery, name, field, isConjunctive) {
+	function useIsConjunctive() {
+		return isConjunctive == null ? facetDefaultIsConjunctive : isConjunctive;
+	}
+
 	var facetElt = $("<div class=\"facet\"></div>").appendTo(container);
 
 	var topBoxElt = $("<div class=\"topbox\"></div>").appendTo(facetElt);
@@ -56,45 +62,96 @@ function setupFacet(container, globalQuery, name, field) {
 			searchInputElt.removeClass('error');
 	}
 
-	var selectedValue = null;
 	var viewValue = {
 			counts: {
 				type: 'countbyfieldvalue',
 				field: field
 			}
 		};
-	var constraint = new Constraint();
-	globalQuery.addConstraint(constraint);
+	var constraints = {};
 	var globalQueryResultWatcher = new ResultWatcher(function () {});
 	globalQuery.addResultWatcher(globalQueryResultWatcher);
 	var ownCnstrQuery = new Query(globalQuery.backendUrl());
-	ownCnstrQuery.addConstraint(constraint);
 	var contextQuery = new Query(globalQuery.backendUrl(), 'setminus', globalQuery, ownCnstrQuery);
 	var contextQueryResultWatcher = new ResultWatcher(function () {});
 	contextQuery.addResultWatcher(contextQueryResultWatcher);
-	function select(value) {
+	function clearConstraints() {
+		var oldConstraints = constraints;
+		constraints = {};
+		$.each(oldConstraints, function (value, constraint) {
+			globalQuery.removeConstraint(constraint);
+			ownCnstrQuery.removeConstraint(constraint);
+		});
+		delete viewValue.counts['requiredkeys'];
+		listBoxElt.removeClass('selected');
+	}
+	function removeConstraint(value) {
+		var constraint = constraints[value];
+		delete constraints[value];
+		globalQuery.removeConstraint(constraint);
+		ownCnstrQuery.removeConstraint(constraint);
+		viewValue.counts.requiredkeys = viewValue.counts.requiredkeys.splice($.inArray(value, viewValue.counts.requiredkeys), 1);
+		if ($.isEmptyObject(constraints)) {
+			delete viewValue.counts['requiredkeys'];
+			listBoxElt.removeClass('selected');
+		}
+	}
+	function addConstraint(value) {
 		setClearEnabled(value != null);
 		contextQueryResultWatcher.enabled(value != null);
-		selectedValue = value;
-		if (value != null) {
-			constraint.name(name + ": " + value);
-			constraint.set({
-				type: 'fieldvalue',
-				field: field,
-				value: value
-			});
-			listBoxElt.addClass('selected');
-			globalQuery.update();
-			viewValue.counts.requiredkeys = [selectedValue];
-		} else {
-			listBoxElt.removeClass('selected');
-			delete viewValue.counts['requiredkeys'];
-		}
+
+		var constraint = new Constraint();
+		constraint.name(name + ": " + value);
+		constraint.set({
+			type: 'fieldvalue',
+			field: field,
+			value: value
+		});
+		listBoxElt.addClass('selected');
+		constraint.onChange(function (changeType, query) {
+			if (changeType == 'removed' && query == ownCnstrQuery && constraints.hasOwnProperty(value))
+				removeConstraint(value);
+		});
+		if (constraints.hasOwnProperty(value))
+			console.log("warning: duplicate constraint for value '" + value + "'");
+		constraints[value] = constraint;
+		globalQuery.addConstraint(constraint);
+		ownCnstrQuery.addConstraint(constraint);
+
+		if (!viewValue.counts.hasOwnProperty('requiredkeys'))
+			viewValue.counts.requiredkeys = [];
+		viewValue.counts.requiredkeys.push(value)
+
 		globalQueryResultWatcher.set(viewValue);
 		contextQueryResultWatcher.set(viewValue);
 	}
+	function changeConstraint(value, oldValue, constraint) {
+		constraint.name(name + ": " + value);
+		constraint.set({
+			type: 'fieldvalue',
+			field: field,
+			value: value
+		});
+		delete constraints[oldValue];
+		constraints[value] = constraint;
+		listBoxElt.addClass('selected');
+		viewValue.counts.requiredkeys = [value];
+		globalQueryResultWatcher.set(viewValue);
+		contextQueryResultWatcher.set(viewValue);
+	}
+	function select(value) {
+		if (!useIsConjunctive() && !$.isEmptyObject(constraints)) {
+			$.each(constraints, function (oldValue, constraint) {
+				changeConstraint(value, oldValue, constraint);
+			});
+		} else if (!constraints.hasOwnProperty(value)) {
+			addConstraint(value);
+		} else {
+			removeConstraint(value);
+		}
+	}
 	function haveSelection() {
-		return selectedValue != null;
+		return !$.isEmptyObject(constraints);
 	}
 
 	var curData = null;
@@ -113,12 +170,13 @@ function setupFacet(container, globalQuery, name, field) {
 			return list;
 		}
 		function addValue(value, count) {
-			var classStr = value == selectedValue ? " class=\"selected\"" : "";
+			var classStr = constraints.hasOwnProperty(value) ? " class=\"selected\"" : "";
 			var bracketedCountStr =  count == null ? "" : " [" + count + "]";
 			var countStr =  count == null ? "no" : count;
 			var itemElt = $("<li" + classStr + " title=\"Value '" + value + "' is in " + countStr + " events under current constraints. Click to select it.\">" + value + bracketedCountStr + "</li>").appendTo(listElt);
 			itemElt.click(function() {
 				select(value);
+				globalQuery.update();
 			});
 		}
 		curData = data;
@@ -147,14 +205,16 @@ function setupFacet(container, globalQuery, name, field) {
 				var pair = counts[i];
 				curData[pair[0]] = pair[1];
 			}
-			if (haveSelection() && !(selectedValue in curData))
-				curData[selectedValue] = 0;
+			$.each(constraints, function (value, constraint) {
+				if (!(value in curData))
+					curData[value] = 0;
+			});
 			setData(curData);
 			setMoreEnabled(continuer.hasMore());
 		}
 	};
 	clearElt.click(function () {
-		constraint.clear();
+		clearConstraints();
 		globalQuery.update();
 	});
 	globalQuery.onChange(function () {
@@ -175,10 +235,6 @@ function setupFacet(container, globalQuery, name, field) {
 		if (haveSelection())
 			setData(curData);
 	});
-	constraint.onChange(function (changeType) {
-		if (changeType == 'removed')
-			select(null);
-	});
 	globalQueryResultWatcher.set(viewValue);
 	globalQueryResultWatcher.setCallback(function(result, getContinuer) {
 		if (result.counts.hasOwnProperty('error')) {
@@ -186,7 +242,7 @@ function setupFacet(container, globalQuery, name, field) {
 			loadingIndicator.error('counts', true);
 			loadingIndicator.enabled(true);
 			setMoreEnabled(false);
-		} else if (!haveSelection()) {
+		} else if (useIsConjunctive() || !haveSelection()) {
 			loadingIndicator.error('counts', false);
 			loadingIndicator.enabled(false);
 			curData = {};
@@ -202,7 +258,7 @@ function setupFacet(container, globalQuery, name, field) {
 			loadingIndicator.error('counts', true);
 			loadingIndicator.enabled(true);
 			setMoreEnabled(false);
-		} else if (haveSelection()) {
+		} else if (!useIsConjunctive() || false) {
 			loadingIndicator.error('counts', false);
 			loadingIndicator.enabled(false);
 			curData = {};
@@ -214,7 +270,8 @@ function setupFacet(container, globalQuery, name, field) {
 		var value = searchInputElt.val();
 		if (curData != null && value in curData) {
 			setSearchErrorStatus(false);
-			select(value, curData[value]);
+			select(value);
+			globalQuery.update();
 		} else
 			setSearchErrorStatus(true);
 		return false;

@@ -587,8 +587,8 @@ function setupMap(container, initialQuery, globalQuery, mapDataUrl, minZoom, max
 	});
 	svg.call(drag);
 
-	constraint.onChange(function (changeType) {
-		if (changeType == 'removed') {
+	constraint.onChange(function (changeType, query) {
+		if (changeType == 'removed' && query == ownCnstrQuery) {
 			selectAll(false);
 			updateSelection(true);
 		}

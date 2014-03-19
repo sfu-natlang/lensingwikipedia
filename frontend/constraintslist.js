@@ -41,10 +41,12 @@ function setupConstraintList(container, globalQuery) {
 			removeElement(cnstrElt);
 		});
 		cnstr.onChange(function(changeType, query, cnstr) {
-			if (changeType =="removed")
-				removeElement(cnstrElt);
-			else if (changeType == "changed")
-				cnstrTextElt.html(cnstr.name());
+			if (query == globalQuery) {
+				if (changeType =="removed")
+					removeElement(cnstrElt);
+				else if (changeType == "changed")
+					cnstrTextElt.html(cnstr.name());
+			}
 		});
 	}
 
