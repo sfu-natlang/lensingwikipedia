@@ -10,7 +10,8 @@ mapDataUrl = "map.json";
 facets = {
 	"role": "Role",
 	"person": "Person",
-	"currentcountry": "Current country",
+	"organization": "Organization",
+	"category": "Category",
 	"location": "Location"
 };
 // Verbose log settings that can be set in the browser console
@@ -20,5 +21,5 @@ verbose_log = {
 	// Print out the replies being received from the backend
 	incoming_reply: false,
 	// Print out timing information for the query handling system
-	query_timing: false
+	query_timing: true
 }
