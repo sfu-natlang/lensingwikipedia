@@ -132,15 +132,15 @@ Now the appropriate programs are in `/var/www/html/checkouts/20131017/domains/wi
     make frontendsettings.mk frontendsettings.js
     # edit frontendsettings.js to match the sample below
 
-The make command above creates default settings files. If you already have your own use them instead. If you want to do any Javascript or CSS minimization set commands in frontendsettings.mk. See the frontend README for more details on settings.
-
-    make release
-    cp release/*.* /var/www/html/lensingwikipedia.cs.sfu.ca/.
-
 ### Sample frontendsettings.js
 
     // URL for the backend.
     backendUrl = "http://natlang-web.cs.sfu.ca:1510";
+
+The make command above creates default settings files. If you already have your own use them instead. If you want to do any Javascript or CSS minimization set commands in frontendsettings.mk. See the frontend README for more details on settings.
+
+    make release
+    cp release/*.* /var/www/html/lensingwikipedia.cs.sfu.ca/.
 
 # Update the website
 
