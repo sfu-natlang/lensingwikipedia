@@ -107,6 +107,8 @@ Now the appropriate programs are in `/var/www/html/checkouts/20131017/domains/wi
     chmod g+s data
     cd data
     # create full.index in data/20131017 (use current date) using instructions in the backend README
+    python2.7 buildindex /var/www/html/data/20131017/fullData.20131017.index /var/www/html/data/20131017/fullData.20131017.json
+    python2.7 cluster /var/www/html/data/20131017/fullData.20131017.index
 
 ## Run backend
 
