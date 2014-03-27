@@ -9,8 +9,7 @@ mapDataUrl = "map.json";
 // List of facets by field name (to ask the backend for) and title (to show the user)
 facets = {
         "role": "Role",
-        "eventRoot": "Predicate",
-        "argument": "Entity",
+        "predicate": "Predicate",
         "organization": "Organization",
         "location": "Location",
         "category": "Category"
