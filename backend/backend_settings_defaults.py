@@ -34,6 +34,8 @@ settings = {
     'count_by_field_value_page_size': 50,
     # Number of events on a page of count by year results
     'count_by_year_page_size': 50,
+    # Number of events on a page of reference point links results
+    'referencepointlinks_page_size': 50,
     # Verbose logging output to standard error
     'verbose': False
   }
