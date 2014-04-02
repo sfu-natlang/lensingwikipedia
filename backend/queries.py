@@ -60,6 +60,7 @@ class Querier:
         yield { 'type': 'countbyfieldvalue', 'field': field }
       yield { 'type': 'countbyyear' }
       yield { 'type': 'countbyreferencepoint' }
+      yield { 'type': 'referencepointlinks' }
       yield { 'type': 'descriptions' }
       for page_num in range(self.num_initial_description_pages_to_cache):
         yield { 'type': 'descriptions', 'page': page_num }
@@ -79,13 +80,14 @@ class Querier:
     if type == 'countbyfieldvalue' :
       return ('counts', self.count_by_field_value_page_size)
     elif type == 'countbyyear':
-      # This view is paginated only if it requests it by setting the 'page' attribute.
       if 'page' in view:
         return ('counts', self.count_by_year_page_size)
     elif type == 'countbyreferencepoint':
-      # This view is paginated only if it requests it by setting the 'page' attribute.
       if 'page' in view:
         return ('counts', self.count_by_referencepoint_page_size)
+    elif type == 'referencepointlinks':
+      if 'page' in view:
+        return ('links', self.referencepointlinks_page_size)
     return None
 
   def constraint_to_whoosh_query(self, cnstr):
@@ -147,6 +149,38 @@ class Querier:
       counts.sort(key=lambda (v, c): c, reverse=True)
       response[view_id]['counts'] = counts
 
+  def _handle_descriptions_view(self, view, whoosh_query):
+    page_num = view['page'] if 'page' in view else 0
+    result = { 'more': True }
+
+    with self.whoosh_index.searcher() as searcher:
+      def format(hit):
+        return dict((f, hit[f]) for f in backend_domain_config.description_field_names)
+      hits = searcher.search_page(whoosh_query, page_num + 1, pagelen=self.description_page_size, sortedby='year', reverse=True)
+      print >> sys.stderr, "whoosh pre-paginated search results: %s" % (repr(hits.results))
+      result['descriptions'] = [format(h) for h in hits]
+      if hits.is_last_page():
+        result['more'] = False
+    return result
+
+  def _handle_referencepointlinks_view(self, view, whoosh_query):
+    link_counts = {}
+    with self.whoosh_index.searcher() as searcher:
+      hits = searcher.search(whoosh_query, limit=None)
+      print >> sys.stderr, "whoosh search results: %s" % (repr(hits))
+      for hit in hits:
+        refpoints = whooshutils.split_keywords(hit['referencePoints'])
+        for i, refpoint1 in enumerate(refpoints):
+          for refpoint2 in refpoints[i+1:]:
+            if refpoint1 != refpoint2:
+              # Use lexicographic order to guarantee unique choices of two distinct reference points
+              pair = (refpoint1, refpoint2) if refpoint1 < refpoint2 else (refpoint2, refpoint1)
+              link_counts.setdefault(pair, 0)
+              link_counts[pair] += 1
+    return {
+      'links': [{ 'refpoints': p, 'count': c } for (p, c) in link_counts.iteritems()]
+    }
+
   def handle_independent_view(self, view, whoosh_query):
     """
     Handles one of the views which is done on its own independent Whoosh query.
@@ -154,18 +188,9 @@ class Querier:
 
     type = view['type']
     if type == 'descriptions':
-      page_num = view['page'] if 'page' in view else 0
-      result = { 'more': True }
-
-      with self.whoosh_index.searcher() as searcher:
-        def format(hit):
-          return dict((f, hit[f]) for f in backend_domain_config.description_field_names)
-        hits = searcher.search_page(whoosh_query, page_num + 1, pagelen=self.description_page_size, sortedby='year', reverse=True)
-        print >> sys.stderr, "whoosh pre-paginated search results: %s" % (repr(hits.results))
-        result['descriptions'] = [format(h) for h in hits]
-        if hits.is_last_page():
-          result['more'] = False
-      return result
+      return self._handle_descriptions_view(view, whoosh_query)
+    elif type == 'referencepointlinks':
+      return self._handle_referencepointlinks_view(view, whoosh_query)
     else:
       raise ValueError("unknown view type \"%s\"" % (type))
 

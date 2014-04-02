@@ -96,6 +96,23 @@ result:
 	}
 This view is optionally paginated.
 
+### Get links between reference points:
+	{
+		"type": "referencepointlinks",
+		"page": /* optional; page number, no pagination if not given */
+	}
+result:
+	{
+		"links": /* list of link details */,
+		"more": /* boolean flag indicating if there are more pages available, set only if pagination is enabled */
+	}
+where each element corresponds to a link between two distinct reference points and has the format:
+	{
+		"refpoints": /* list containing two distinct reference point values (order insignificant) */,
+		"count": /* integer number of events that are in both reference points */
+	}
+Note that links are undirected, so any two distinct reference points will have at most one link element. This view is optionally paginated.
+
 ### Get counts of events by year:
 	{
 		"type": "countbyyear",
