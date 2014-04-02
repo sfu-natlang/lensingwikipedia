@@ -57,15 +57,6 @@
 	fill: none;
 	stroke: #a5967e;
 }
-.map .refpointlink {
-	pointer-events: none;
-	fill: none;
-	stroke: black;
-	display: none;
-}
-.map g.marker:hover .refpointlink {
-	display: inherit;
-}
 
 /* Custom styles for our map visualizations */
 .map .marker.initial {
@@ -85,8 +76,16 @@
 	fill-opacity: 0.85;
 }
 .map .marker.counttext {
-	pointer-events: none;
 	fill: black;
+}
+.map .refpointlink {
+	pointer-events: none;
+	fill: none;
+	stroke: black;
+	display: none;
+}
+.map g.marker:hover .refpointlink {
+	display: inherit;
 }
 
 .map .brush .extent {
