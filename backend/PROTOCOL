@@ -79,7 +79,7 @@ For details see queries.py, especially generate_views().
 	}
 result:
 	{
-		"counts": /* dictionary of count pairs, each of which is a value and an integer count */,
+		"counts": /* list of count pairs, each of which is a value and an integer count */,
 		"more": /* boolean flag indicating if there are more pages available */
 	}
 This view is always paginated.
@@ -91,7 +91,7 @@ This view is always paginated.
 	}
 result:
 	{
-		"counts": /* dictionary of count pairs, each of which is a value and an integer count */,
+		"counts": /* list of count pairs, each of which is a value and an integer count */,
 		"more": /* boolean flag indicating if there are more pages available, set only if pagination is enabled */
 	}
 This view is optionally paginated.
@@ -120,7 +120,7 @@ Note that links are undirected, so any two distinct reference points will have a
 	}
 result:
 	{
-		"counts": /* dictionary of count pairs, each of which is a value and an integer count */,
+		"counts": /* list of count pairs, each of which is a value and an integer count */,
 		"more": /* boolean flag indicating if there are more pages available, set only if pagination is enabled */
 	}
 This view is optionally paginated.
