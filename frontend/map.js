@@ -180,7 +180,14 @@ function drawMarkers(svg, group, proj, initialCounts, contextCounts, refPointLin
 		.data(toDraw)
 		.enter()
 		.append("g")
-		.attr("class", "marker");
+		.attr("class", "marker")
+		.on("mouseover", function () {
+			// Bring group to front (see https://gist.github.com/trtg/3922684)
+			var sel = d3.select(this);
+			sel.each(function () {
+				this.parentNode.appendChild(this);a
+			});
+		});
 	var arc = d3.geo.greatArc()
 		.source(function (d) { return d[0].split(","); })
 		.target(function (d) { return d[1].split(","); });
