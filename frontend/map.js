@@ -2,6 +2,9 @@
  * Map control.
  */
 
+// Maximum width of reference point link strokes. Set to one to be constant.
+var mapRefPointMaxWidth = 1;
+
 // Numbers for generating unique element IDs
 var mapClipId = 0;
 var mapSphereId = 0;
@@ -196,6 +199,10 @@ function drawMarkers(svg, group, proj, initialCounts, contextCounts, refPointLin
 			var dst = d[1];
 			var extra = contextCounts.hasOwnProperty(dst) && contextCounts[dst] > 0 ? "context" : "initial";
 			return "refpointlink " + extra;
+		})
+		.style("stroke-width", function (d) {
+			var scale = refPointLinkLookup[d[0]][d[1]].count / initialCounts[d[0]];
+			return 1 + Math.round((mapRefPointMaxWidth - 1) * scale);
 		})
 		.attr("d", function(pair) { return path(arc(pair)); });
 	subgroup.append("circle")
