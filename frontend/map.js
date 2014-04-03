@@ -2,6 +2,9 @@
  * Map control.
  */
 
+// Maximum width of reference point link strokes. Set to one to be constant.
+var mapRefPointMaxWidth = 8;
+
 // Numbers for generating unique element IDs
 var mapClipId = 0;
 var mapSphereId = 0;
@@ -177,7 +180,14 @@ function drawMarkers(svg, group, proj, initialCounts, contextCounts, refPointLin
 		.data(toDraw)
 		.enter()
 		.append("g")
-		.attr("class", "marker");
+		.attr("class", "marker")
+		.on("mouseover", function () {
+			// Bring group to front (see https://gist.github.com/trtg/3922684)
+			var sel = d3.select(this);
+			sel.each(function () {
+				this.parentNode.appendChild(this);a
+			});
+		});
 	var arc = d3.geo.greatArc()
 		.source(function (d) { return d[0].split(","); })
 		.target(function (d) { return d[1].split(","); });
@@ -192,7 +202,15 @@ function drawMarkers(svg, group, proj, initialCounts, contextCounts, refPointLin
 		})
 		.enter()
 		.append("path")
-		.attr("class", "refpointlink")
+		.attr("class", function (d) {
+			var dst = d[1];
+			var extra = contextCounts.hasOwnProperty(dst) && contextCounts[dst] > 0 ? "context" : "initial";
+			return "refpointlink " + extra;
+		})
+		.style("stroke-width", function (d) {
+			var scale = refPointLinkLookup[d[0]][d[1]].count / initialCounts[d[0]];
+			return 1 + Math.round((mapRefPointMaxWidth - 1) * scale);
+		})
 		.attr("d", function(pair) { return path(arc(pair)); });
 	subgroup.append("circle")
 		.attr("cx", function(p) { return screenPoints[p][0]; })
