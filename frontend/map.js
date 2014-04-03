@@ -192,7 +192,11 @@ function drawMarkers(svg, group, proj, initialCounts, contextCounts, refPointLin
 		})
 		.enter()
 		.append("path")
-		.attr("class", "refpointlink")
+		.attr("class", function (d) {
+			var dst = d[1];
+			var extra = contextCounts.hasOwnProperty(dst) && contextCounts[dst] > 0 ? "context" : "initial";
+			return "refpointlink " + extra;
+		})
 		.attr("d", function(pair) { return path(arc(pair)); });
 	subgroup.append("circle")
 		.attr("cx", function(p) { return screenPoints[p][0]; })

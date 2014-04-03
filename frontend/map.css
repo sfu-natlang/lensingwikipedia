@@ -84,6 +84,12 @@
 	stroke: black;
 	display: none;
 }
+.map .refpointlink.initial {
+	stroke-opacity: 0.25;
+}
+.map .refpointlink.context {
+	stroke-opacity: 0.85;
+}
 .map g.marker:hover .refpointlink {
 	display: inherit;
 }
