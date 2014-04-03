@@ -3,7 +3,7 @@
  */
 
 // Maximum width of reference point link strokes. Set to one to be constant.
-var mapRefPointMaxWidth = 1;
+var mapRefPointMaxWidth = 8;
 
 // Numbers for generating unique element IDs
 var mapClipId = 0;
