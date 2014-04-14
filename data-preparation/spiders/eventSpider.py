@@ -120,7 +120,7 @@ class eventSpider(BaseSpider):
 						text += str(content).rstrip("\n")
 				text = text.rstrip('\n')
 				text = re.sub(r'\[[0-9]+\]', r' ', text)
-				text = text.replace("[citation needed]", " ")
+				text = re.sub(r'\[?citation needed\]?\.?', r'', text)
 				printable['description'] = text
 				
 				linked_entity = []
@@ -144,6 +144,8 @@ class eventSpider(BaseSpider):
 				if clnhtmlText.endswith("</li>"):
 					clnhtmlText=clnhtmlText[:-5]
 				clnhtmlText = re.sub(r'<sup id=".*" class="reference">.*</sup>', r' ', clnhtmlText)
+				clnhtmlText = re.sub(r'<sup class="Template-Fact" style=".*">.*</sup>', r' ', clnhtmlText)
+				clnhtmlText = re.sub(r'\[?citation needed\]?\.?', r'', clnhtmlText)
 				clnhtmlText = clnhtmlText.strip()
 				printable['html_fragment'] = clnhtmlText
 				fout = open(self.outDir+year+"/"+str(numFile)+".txt","w")
