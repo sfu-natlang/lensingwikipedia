@@ -2,6 +2,9 @@
  * Map control.
  */
 
+// Maximum width of reference point link strokes. Set to one to be constant.
+var mapRefPointMaxWidth = 8;
+
 // Numbers for generating unique element IDs
 var mapClipId = 0;
 var mapSphereId = 0;
@@ -44,6 +47,22 @@ var mapProjections = {
 	}
 }
 defaultMapProjection = 'winkel3';
+
+function makeRefPointLinkLookup(refPointResult) {
+	var lookup = {};
+	$.each(refPointResult.links, function (linkId, link) {
+		for (var i = 0; i < 2; i++) {
+			var refPoint1 = link.refpoints[i],
+			    refPoint2 = link.refpoints[1 - i];
+			if (!lookup.hasOwnProperty(refPoint1))
+				lookup[refPoint1] = {};
+			if (lookup[refPoint1].hasOwnProperty(refPoint2))
+				console.log("warning: duplicate reference point link ", refPoint1, refPoint2);
+			lookup[refPoint1][refPoint2] = { count: link.count };
+		}
+	});
+	return lookup;
+}
 
 /*
  * Draw the world map.
@@ -119,7 +138,7 @@ function classForMarker(pointStr) {
 /*
  * Draw markers on the map.
  */
-function drawMarkers(svg, group, proj, initialCounts, contextCounts) {
+function drawMarkers(svg, group, proj, initialCounts, contextCounts, refPointLinkLookup) {
 	var points = {};
 	var allCounts = [initialCounts, contextCounts];
 	for (var i = 0; i < allCounts.length; i++) {
@@ -157,30 +176,57 @@ function drawMarkers(svg, group, proj, initialCounts, contextCounts) {
 	}
 
 	var countScale = 10.81;
-	group.selectAll("marker")
+	var subgroup = group.selectAll("markers")
 		.data(toDraw)
 		.enter()
-		.append("circle")
+		.append("g")
+		.attr("class", "marker")
+		.on("mouseover", function () {
+			// Bring group to front (see https://gist.github.com/trtg/3922684)
+			var sel = d3.select(this);
+			sel.each(function () {
+				this.parentNode.appendChild(this);a
+			});
+		});
+	var arc = d3.geo.greatArc()
+		.source(function (d) { return d[0].split(","); })
+		.target(function (d) { return d[1].split(","); });
+	subgroup.selectAll("refpointlinks")
+		.data(function (p1) {
+			var list = [];
+			if (refPointLinkLookup.hasOwnProperty(p1))
+				for (var p2 in refPointLinkLookup[p1])
+					if (refPointLinkLookup.hasOwnProperty(p2))
+						list.push([p1, p2]);
+			return list;
+		})
+		.enter()
+		.append("path")
+		.attr("class", function (d) {
+			var dst = d[1];
+			var extra = contextCounts.hasOwnProperty(dst) && contextCounts[dst] > 0 ? "context" : "initial";
+			return "refpointlink " + extra;
+		})
+		.style("stroke-width", function (d) {
+			var scale = refPointLinkLookup[d[0]][d[1]].count / initialCounts[d[0]];
+			return 1 + Math.round((mapRefPointMaxWidth - 1) * scale);
+		})
+		.attr("d", function(pair) { return path(arc(pair)); });
+	subgroup.append("circle")
 		.attr("cx", function(p) { return screenPoints[p][0]; })
 		.attr("cy", function(p) { return screenPoints[p][1]; })
 		.attr("r", function(p) { return initialCounts.hasOwnProperty(p) ? Math.sqrt(initialCounts[p] * countScale * proj.scale() / maxCount) : 0; })
 		.attr("class", function(p) { return "marker initial " + classForMarker(p); })
 		.on('mousedown', triggerDown)
 		.on('mouseup', triggerUp);
-	group.selectAll("marker")
-		.data(toDraw)
-		.enter()
-		.append("circle")
+	subgroup.append("circle")
 		.attr("cx", function(p) { return screenPoints[p][0]; })
 		.attr("cy", function(p) { return screenPoints[p][1]; })
 		.attr("r", function(p) { return contextCounts.hasOwnProperty(p) ? Math.sqrt(contextCounts[p] * countScale * proj.scale() / maxCount) : 0; })
 		.attr("class", function(p) { return "marker context " + classForMarker(p); })
 		.on('mousedown', triggerDown)
 		.on('mouseup', triggerUp);
-	group.selectAll("markercount")
-		.data(toDraw)
-		.enter()
-		.append("text")
+	subgroup.append("text")
 		.attr("x", function(p) { return screenPoints[p][0]; })
 		.attr("y", function(p) { return screenPoints[p][1]; })
 		.attr("dy", "0.35em")
@@ -395,6 +441,7 @@ function setupMap(container, initialQuery, globalQuery, mapDataUrl, minZoom, max
 	setLoadingIndicator(true);
 
 	var mapData = null,
+	    refPointLinkLookup = null,
 	    initialCounts = null,
 	    contextCounts = null,
 	    projection = null,
@@ -498,7 +545,7 @@ function setupMap(container, initialQuery, globalQuery, mapDataUrl, minZoom, max
 					svg.select("." + setting).style('display', choice ? '' : 'none');
 				});
 				svgElt.find(".marker").remove();
-				var ret = drawMarkers(svg, curState.group, curProj, initialCounts, contextCounts);
+				var ret = drawMarkers(svg, curState.group, curProj, initialCounts, contextCounts, refPointLinkLookup);
 				curState.markersPath = ret.path;
 				curState.screenPoints = ret.screenPoints;
 			}
@@ -587,8 +634,8 @@ function setupMap(container, initialQuery, globalQuery, mapDataUrl, minZoom, max
 	});
 	svg.call(drag);
 
-	constraint.onChange(function (changeType) {
-		if (changeType == 'removed') {
+	constraint.onChange(function (changeType, query) {
+		if (changeType == 'removed' && query == ownCnstrQuery) {
 			selectAll(false);
 			updateSelection(true);
 		}
@@ -598,16 +645,16 @@ function setupMap(container, initialQuery, globalQuery, mapDataUrl, minZoom, max
 		update();
 	});
 	initialQuery.onResult({
-		counts: {
-			type: 'countbyreferencepoint'
-		}
+		counts: { type: 'countbyreferencepoint' },
+		links: { type: 'referencepointlinks' }
 	}, function (result) {
-		if (result.counts.hasOwnProperty('error')) {
+		if (result.counts.hasOwnProperty('error') || result.links.hasOwnProperty('error')) {
 			loadingIndicator.error('counts', true);
 			setLoadingIndicator(true);
 		} else {
 			loadingIndicator.error('counts', false);
 			initialCounts = pairListToDict(result.counts.counts);
+			refPointLinkLookup = makeRefPointLinkLookup(result.links);
 			for (var pointStr in initialCounts)
 				allPointStrs[pointStr] = true;
 			update();
@@ -620,9 +667,7 @@ function setupMap(container, initialQuery, globalQuery, mapDataUrl, minZoom, max
 		update();
 	});
 	contextQuery.onResult({
-		counts: {
-			type: 'countbyreferencepoint'
-		}
+		counts: { type: 'countbyreferencepoint' }
 	}, function (result) {
 		if (result.counts.hasOwnProperty('error')) {
 			loadingIndicator.error('counts', true);

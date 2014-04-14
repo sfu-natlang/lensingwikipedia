@@ -24,11 +24,11 @@ Fields
 
 The following fields can be used for field constraints and views (described below):
 
-- eventRoot: The verb the roles apply to.
-- locationText: List of location keywords.
-- currentCountryText: List of current country keywords.
-- personText: List of person keywords.
-- categoryText: List of category keywords.
+- predicate: The verb the roles apply to.
+- location: List of location keywords.
+- currentcountry: List of current country keywords.
+- person: List of person keywords.
+- category: List of category keywords.
 - description: Text description of the event. 
 - roleA0, roleA1, etc.: The role values for the event.
 - role: The roleA0, roleA1, etc. field values as a single keyword listr
@@ -79,7 +79,7 @@ For details see queries.py, especially generate_views().
 	}
 result:
 	{
-		"counts": /* dictionary of count pairs, each of which is a value and an integer count */,
+		"counts": /* list of count pairs, each of which is a value and an integer count */,
 		"more": /* boolean flag indicating if there are more pages available */
 	}
 This view is always paginated.
@@ -91,10 +91,27 @@ This view is always paginated.
 	}
 result:
 	{
-		"counts": /* dictionary of count pairs, each of which is a value and an integer count */,
+		"counts": /* list of count pairs, each of which is a value and an integer count */,
 		"more": /* boolean flag indicating if there are more pages available, set only if pagination is enabled */
 	}
 This view is optionally paginated.
+
+### Get links between reference points:
+	{
+		"type": "referencepointlinks",
+		"page": /* optional; page number, no pagination if not given */
+	}
+result:
+	{
+		"links": /* list of link details */,
+		"more": /* boolean flag indicating if there are more pages available, set only if pagination is enabled */
+	}
+where each element corresponds to a link between two distinct reference points and has the format:
+	{
+		"refpoints": /* list containing two distinct reference point values (order insignificant) */,
+		"count": /* integer number of events that are in both reference points */
+	}
+Note that links are undirected, so any two distinct reference points will have at most one link element. This view is optionally paginated.
 
 ### Get counts of events by year:
 	{
@@ -103,7 +120,7 @@ This view is optionally paginated.
 	}
 result:
 	{
-		"counts": /* dictionary of count pairs, each of which is a value and an integer count */,
+		"counts": /* list of count pairs, each of which is a value and an integer count */,
 		"more": /* boolean flag indicating if there are more pages available, set only if pagination is enabled */
 	}
 This view is optionally paginated.

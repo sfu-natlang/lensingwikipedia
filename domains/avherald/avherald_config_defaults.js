@@ -8,10 +8,11 @@ minMapZoom = 1, maxMapZoom = 5;
 mapDataUrl = "map.json";
 // List of facets by field name (to ask the backend for) and title (to show the user)
 facets = {
-	"role": "Role",
-	"personText": "Person",
-	"currentCountryText": "Current country",
-	"locationText": "Location"
+        "role": "Role",
+        "predicate": "Predicate",
+        "organization": "Organization",
+        "location": "Location",
+        "category": "Category"
 };
 // Verbose log settings that can be set in the browser console
 verbose_log = {

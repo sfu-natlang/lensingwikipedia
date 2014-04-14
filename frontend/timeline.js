@@ -336,8 +336,8 @@ function setupTimeline(container, initialQuery, globalQuery) {
 		constraint.clear();
 		globalQuery.update();
 	});
-	constraint.onChange(function (changeType) {
-		if (changeType == 'removed' && clearBrush != null)
+	constraint.onChange(function (changeType, query) {
+		if (changeType == 'removed' && query == ownCnstrQuery && clearBrush != null)
 			clearBrush();
 	});
 

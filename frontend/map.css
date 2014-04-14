@@ -78,6 +78,21 @@
 .map .marker.counttext {
 	fill: black;
 }
+.map .refpointlink {
+	pointer-events: none;
+	fill: none;
+	stroke: black;
+	display: none;
+}
+.map .refpointlink.initial {
+	stroke-opacity: 0.25;
+}
+.map .refpointlink.context {
+	stroke-opacity: 0.85;
+}
+.map g.marker:hover .refpointlink {
+	display: inherit;
+}
 
 .map .brush .extent {
 	stroke: #fff;

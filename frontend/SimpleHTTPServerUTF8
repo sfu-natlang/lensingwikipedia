@@ -1,0 +1,25 @@
+#!/usr/bin/env python2
+
+"""
+Minimal server for testing that ensures everything is severed as UTF-8.
+May be useful with libraries (eg d3) that need Unicode in CSS.
+"""
+
+import BaseHTTPServer
+import SimpleHTTPServer
+
+class Server(SimpleHTTPServer.SimpleHTTPRequestHandler):
+    def __init__(self, *args):
+        #super(Server, self).__init__(self, *args)
+        SimpleHTTPServer.SimpleHTTPRequestHandler.__init__(self, *args)
+        self.extensions_map.update({
+            '.html': 'text/html; charset=utf-8',
+            '.js': 'application/x-javascript; charset=utf-8',
+            '.css': 'text/css; charset=utf-8'
+        })
+
+def test(HandlerClass=Server, ServerClass=BaseHTTPServer.HTTPServer):
+    BaseHTTPServer.test(HandlerClass, ServerClass)
+
+if __name__ == '__main__':
+    test()

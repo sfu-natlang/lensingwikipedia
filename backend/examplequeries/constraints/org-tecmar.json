@@ -1,8 +1,9 @@
 {
 	"constraints": {
 		"0": {
-			"type": "textsearch",
-			"value": "description:king"
+			"type": "fieldvalue",
+			"field": "organization",
+			"value": "Tecmar"
 		}
 	},
 	"views": {

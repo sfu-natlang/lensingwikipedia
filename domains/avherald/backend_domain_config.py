@@ -15,11 +15,4 @@ value_getters = [
   avherald.get_facet_field_values
 ]
 
-field_name_aliases = {
-  'id': 'dbid',
-  'predicate': 'eventRoot',
-  'location': 'locationText',
-  'currentcountry': 'currentCountryText',
-  'person': 'personText',
-  'category': 'categoryText'
-}.get
+field_name_aliases = {}.get

@@ -9,9 +9,10 @@ mapDataUrl = "map.json";
 // List of facets by field name (to ask the backend for) and title (to show the user)
 facets = {
 	"role": "Role",
-	"personText": "Person",
-	"currentCountryText": "Current country",
-	"locationText": "Location"
+	"person": "Person",
+	"organization": "Organization",
+	"category": "Category",
+	"location": "Location"
 };
 // Verbose log settings that can be set in the browser console
 verbose_log = {
@@ -20,5 +21,5 @@ verbose_log = {
 	// Print out the replies being received from the backend
 	incoming_reply: false,
 	// Print out timing information for the query handling system
-	query_timing: false
+	query_timing: true
 }
