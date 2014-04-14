@@ -3,8 +3,6 @@ import json
 import codecs
 
 
-#fres = open("response.txt", "r")
-#floc = open("location.txt", "r")
 
 def convertCord(cord):
         sign = -1 if cord[-1] == 'S' or cord[-1] == 'W' else 1
@@ -44,8 +42,6 @@ if __name__ == "__main__":
 		locDic[items['url']]['longitude'] = items['longitude']
 		locDic[items['url']]['title'] = items['title']
 		locDic[items['url']]['url'] = items['url']
-		#for ii in items[2:]:
-		#	locDic[ii] = items[1]
 	floc.close
 
 	for line in flocNER:
