@@ -13,6 +13,7 @@ class locationSpider(BaseSpider):
 	inFile=""
 	outFileLoc=""
 	outFilePer=""
+	outFileOrg=""
 	def __init__(self, **kwargs):
 		BaseSpider.__init__(self)
 		startingAdd = "http://en.wikipedia.org/wiki/"
@@ -20,6 +21,7 @@ class locationSpider(BaseSpider):
 		self.outFileURL=kwargs['outfile']
 		self.outFileLoc=kwargs['outfileLoc']
 		self.outFilePer=kwargs['outfilePer']
+		self.outFileOrg=kwargs['outfileOrg']
 		self.start_urls = []
 		self.url2locDic = {}
 		self.url2urlDic = {}
@@ -29,6 +31,8 @@ class locationSpider(BaseSpider):
 		fout = open(self.outFileLoc,"w")
 		fout.close
 		fout = open(self.outFilePer,"w")
+		fout.close
+		fout = open(self.outFileOrg,"w")
 		fout.close
 	
 	def readFile(self, fileName):
@@ -77,8 +81,10 @@ class locationSpider(BaseSpider):
 		latFlag = 0
 		location = {}
 		person = {}
+		organization = {}
 		location['title'] = title
 		person['title'] = title
+		organization['title'] = title
 		urlLst = {}
 		urlLst['title'] = title
 		try:
@@ -90,7 +96,34 @@ class locationSpider(BaseSpider):
 		urlLst['category'] = []
 
 		fout = open(self.outFilePer,"a")
+		foutOrg = open(self.outFileOrg,"a")
 		foutURL = open(self.outFileURL,"a")
+		isOrg = 0
+		spans = ptr.select("//div[@id='mw-content-text']")
+		if len(spans)>1:
+			print "more than one <div id='mw-content-text'> in\t", url
+			exit(1)
+		elif len(spans) == 1:
+			tables = spans[0].select("descendant::table[@class = 'infobox*']")
+			if len(tables) > 1:
+				print "more than one infobox in\t", url
+				exit(1)
+			if len(tables) ==1:
+				tds = tables[0].select("/tbody/tr/td::text()'")
+				for cell in tds:
+					if cell.startswith("Founded") or cell.startswith("Key people") or cell.startswith("Company") \
+					    or cell.startswith("Headquarters") or cell.startswith("President") or cell.startswith("Membership") \
+					    or cell.startswith("Chief Executive") or cell.startswith("Employees") or cell.startswith("Services") \
+					    or cell.startswith("Products"):
+						isOrg = 1
+						try:
+							organization['text'] = list(self.url2locDic[url])
+							organization['url'] = self.url2urlDic[url]
+						except:
+							organization['text'] = 'UNKNOWN_TXT'
+							organization['url'] = url[len(startingAdr):]
+						break
+
 		spans = ptr.select("//div[@id='mw-normal-catlinks']")
 		if len(spans) != 1:
 			spans = ptr.select("//div[@id='mw-normal-catlinks']/a[text()='Categories']")
@@ -108,9 +141,7 @@ class locationSpider(BaseSpider):
 			#cat_string += cat_url+" "+cat_name+"\t"
 			cat_name = cat_name.strip()
 			urlLst['category'].append(cat_name)
-			print cat_name
 			if not isPerson  and (cat_name.endswith("births") or cat_name.endswith("deaths") or cat_name.startswith('Kings of') or cat_name.startswith('Female') or cat_name.startswith('Women')):
-				print "Yes! it is person!!"
 				try:
 					person['text'] = list(self.url2locDic[url])
 					person['url'] = self.url2urlDic[url]
@@ -120,11 +151,21 @@ class locationSpider(BaseSpider):
 				print >> fout, json.dumps(person)
 				isPerson = 1
 				#break
+			if not isOrg and (cat_name.startswith("Companies") or (cat_name.find("companies") >= 0)): #or cat_name.find("established in") >= 0:
+				try:
+					organization['text'] = list(self.url2locDic[url])
+					organization['url'] = self.url2urlDic[url]
+				except:
+					organization['text'] = 'UNKNOWN_TXT'
+					organization['url'] = url[len(startingAdr):]
+				isOrg = 1
+				
 		fout.close
 		print >> foutURL, json.dumps(urlLst)
 		foutURL.close
+		if isOrg: print >> foutOrg, json.dumps(organization)
+		foutOrg.close
 		if isPerson: return
-
 
 		fout = open(self.outFileLoc,"a")
 		spans = ptr.select('//span')

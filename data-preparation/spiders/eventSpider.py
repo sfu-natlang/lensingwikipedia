@@ -120,6 +120,7 @@ class eventSpider(BaseSpider):
 						text += str(content).rstrip("\n")
 				text = text.rstrip('\n')
 				text = re.sub(r'\[[0-9]+\]', r' ', text)
+				text = text.replace("[citation needed]", " ")
 				printable['description'] = text
 				
 				linked_entity = []

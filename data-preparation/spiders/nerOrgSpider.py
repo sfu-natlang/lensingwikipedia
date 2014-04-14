@@ -59,12 +59,20 @@ class locationSpider(BaseSpider):
 			if len(tables) ==1:
 				tds = tables[0].select("/tbody/tr/td::text()'")
 				for cell in tds:
-					if cell.startswith("Founded") or cell.startswith("Key people") or cell.startswith("Company"):
-						is_org = 1
+					if cell.startswith("Founded") or cell.startswith("Key people") or cell.startswith("Company") \
+                                            or cell.startswith("Headquarters") or cell.startswith("President") or cell.startswith("Membership") \
+                                            or cell.startswith("Chief Executive") or cell.startswith("Employees") or cell.startswith("Services") \
+                                            or cell.startswith("Products"):
+						is_org = 1				
+						try:
+							text = self.url2locDic[url]
+							org['text'] = text
+							org['url'] = "/wiki/"+"_".join(text.split())
+						except:
+							startingAdd1 = "http://en.wikipedia.org/wiki/"
+							org['url'] = "/wiki/"+url[len(startingAdd1):]
+							org['text'] = " ".join(url[len(startingAdd1)+6:].split("_"))
 						break
-			#tables = spans[0].select("descendant::table")
-			#for tab in tables:
-			#	if tab.
 			
 		spans = ptr.select("//div[@id='mw-normal-catlinks']")
 		if len(spans) != 1:
@@ -83,7 +91,8 @@ class locationSpider(BaseSpider):
 			#cat_string += cat_url+" "+cat_name+"\t"
 			cat_name = cat_name.strip()
 			org['category'].append(cat_name)
-			if not is_org and (cat_name.startswith("Companies") or (cat_name.find("established in") >= 0  or (cat_name.find("companies") >= 0))):
+			if not is_org and (cat_name.startswith("Companies") or cat_name.find("companies") >= 0): #or cat_name.find("established in") >= 0:
+			#if not is_org and (cat_name.startswith("Companies") or (cat_name.find("established in") >= 0  or (cat_name.find("companies") >= 0))):
 				is_org = 1
 				try:
 					text = self.url2locDic[url]
