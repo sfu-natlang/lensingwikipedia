@@ -185,7 +185,7 @@ function drawMarkers(svg, group, proj, initialCounts, contextCounts, refPointLin
 			// Bring group to front (see https://gist.github.com/trtg/3922684)
 			var sel = d3.select(this);
 			sel.each(function () {
-				this.parentNode.appendChild(this);a
+				this.parentNode.appendChild(this);
 			});
 		});
 	var arc = d3.geo.greatArc()
