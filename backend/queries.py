@@ -127,6 +127,8 @@ class Querier:
     multiple-valued field are counted.
     """
 
+    print >> sys.stderr, "generating field counts for fields: %s" % (' '.join(v['field'] for v in views.itervalues()))
+
     for view_id, view in views.iteritems():
       response[view_id] = { 'counts': {} }
 
