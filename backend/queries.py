@@ -10,7 +10,7 @@ import hashlib
 import time
 import json
 import caching
-import backend_settings, backend_settings_defaults
+import backend_settings, backend_settings_defaults, backend_domain_settings_defaults
 
 # Use the domain config file.
 import backend_domain_config
@@ -35,7 +35,7 @@ class Querier:
     """
 
     self.whoosh_index = whoosh_index
-    backend_settings.apply(self, our_settings, backend_settings_defaults.settings['querier'])
+    backend_settings.apply(self, our_settings, backend_settings_defaults.settings['querier'], backend_domain_settings_defaults.settings['querier'])
 
     self.results_pagination_cache = caching.FIFO(self.result_pagination_cache_size)
     self.response_cache = caching.Complete()
@@ -126,6 +126,8 @@ class Querier:
     Handles all the count by field value views for a query. All values of a
     multiple-valued field are counted.
     """
+
+    print >> sys.stderr, "generating field counts for fields: %s" % (' '.join(v['field'] for v in views.itervalues()))
 
     for view_id, view in views.iteritems():
       response[view_id] = { 'counts': {} }
@@ -314,7 +316,10 @@ class Querier:
         how_to_paginate_result = views_how_to_paginate_result.get(view_id)
         # Update the caches.
         if view_id in views_should_cache:
-          self.response_cache[views_cache_key[view_id]] = result
+          if 'error' in result:
+            print >> sys.stderr, "not caching due to error"
+          else:
+            self.response_cache[views_cache_key[view_id]] = result
         elif how_to_paginate_result is not None:
           self.results_pagination_cache[views_cache_key[view_id]] = result
         # Handle result pagination.
