@@ -10,7 +10,7 @@ import hashlib
 import time
 import json
 import caching
-import backend_settings, backend_settings_defaults
+import backend_settings, backend_settings_defaults, backend_domain_settings_defaults
 
 # Use the domain config file.
 import backend_domain_config
@@ -35,7 +35,7 @@ class Querier:
     """
 
     self.whoosh_index = whoosh_index
-    backend_settings.apply(self, our_settings, backend_settings_defaults.settings['querier'])
+    backend_settings.apply(self, our_settings, backend_settings_defaults.settings['querier'], backend_domain_settings_defaults.settings['querier'])
 
     self.results_pagination_cache = caching.FIFO(self.result_pagination_cache_size)
     self.response_cache = caching.Complete()

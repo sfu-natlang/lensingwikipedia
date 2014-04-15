@@ -40,15 +40,16 @@ def read_new_from_file(path, old_settings, old_settings_name="previous"):
     print >> sys.stderr, "error parsing new settings, retaining %s settings instead: %s" % (old_settings_name, str(e))
     return old_settings
 
-def apply(dest, settings, defaults):
+def apply(dest, settings, *defaults):
   """
   Apply settings as properties of an object, falling back on defaults as needed.
   """
-  for setting, value in defaults.iteritems():
-    if setting not in settings:
-      setattr(dest, setting, value)
+  for defaults_set in defaults:
+    for setting, value in defaults_set.iteritems():
+      if setting not in settings:
+        setattr(dest, setting, value)
   for setting, value in settings.iteritems():
-    if setting in defaults:
+    if any(setting in ds for ds in defaults):
       setattr(dest, setting, value)
     else:
       raise UnknownSetting(setting)
@@ -56,8 +57,8 @@ def apply(dest, settings, defaults):
 """
 Make a class to expand settings to an object with given defaults filled in.
 """
-def make_settings_structure(defaults):
+def make_settings_structure(*defaults):
   class SettingsStructure:
     def __init__(self, **settings):
-      apply(self, settings, defaults)
+      apply(self, settings, *defaults)
   return SettingsStructure

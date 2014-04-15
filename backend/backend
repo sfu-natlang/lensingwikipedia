@@ -25,12 +25,13 @@ import Queue
 import whoosh, whoosh.index
 import wsgiref, wsgiref.simple_server
 import queries
-import backend_settings, backend_settings_defaults
+import backend_settings, backend_settings_defaults, backend_domain_settings_defaults
 
 default_port = 1500
 
 default_server_settings = dict(backend_settings_defaults.settings['server'].iteritems())
-ServerSettings = backend_settings.make_settings_structure(default_server_settings)
+domain_default_server_settings = dict(backend_domain_settings_defaults.settings['server'].iteritems())
+ServerSettings = backend_settings.make_settings_structure(default_server_settings, domain_default_server_settings)
 
 class State:
   """
