@@ -314,7 +314,10 @@ class Querier:
         how_to_paginate_result = views_how_to_paginate_result.get(view_id)
         # Update the caches.
         if view_id in views_should_cache:
-          self.response_cache[views_cache_key[view_id]] = result
+          if 'error' in result:
+            print >> sys.stderr, "not caching due to error"
+          else:
+            self.response_cache[views_cache_key[view_id]] = result
         elif how_to_paginate_result is not None:
           self.results_pagination_cache[views_cache_key[view_id]] = result
         # Handle result pagination.
