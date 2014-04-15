@@ -59,7 +59,7 @@ class locationSpider(BaseSpider):
 			cat_name = str(tmp[0].encode('utf8', 'ignore')) if len(tmp) ==1 else ''
 			#cat_string += cat_url+" "+cat_name+"\t"
 			cat_name = cat_name.strip()
-			if cat_name.endswith("births") or cat_name.endswith("deaths"):# or cat_name.startswith('Kings of'):
+			if cat_name.endswith("births") or cat_name.endswith("deaths") or cat_name.startswith('Kings of') or cat_name.startswith('Women') or cat_name.startswith('Female'):
 				try:
 					text = self.url2locDic[url]
 					person['text'] = text

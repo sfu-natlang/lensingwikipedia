@@ -121,4 +121,4 @@ cd $W_DIR
 
 echo "Writing the final json file"
 
-$PYPATH $SCRIPT_PATH/prepareJson.py descriptions.srl locationDictionary.json personDictionary.json url.json newJ.json fullData.json
+$PYPATH $SCRIPT_PATH/prepareJson.py descriptions.srl locationDictionary.json organizationDictionary.json personDictionary.json url.json newJ.json fullData.json

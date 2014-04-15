@@ -136,7 +136,7 @@ def findSubStr(Str, subStr, last=0):
 	return b,e
 
 def addNERInfo(docId, tokDesc, alignObj):
-	global eventsLst, perDict, locDict
+	global eventsLst, perDict, locDict, orgDict
 	Desc = eventsLst[docId]["description"]	
 	cur_ner_info = eventsLst[docId]["ner_info"]
 	for index, label in enumerate(['person','organization', 'locations']):
@@ -167,7 +167,10 @@ def addNERInfo(docId, tokDesc, alignObj):
 						eventsLst[docId][label][l]["span"] = (rb, re)
 						eventsLst[docId][label][l]["title"] = perDict[l]
 				else:
-					eventsLst[docId][label][l] = (rb, re)
+					if l in orgDict:
+						eventsLst[docId][label][l] = {}
+						eventsLst[docId][label][l]["span"] = (rb, re)
+						eventsLst[docId][label][l]["title"] = orgDict[l]
 	
 	if ("locations" not in eventsLst[docId]) or len(eventsLst[docId]["locations"]) == 0:
 		wl = 1
@@ -204,17 +207,14 @@ def print_doc(docs, docId, outFile):
 	for sentInd, sent in enumerate(docs):
 		preSentLen = len(" ".join([s.sentence for s in docs[:sentInd]]))
 		splitedSent = sent.sentence.split(" ")
-
 		## extracting current sentence from original text
 		b = preSentLen+1
                 if preSentLen > 0: b += 1
-		e = b+len(sent.sentence)
+                e = b+len(sent.sentence)
 		if e > len(tokDesc): e = len(tokDesc)
-		if COMP_SPAN_FLAG:
-			sentSpan = alignObj.mapSpan(b,e)
-		else:
-			sentSpan = (b,e)
-			
+		if COMP_SPAN_FLAG: sentSpan = alignObj.mapSpan(b,e)
+		else: sentSpan = (b,e)
+		
 		for pred in sent.predicates:
 			printable = {}
 			printable["sentence"] = {"text": Desc[sentSpan[0]:sentSpan[1]], "span": sentSpan}
@@ -251,6 +251,8 @@ def print_doc(docs, docId, outFile):
 					print "err,   multiple key!\n", key, tokDesc
 				#	exit(1)
 				if key == 'ner_info': continue
+				if key == 'person' or key == "organization": 
+					if len(eventsLst[docId][key]) == 0: continue
 				printable[key] = copy.deepcopy(eventsLst[docId][key])
 
 			print >> outFile, json.dumps(printable)
@@ -260,7 +262,7 @@ def print_doc(docs, docId, outFile):
 def read_fullEvents(fileName):
 	inFile = codecs.open(fileName, "r", "utf-8")
 	ID = 0
-	global eventsLst, locDict
+	global eventsLst, locDict, perDict, orgDict
 	eventsLst = []
 	for line in inFile:
 		items = json.loads(line[:-1], "utf-8")				
@@ -268,6 +270,7 @@ def read_fullEvents(fileName):
 		description = items['description']
 		dict = {}
 		tempPersonDict = {}
+		tempOrgDict = {}
 		tempLocDict = {}
 		for k in items:
 			if k == 'year':
@@ -310,12 +313,15 @@ def read_fullEvents(fileName):
 					lastInd=e
 					if url in perDict:
 						tempPersonDict[text] = {"span":(b,e), "title":perDict[url]}
+					if url in orgDict:
+						tempOrgDict[text] = {"span":(b,e), "title":orgDict[url]}
 				dict["wiki_info"]=urlDic
 			else:
 				#key = str(k.encode('utf8', 'ignore'))
 				#dict[key] = str(items[k].encode('utf8', 'ignore'))
 				dict[k] = items[k]
 		if len(tempPersonDict) > 0: dict['person']=tempPersonDict
+		if len(tempOrgDict) > 0: dict['organization']=tempOrgDict
 		if len(tempLocDict) > 0: dict['locations']=tempLocDict
 		eventsLst.append(dict)
 	inFile.close
@@ -433,12 +439,24 @@ def read_person(fileName):
 			sys.stderr.write("           INFO  :: Invalid person entry:\n %s\n Aborting!!\n" % (line))
 			return 1
 		perDict[key] = items['title']
-		if perDict[key] == "8268 Goerdeler":
-			print  line
-			return 1
 	inFile.close
 	
-
+def read_organization(fileName):
+	inFile = codecs.open(fileName, "r", encoding='utf-8')
+	global orgDict
+	orgDict = {}
+	for line in inFile:
+		items = json.loads(line[:-1], 'utf-8')
+		if 'url' in items:
+			key = items['url']
+		elif 'text' in items:
+			key = items['text']
+		else:
+			sys.stderr.write("           INFO  :: Invalid person entry:\n %s\n Aborting!!\n" % (line))
+			return 1
+		orgDict[key] = items['title']
+	inFile.close
+	
 def readNER(fileName):
         inpFile = open(fileName, "r")
 	global nerLst
@@ -504,19 +522,20 @@ def read_url(fileName):
 			
 
 if __name__ == '__main__':
-	if len(sys.argv) < 7 or len(sys.argv) > 8:
-		print "usage:  python  %s <srl-data-file> <location-json-file> <person-json-file> <urlInfo-json-file> <crawled-json-file> <NER_output> <json-output-name> [flag for computing spans]" %(sys.argv[0])
+	if len(sys.argv) < 8 or len(sys.argv) > 9:
+		print "usage:  python  %s <srl-data-file> <location-json-file> <organization-json-file> <person-json-file> <urlInfo-json-file> <crawled-json-file> <json-output-name> [flag for computing spans]" %(sys.argv[0])
 		print "'frame_labels.txt' and 'def_roles.txt' are supposed to be in local directory."
 		exit(1)
-	if len(sys.argv) == 8:
-		COMP_SPAN_FLAG = int(sys.argv[7])
+	if len(sys.argv) == 9:
+		COMP_SPAN_FLAG = int(sys.argv[8])
 	full_path = os.path.realpath(__file__)
-	global script_dir, finalJsonFile
+	global script_dir, finalJsonFile, perDict, orgDict
 	script_dir = "/".join(full_path.split("/")[:-1]) + "/"
 	read_frames(script_dir+"frame_labels.txt")
 	read_location(sys.argv[2])
-	read_person(sys.argv[3])
-	read_url(sys.argv[4])
-	read_fullEvents(sys.argv[5])
-	finalJsonFile = sys.argv[6]
+	read_organization(sys.argv[3])
+	read_person(sys.argv[4])
+	read_url(sys.argv[5])
+	read_fullEvents(sys.argv[6])
+	finalJsonFile = sys.argv[7]
 	parse_SRL()
