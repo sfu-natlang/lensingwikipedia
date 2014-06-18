@@ -183,6 +183,29 @@ class Querier:
       'links': [{ 'refpoints': p, 'count': c } for (p, c) in link_counts.iteritems()]
     }
 
+  def _handle_plottimeline_view(self, view, whoosh_query):
+    cluster_field = view['clusterField']
+    timeline = dict((ef, dict((ev, {}) for ev in evs)) for ef, evs in view['entities'].iteritems())
+    with self.whoosh_index.searcher() as searcher:
+      hits = searcher.search(whoosh_query, limit=None)
+      for hit in hits:
+        if cluster_field in hit:
+          year = int(hit['year'])
+          cluster_values = set(whooshutils.split_keywords(hit[cluster_field]))
+          for entity_field, entity_values in view['entities'].iteritems():
+            hit_entity_values = set(whooshutils.split_keywords(hit[entity_field]))
+            for entity_value in entity_values:
+              if entity_value in hit_entity_values:
+                timeline[entity_field][entity_value].setdefault(year, set())
+                timeline[entity_field][entity_value][year] |= cluster_values
+    for entity_field, entity_values in view['entities'].iteritems():
+      field_timeline = timeline[entity_field]
+      for entity_value in entity_values:
+        field_timeline[entity_value] = dict((y, list(cvs)) for y, cvs in field_timeline[entity_value].iteritems())
+    return {
+      'timeline': timeline
+    }
+
   def handle_independent_view(self, view, whoosh_query):
     """
     Handles one of the views which is done on its own independent Whoosh query.
@@ -193,6 +216,8 @@ class Querier:
       return self._handle_descriptions_view(view, whoosh_query)
     elif type == 'referencepointlinks':
       return self._handle_referencepointlinks_view(view, whoosh_query)
+    elif type == 'plottimeline':
+      return self._handle_plottimeline_view(view, whoosh_query)
     else:
       raise ValueError("unknown view type \"%s\"" % (type))
 
@@ -354,6 +379,8 @@ class Querier:
     """
     for query in self.queries_to_prime():
       self.handle(query)
+
+  # TODO: pagination, caching, etc. for new plottimeline view
 
   def handle(self, query):
     """

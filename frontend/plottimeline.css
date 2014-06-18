@@ -1,0 +1,56 @@
+.plottimeline {
+	width: 100%;
+	margin: 0;
+	padding: 0;
+}
+.plottimeline .topbox {
+	margin: 0;
+	padding: 0 10px 0 10px;
+	height: 26px;
+}
+.plottimeline svg {
+	width: 100%;
+	margin: 0;
+	padding: 0;
+}
+.plottimeline .topbox .inputbox {
+	display: block;
+	overflow: hidden;
+	padding: 0 20px 0 10px;
+}
+.plottimeline .topbox input.year {
+	float: left;
+	margin-bottom: 0.25em;
+	width: 4em;
+}
+.plottimeline .topbox input.entities {
+	float: left;
+	margin-bottom: 0.25em;
+	width: 100%;
+}
+.plottimeline .topbox button {
+	float: left;
+	margin: 0 0.5em 0 0.5em;
+}
+
+.plottimeline .node {
+	shape-rendering: crispEdges;
+	fill: black;
+	fill-opacity: .2;
+	stroke: none;
+}
+.plottimeline .node:hover {
+	fill-opacity: 0.5;
+}
+.plottimeline .link {
+	fill: none;
+	stroke: black;
+	stroke-opacity: .4;
+}
+.plottimeline .link:hover {
+	stroke-opacity: .7;
+}
+.plottimeline .axis path, .timeline .axis line {
+	fill: none;
+	stroke: black;
+}
