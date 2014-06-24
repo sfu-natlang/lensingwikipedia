@@ -185,9 +185,11 @@ class Querier:
 
   def _handle_plottimeline_view(self, view, whoosh_query):
     cluster_field = view['clusterField']
+    # Checking for cluster_field per hit below seems to be slightly faster (empirically) than including Every(cluster_field) in the query
+    rel_query = whoosh.query.Or([whoosh.query.Term(ef, ev) for ef, evs in view['entities'].iteritems() for ev in evs])
     timeline = dict((ef, dict((ev, {}) for ev in evs)) for ef, evs in view['entities'].iteritems())
     with self.whoosh_index.searcher() as searcher:
-      hits = searcher.search(whoosh_query, limit=None)
+      hits = searcher.search(whoosh.query.And([whoosh_query, rel_query]), limit=None)
       for hit in hits:
         if cluster_field in hit:
           year = int(hit['year'])

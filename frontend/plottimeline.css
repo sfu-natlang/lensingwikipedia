@@ -39,7 +39,7 @@
 	fill-opacity: .2;
 	stroke: none;
 }
-.plottimeline .node:hover {
+.plottimeline .node.highlight {
 	fill-opacity: 0.5;
 }
 .plottimeline .link {
@@ -47,7 +47,7 @@
 	stroke: black;
 	stroke-opacity: .4;
 }
-.plottimeline .link:hover {
+.plottimeline .link.highlight {
 	stroke-opacity: .7;
 }
 .plottimeline .axis path, .timeline .axis line {
