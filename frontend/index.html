@@ -29,14 +29,14 @@
 						<li><a href=\"#timelinetab\" data-toggle=\"tab\" title=\"Timeline view\">Timeline</a></li> \
 						<li><a href=\"#maptab\" data-toggle=\"tab\" title=\"Map view\">Map</a></li> \
 						<li><a href=\"#textsearchtab\" data-toggle=\"tab\" title=\"Text search\">Text search</a></li> \
-						<li class=\"active\"><a href=\"#plottimeline\" data-toggle=\"tab\" title=\"Plot\">Plot</a></li> \
+						<li class=\"active\"><a href=\"#flowplot\" data-toggle=\"tab\" title=\"Flow\">Flow</a></li> \
 					</ul> \
 					<div class=\"tab-content\" id=\"tabcontents\"> \
 						<div class=\"tab-pane\" id=\"facetstab\"></div> \
 						<div class=\"tab-pane\" id=\"timelinetab\"></div> \
 						<div class=\"tab-pane\" id=\"maptab\"></div> \
 						<div class=\"tab-pane\" id=\"textsearchtab\"></div> \
-						<div class=\"tab-pane active\" id=\"plottimeline\"></div> \
+						<div class=\"tab-pane active\" id=\"flowplot\"></div> \
 					</div> \
 				</div> \
 			</div>").appendTo($('body'));
@@ -67,13 +67,13 @@
 			setupTimeline($('#timelinetab'), initialQuery, globalQuery);
 			setupMap($('#maptab'), initialQuery, globalQuery, mapDataUrl, minMapZoom, maxMapZoom);
 			setupTextSearch($('#textsearchtab'), globalQuery);
-			setupPlotTimeline($('#plottimeline'), globalQuery);
+			setupFlowPlot($('#flowplot'), globalQuery);
 
 			fillElement($('.tab-content'), $('#facetstab'), 'vertical');
 			fillElement($('.tab-content'), $('#timelinetab'), 'vertical');
 			fillElement($('.tab-content'), $('#maptab'), 'vertical');
 			fillElement($('.tab-content'), $('#textsearchtab'), 'vertical');
-			fillElement($('.tab-content'), $('#plottimeline'), 'vertical');
+			fillElement($('.tab-content'), $('#flowplot'), 'vertical');
 			fillElement($('.tab-content'), $('#abouttab'), 'vertical');
 
 			// Update the queries only after setting up all the controls

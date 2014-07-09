@@ -1,0 +1,59 @@
+.flowplot {
+	width: 100%;
+	margin: 0;
+	padding: 0;
+}
+.flowplot .topbox {
+	margin: 0;
+	padding: 0 10px 0 10px;
+	height: 26px;
+}
+.flowplot svg {
+	width: 100%;
+	margin: 0;
+	padding: 0;
+}
+.flowplot .topbox .inputbox {
+	display: block;
+	overflow: hidden;
+	padding: 0 20px 0 10px;
+}
+.flowplot .topbox input.year {
+	float: left;
+	margin-bottom: 0.25em;
+	width: 4em;
+}
+.flowplot .topbox input.entities {
+	float: left;
+	margin-bottom: 0.25em;
+	width: 100%;
+}
+.flowplot .topbox button {
+	float: left;
+	margin: 0 0.5em 0 0.5em;
+}
+
+.flowplot .node {
+	shape-rendering: crispEdges;
+	fill: black;
+	fill-opacity: .15;
+	stroke: none;
+}
+.flowplot .node.highlight {
+	fill-opacity: 0.4;
+}
+.flowplot .line {
+	fill: none;
+	stroke: black;
+	stroke-opacity: .5;
+	stroke-linecap: round;
+	stroke-width: 6;
+	vector-effect: non-scaling-stroke;
+}
+.flowplot .line.highlight {
+	stroke-opacity: 1.0;
+}
+.flowplot .axis path, .timeline .axis line {
+	fill: none;
+	stroke: black;
+}
