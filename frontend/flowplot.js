@@ -8,7 +8,7 @@ var timelineClipNum = 0;
 function yearsArrayOfTable(yearsTable) {
 	var years = [];
 	$.each(yearsTable, function (year, clusters) {
-		years.push(year);
+		years.push(parseInt(year));
 	});
 	years.sort(function (y1, y2) { return y1 - y2 });
 	return years;
@@ -135,6 +135,8 @@ function resultToSankeyData(resultData, startYear, endYear) {
 		});
 	});
 
+	// TODO: if we calculate the years order here, should we return it for later?
+
 	// TODO: what do we actually need to return in this function?
 	return {
 		nodes: nodes,
@@ -143,7 +145,8 @@ function resultToSankeyData(resultData, startYear, endYear) {
 	}
 }
 
-function layout(data, size, nodeHeightPerEntity, nodeHeightGap, relaxationIters, yearDistWeight) {
+// TODO: fix up the data converter function and remove this wrapper
+function layout(data, size, nodeHeightPerEntity, nodeHeightGap, looseRelaxationIters, middleRelaxationIters, tightRelaxationIters, yearDistWeight) {
 	var byYear = {};
 	$.each(data.nodes, function (nodeI, node) {
 		if (!byYear.hasOwnProperty(node.year))
@@ -152,143 +155,385 @@ function layout(data, size, nodeHeightPerEntity, nodeHeightGap, relaxationIters,
 		byYear[node.year].push(node);
 	});
 
-	$.each(byYear, function (year, nodesThisYear) {
+	console.log("size", size);
+	data.entityLines = flowLayout(byYear, size[1], nodeHeightPerEntity, nodeHeightGap, yearDistWeight, looseRelaxationIters, middleRelaxationIters, tightRelaxationIters);
+}
+
+function flowLayout(nodesByYear, layoutHeight, nodeHeightPerEntity, nodeHeightGap, yearDistWeight, looseRelaxationIters, middleRelaxationIters, tightRelaxationIters) {
+	function initialYearLayout(yearNodes) {
 		var totalEntities = 0;
-		var nodeNumEntities = {};
-		$.each(nodesThisYear, function (nodeI, node) {
-			nodeNumEntities[nodeI] = 0;
-			$.each(node.entityIds, function (entityId) {
-				nodeNumEntities[nodeI] += 1;
-			});
-			totalEntities += nodeNumEntities[nodeI];
+		$.each(yearNodes, function (nodeI, node) {
+			totalEntities += node.entityIds.length;
 		});
-		var gapSpace = (size[1] - totalEntities * nodeHeightPerEntity) / (nodesThisYear.length + 1);
-		$.each(nodesThisYear, function (nodeI, node) {
-			node.y = gapSpace * (nodeI + 1);
-			node.dy = nodeNumEntities[nodeI] * nodeHeightPerEntity;
-			node.neighbours = {};
-			node.lineIntersections = [];
-			node.toAdjustY = 0;
-		});
-	});
-
-	var entityPaths = {};
-	var yearsOrder = yearsArrayOfTable(byYear);
-	$.each(yearsOrder, function (yearI, year) {
-		$.each(byYear[year], function (nodeI, node) {
-			$.each(node.entityIds, function (entityIdI, entityId) {
-				if (!entityPaths.hasOwnProperty(entityId))
-					entityPaths[entityId] = [];
-				var entityPath = entityPaths[entityId];
-				if (entityPath.length > 0) {
-					var prevNode = entityPath[entityPath.length - 1];
-					if (!prevNode.neighbours.hasOwnProperty(node.id))
-						prevNode.neighbours[node.id] = 1;
-					else
-						prevNode.neighbours[node.id] += 1;
-					if (!node.neighbours.hasOwnProperty(prevNode.id))
-						node.neighbours[prevNode.id] = 1;
-					else
-						node.neighbours[prevNode.id] += 1;
-				}
-				entityPaths[entityId].push(node);
-			});
-		});
-	});
-
-	if (relaxationIters > 0)
-		$.each(data.nodes, function (nodeI, node) {
-			var weights = {};
-			node.neighbourWeightsTotal = 0;
-			$.each(node.neighbours, function (neighbourId, count) {
-				var neighbour = data.nodes[neighbourId];
-				var dYear = Math.abs(node.year - neighbour.year)
-				var weight = count / ((dYear - 1) * yearDistWeight + 1);
-				node.neighbourWeightsTotal += weight;
-				weights[neighbourId] = weight;
-			});
-			node.neighbours = weights;
-		});
-
-	for (var iter = 0; iter < relaxationIters; iter++) {
-		console.log("relaxation iteration", iter);
-		$.each(yearsOrder, function (yearI, year) {
-			var nodesHere = byYear[year];
-			$.each(nodesHere, function (nodeI, node) {
-				var sumY = 0;
-				$.each(node.neighbours, function (neighbourId, weight) {
-					sumY += data.nodes[neighbourId].y * weight;
-				});
-				node.y = sumY / node.neighbourWeightsTotal;
-				
-			});
-			nodesHere.sort(function (n1, n2) { return n1.y - n2.y });
-			var carryYOffset = 0;
-			for (var nodeI = 0; nodeI < nodesHere.length - 1; nodeI++) {
-				var node1 = nodesHere[nodeI];
-				var node2 = nodesHere[nodeI + 1];
-				var d = node1.y + node1.dy + nodeHeightGap - node2.y;
-				if (d > 0) {
-					node1.toAdjustY = d / 2;
-					carryYOffset += d / 2;
-					node2.y += carryYOffset;
-				} else
-					node1.toAdjustY = 0;
-			}
-			carryYOffset = 0;
-			for (var nodeI = nodesHere.length - 1; nodeI >= 0; nodeI--) {
-				var node = nodesHere[nodeI];
-				carryYOffset += node.toAdjustY;
-				node.y -= carryYOffset;
-			}
-			for (var nodeI = nodesHere.length - 1; nodeI >= 0; nodeI--) {
-				var node = nodesHere[nodeI];
-				if (node.y < 0)
-					node.y = 0;
-				if (node.y + node.dy > size[1])
-					node.y = size[1] - node.dy;
-			}
+		var space = (layoutHeight - totalEntities * nodeHeightPerEntity) / (yearNodes.length + 1);
+		$.each(yearNodes, function (nodeI, node) {
+			node.layout.y = space * (nodeI + 1);
+			node.layout.dy = node.entityIds.length * nodeHeightPerEntity;
 		});
 	}
 
-	var entityLines = [];
-	$.each(entityPaths, function (entityPathI, entityPath) {
-		var entityLine = [];
-		entityLines.push(entityLine);
-		var from = null;
-		$.each(entityPath, function (nodeI, node) {
-			node.lineIntersections.push({
-				lineId: entityPathI,
-				from: from,
-				pos: entityLine.length
+	function makeEntityPaths(yearsOrder) {
+		var entityPaths = {};
+		$.each(yearsOrder, function (yearI, year) {
+			$.each(nodesByYear[year], function (nodeI, node) {
+				$.each(node.entityIds, function (entityIdI, entityId) {
+					if (!entityPaths.hasOwnProperty(entityId))
+						entityPaths[entityId] = [];
+					entityPaths[entityId].push({ node: node, yearIndex: yearI });
+				});
 			});
-			entityLine.push({
-				node: node
-			});
-			from = node;
 		});
+		return entityPaths;
+	}
+
+	function findNeighbours() {
+		$.each(entityPaths, function (entityId, entityPath) {
+			var lastSeenNode = {};
+			$.each(entityPath, function (pathPointI, pathPoint) {
+				var node = pathPoint.node;
+				if (lastSeenNode.hasOwnProperty(entityId)) {
+					var prevNode = lastSeenNode[entityId];
+					if (!prevNode.layout.neighbours.hasOwnProperty(node.layout.id))
+						prevNode.layout.neighbours[node.layout.id] = { node: node, count: 1 };
+					else
+						prevNode.layout.neighbours[node.layout.id].count += 1;
+					if (!node.layout.neighbours.hasOwnProperty(prevNode.layout.id))
+						node.layout.neighbours[prevNode.layout.id] = { node: prevNode, count: 1 };
+					else
+						node.layout.neighbours[prevNode.layout.id].count += 1;
+				}
+				lastSeenNode[entityId] = node;
+			});
+		});
+	}
+
+	function neighbourWeight(diffYear) {
+		return (diffYear - 1) * yearDistWeight + 1;
+	}
+
+	function calculateNeighbourWeights() {
+		$.each(yearsOrder, function (yearI, year) {
+			$.each(nodesByYear[year], function (nodeI, node) {
+				node.layout.neighbourWeightsTotal = 0;
+				$.each(node.layout.neighbours, function (neighbourId, neighbour) {
+					var weight = neighbour.count / neighbourWeight(Math.abs(node.year - neighbour.node.year));
+					node.layout.neighbourWeightsTotal += weight;
+					neighbour.weight = weight;
+				});
+			});
+		});
+	}
+
+	function makeEntityLines(yearsOrder, entityPaths, addFillers) {
+		function assignNodeYs(entityLines) {
+			var lastYForLine = {};
+			$.each(yearsOrder, function (yearI, year) {
+				var yearNodes = nodesByYear[year];
+				$.each(yearNodes, function (nodeI, node) {
+					node.layout.lineIntersections.sort(function (li1, li2) { return lastYForLine[li1.lineId] - lastYForLine[li2.lineId] });
+					$.each(node.layout.lineIntersections, function (linePointI, linePoint) {
+						var entityLine = entityLines[linePoint.lineId];
+						var linePoint = entityLine[linePoint.pos];
+						linePoint.y = node.layout.y + (linePointI + 0.5) * (nodeHeightPerEntity);
+						lastYForLine[linePoint.lineId] = linePoint.y;
+					});
+				});
+			});
+		}
+		function assignFillerYs(entityLines) {
+			$.each(entityLines, function (entityLineI, entityLine) {
+				var lastNodeY = null;
+				$.each(entityLine, function (linePointI, linePoint) {
+					if (linePoint.node != null)
+						lastNodeY = linePoint.y;
+					else
+						linePoint.y = lastNodeY;
+				});
+			});
+		}
+		var entityLines = [];
+		$.each(entityPaths, function (entityPathI, entityPath) {
+			var entityLine = [];
+			var secondNodeLayout = null;
+			entityLines.push(entityLine);
+			$.each(entityPath, function (pathPointI, pathPoint) {
+				if (addFillers && pathPointI > 0) {
+					for (var yearI = entityPath[pathPointI - 1].yearIndex + 1; yearI < pathPoint.yearIndex; yearI++) {
+						entityLine.push({
+							year: yearsOrder[yearI],
+							date: jsDateOfYear(yearsOrder[yearI]),
+							node: null,
+							lineId: entityPathI,
+							pos: entityLine.length
+						});
+					}
+				}
+				var linePoint = {
+					year: pathPoint.node.year,
+					date: pathPoint.node.date,
+					node: pathPoint.node,
+					lineId: entityPathI,
+					yearIndex: pathPoint.yearIndex,
+					pos: entityLine.length
+				};
+				pathPoint.node.layout.lineIntersections.push(linePoint);
+				entityLine.push(linePoint);
+				if (pathPointI == 1)
+					secondNodeLayout = pathPoint.node.layout;
+			});
+		});
+		assignNodeYs(entityLines);
+		if (addFillers)
+			assignFillerYs(entityLines);
+		return entityLines;
+	}
+
+	function fixNodeOverlaps(yearNodes) {
+		yearNodes.sort(function (n1, n2) { return n1.y - n2.y });
+		var carryYOffset = 0;
+		for (var nodeI = 0; nodeI < yearNodes.length - 1; nodeI++) {
+			var node1 = yearNodes[nodeI];
+			var node2 = yearNodes[nodeI + 1];
+			var d = node1.layout.y + node1.layout.dy + nodeHeightGap - node2.layout.y;
+			if (d > 0) {
+				node1.layout.toAdjustY = d / 2;
+				carryYOffset += d / 2;
+				node2.layout.y += carryYOffset;
+			} else {
+				node1.layout.toAdjustY = 0;
+			}
+		}
+		yearNodes[yearNodes.length - 1].layout.toAdjustY = 0;
+		carryYOffset = 0;
+		for (var nodeI = yearNodes.length - 1; nodeI >= 0; nodeI--) {
+			var node = yearNodes[nodeI];
+			carryYOffset += node.layout.toAdjustY;
+			node.layout.y -= carryYOffset;
+		}
+		for (var nodeI = yearNodes.length - 1; nodeI >= 0; nodeI--) {
+			var node = yearNodes[nodeI];
+			if (node.layout.y < 0)
+				node.layout.y = 0;
+			if (node.layout.y + node.layout.dy > layoutHeight)
+				node.layout.y = layoutHeight - node.layout.dy;
+		}
+	}
+
+	function looseRelax(yearsOrder, iterations) {
+		for (var iter = 0; iter < iterations; iter++) {
+			console.log("loose relaxation iteration", iter);
+			$.each(yearsOrder, function (yearI, year) {
+				var yearNodes = nodesByYear[year];
+				$.each(yearNodes, function (nodeI, node) {
+					var sumCentreY = 0;
+					$.each(node.layout.neighbours, function (neighbourId, neighbour) {
+						sumCentreY += (neighbour.node.layout.y + neighbour.node.layout.dy / 2) * neighbour.weight;
+					});
+					node.layout.y = (sumCentreY / node.layout.neighbourWeightsTotal) - node.layout.dy / 2;
+				});
+				fixNodeOverlaps(yearNodes);
+			});
+		}
+	}
+
+	function getLinePointsByYear(yearsOrder, entityLines) {
+		var byYear = {};
+		$.each(yearsOrder, function (yearI, year) {
+			byYear[year] = [];
+		});
+		$.each(entityLines, function (entityLineI, entityLine) {
+			for (var linePointI = 0; linePointI < entityLine.length; linePointI++) {
+				var linePoint = entityLine[linePointI];
+				byYear[linePoint.year].push(linePoint);
+			}
+		});
+		return byYear;
+	}
+
+	function middleRelax(yearsOrder, entityLines, iterations) {
+		for (var iter = 0; iter < iterations; iter++) {
+			console.log("middle relaxation iteration", iter);
+			$.each(yearsOrder, function (yearI, year) {
+				var yearNodes = nodesByYear[year];
+				$.each(yearNodes, function (nodeI, node) {
+					var sumCentreY = 0;
+					var numSamples = 0;
+					$.each(node.layout.lineIntersections, function (linePointI, linePoint) {
+						var entityLine = entityLines[linePoint.lineId];
+						if (linePoint.pos > 0) {
+							sumCentreY += entityLine[linePoint.pos - 1].y
+							numSamples++;
+						}
+						if (linePoint.pos < entityLine.length - 1) {
+							sumCentreY += entityLine[linePoint.pos + 1].y
+							numSamples++;
+						}
+					});
+					var newY = (sumCentreY / numSamples) - node.layout.dy / 2;
+					var dY = newY - node.layout.y;
+					node.layout.y = newY;
+				});
+				fixNodeOverlaps(yearNodes);
+			});
+		}
+	}
+
+	function fixLineOverlaps(yearLinePoints) {
+		function dist(point1, point2) {
+			var d = point1.y + nodeHeightPerEntity - point2.y;
+			if (point1.node != null && point2.node != null && point1.node != point2.node)
+				d += nodeHeightGap;
+			return d;
+		}
+		yearLinePoints.sort(function (p1, p2) { return p1.y - p2.y });
+		var carryYOffset = 0;
+		for (var linePointI = 0; linePointI < yearLinePoints.length - 1; linePointI++) {
+			var point1 = yearLinePoints[linePointI];
+			var point2 = yearLinePoints[linePointI + 1];
+			var d = dist(point1, point2);
+			if (d > 0) {
+				point1.toAdjustY = d / 2;
+				carryYOffset += d / 2;
+				point2.y += carryYOffset;
+				point1.isClear = false;
+				point2.isClear = false;
+			} else {
+				point1.toAdjustY = 0;
+				point2.isClear = true;
+			}
+		}
+		yearLinePoints[yearLinePoints.length - 1].toAdjustY = 0;
+		carryYOffset = 0;
+		for (var linePointI = yearLinePoints.length - 1; linePointI >= 0; linePointI--) {
+			var point2 = yearLinePoints[linePointI];
+			carryYOffset += point2.toAdjustY;
+			if (carryYOffset != 0)
+				point2.isClear = false;
+			point2.y -= carryYOffset;
+		}
+	}
+
+	function tightRelax(yearsOrder, entityLines, linePointsByYear, iterations) {
+		for (var iter = 0; iter < iterations; iter++) {
+			console.log("tight relaxation iteration", iter);
+			$.each(entityLines, function (entityLineI, entityLine) {
+				if (entityLine.length > 1) {
+					for (var linePointI = 0; linePointI < entityLine.length; linePointI++) {
+						var linePoint = entityLine[linePointI],
+						    prevLinePoint = entityLine[linePointI - 1],
+						    nextLinePoint = entityLine[linePointI + 1];
+						var totalWeight = 0,
+						    newY = 0;
+						if (prevLinePoint != null) {
+							var weight1 = neighbourWeight(linePoint.year - prevLinePoint.year) / 2;
+							totalWeight += weight1;
+							newY += weight1 * prevLinePoint.y;
+						}
+						if (nextLinePoint != null) {
+							var weight2 = neighbourWeight(nextLinePoint.year - linePoint.year) / 2;
+							totalWeight += weight2;
+							newY += weight2 * nextLinePoint.y;
+						}
+						if (totalWeight != 0) {
+							newY /= totalWeight;
+							if (linePoint.node != null) {
+								var dy = newY - linePoint.y;
+								linePoint.node.layout.y += dy;
+								$.each(linePoint.node.layout.lineIntersections, function (linePoint2I, linePoint2) {
+									linePoint2.y += dy;
+								});
+							}
+							linePoint.y = newY;
+						}
+					}
+				}
+			});
+			$.each(linePointsByYear, function (year, yearLinePoints) {
+				fixLineOverlaps(yearLinePoints);
+			});
+		}
+	}
+
+	function makeNodesMatchLines() {
+		$.each(nodesByYear, function (year, yearNodes) {
+			$.each(yearNodes, function (nodeI, node) {
+				var minY = layoutHeight + 1,
+				    maxY = -1;
+				$.each(node.layout.lineIntersections, function (linePointI, linePoint) {
+					if (linePoint.y < minY)
+						minY = linePoint.y;
+					if (linePoint.y > maxY)
+						maxY = linePoint.y;
+				});
+				node.layout.y = minY - nodeHeightPerEntity / 2;
+				node.layout.dy = maxY - node.layout.y + nodeHeightPerEntity / 2;
+			});
+		});
+	}
+
+	function trimEntityLines(entityLines) {
+		var newLines = [];
+		$.each(entityLines, function (entityLineI, entityLine) {
+			newLines.push(
+				$.map(entityLine, function (linePoint) {
+					if (linePoint.node != null || !linePoint.isClear)
+						return linePoint;
+					else
+						return null;
+				})
+			);
+		});
+		return newLines;
+	}
+
+	var id = 0;
+	$.each(nodesByYear, function (year, yearNodes) {
+		$.each(yearNodes, function (nodeI, node) {
+			node.layout = {
+				id: id++,
+				neighbours: {},
+				lineIntersections: []
+			};
+		});
+		initialYearLayout(yearNodes);
 	});
 
-	$.each(data.nodes, function (nodeI, node) {
-		node.lineIntersections.sort(function (li1, li2) { return li1.y - li2.y });
-		$.each(node.lineIntersections, function (lineIntersectionI, lineIntersection) {
-			var point = entityLines[lineIntersection.lineId][lineIntersection.pos];
-			point.y = node.y + (lineIntersectionI + 0.5) * (nodeHeightPerEntity);
+	var yearsOrder = yearsArrayOfTable(nodesByYear);
+
+	var entityPaths = makeEntityPaths(yearsOrder);
+
+	findNeighbours();
+	calculateNeighbourWeights();
+	looseRelax(yearsOrder, looseRelaxationIters);
+	var entityLines = makeEntityLines(yearsOrder, entityPaths, false);
+	middleRelax(yearsOrder, entityLines, middleRelaxationIters);
+	$.each(nodesByYear, function (year, yearNodes) {
+		$.each(yearNodes, function (nodeI, node) {
+			node.layout.lineIntersections = []
 		});
 	});
+	entityLines = makeEntityLines(yearsOrder, entityLines, true);
+	var linePointsByYear = getLinePointsByYear(yearsOrder, entityLines);
+	tightRelax(yearsOrder, entityLines, linePointsByYear, tightRelaxationIters);
+	makeNodesMatchLines();
+	entityLines = trimEntityLines(entityLines);
 
-	data.entityLines = entityLines;
+	return entityLines;
 }
 
 /*
  * Draw the whole visualization.
  */
-function drawFlowPlot(svg, box, data, relaxIters) {
+function drawFlowPlot(svg, box, data) {
 	console.log("plot", data); // TODO
+
 	var nodeWidth = box.width * 0.01;
 	var nodeHeightPerEntity = box.height * 0.06;
 	var nodeHeightGap = nodeHeightPerEntity * 2;
 	var yearDistWeight = 1;
+	var looseRelaxationIters = 3;
+	var middleRelaxationIters = 1;
+	var tightRelaxationIters = 3;
 
 	var chooseColor = d3.scale.category10();
 	$.each(data.links, function (linkI, link) {
@@ -318,7 +563,7 @@ function drawFlowPlot(svg, box, data, relaxIters) {
 		.tickValues(timeAxisTickValues(xScale));
 	var xAxisSpace = 100;
 
-	layout(data, [box.width, box.height - xAxisSpace], nodeHeightPerEntity, nodeHeightGap, relaxIters, yearDistWeight);
+	layout(data, [box.width, box.height - xAxisSpace], nodeHeightPerEntity, nodeHeightGap, looseRelaxationIters, middleRelaxationIters, tightRelaxationIters, yearDistWeight);
 
 	function classEnitityLines(entityIds, value) {
 		d3.selectAll(entityIds.map(function (eid) { return ".line" + eid; }).join(', '))
@@ -327,10 +572,10 @@ function drawFlowPlot(svg, box, data, relaxIters) {
 
 	var linesColor = d3.scale.category10();
 	var linesLine = d3.svg.line()
-		.x(function (p) { return xScale(p.node.date); })
+		.x(function (p) { return xScale(p.date); })
 		.y(function (p) { return p.y; })
-.tension(0.9)
-		.interpolate('cardinal');
+		.interpolate('cardinal')
+		.tension(0.8);
 	draw.append("g")
 		.selectAll(".line")
 		.data(data.entityLines)
@@ -360,8 +605,8 @@ function drawFlowPlot(svg, box, data, relaxIters) {
 		.append("rect")
 		.attr("class", "node")
 		.attr("x", function (n) { return xScale(n.date) - nodeWidth / 2; })
-		.attr("y", function (n) { return n.y; })
-		.attr("height", function(n) { return n.dy; })
+		.attr("y", function (n) { return n.layout.y; })
+		.attr("height", function(n) { return n.layout.dy; })
 		.attr("width", nodeWidth)
 		.on("mouseover", function (n) {
 			d3.select(this).classed('highlight', true);
@@ -385,8 +630,7 @@ function setupFlowPlot(container, globalQuery) {
 	// TODO: this is just for testing
 	var defaultEntityString = "person:Hannibal, person:Scipio Africanus, person: Antiochus III the Great, person:Philip V of Macedon, person:Qin Shi Huang",
 	    defaultStartYear = -225,
-	    defaultEndYear = -180,
-	    defaultRelaxIters = 3;
+	    defaultEndYear = -180;
 
 	// The view space for SVG; this doesn't have to correspond to screen units.
 	var viewBox = { x: 0, y : 0, width: 1024, height: 768 };
@@ -403,7 +647,6 @@ function setupFlowPlot(container, globalQuery) {
 	var updateElt = $("<button type=\"submit\" class=\"btn btn-warning\" title=\"Update the visualization\">Update</button></ul>").appendTo(formElt);
 	var startYearElt = $("<input type=\"text\" class=\"year\" title=\"Starting year\"></input>").val(defaultStartYear).appendTo(formElt);
 	var endYearElt = $("<input type=\"text\" class=\"year\" title=\"End year\"></input>").val(defaultEndYear).appendTo(formElt);
-	var relaxItersElt = $("<input type=\"text\" class=\"year\" title=\"Relaxation iterations\"></input>").val(defaultRelaxIters).appendTo(formElt);
 	var entitiesElt = $("<input type=\"text\" class=\"entities\" title=\"Entities\"></input>").appendTo($("<div class=\"inputbox\"></div>").appendTo(formElt));
 	entitiesElt.val(defaultEntityString);
 
@@ -426,7 +669,6 @@ function setupFlowPlot(container, globalQuery) {
 
 	var startYear = defaultStartYear,
 	    endYear = defaultEndYear;
-	var relaxIters = defaultRelaxIters; // TODO: remove after testing
 
 	function parseEntitiesString(entitiesString) {
 		return entitiesString.split(",").map(function (entityString) {
@@ -465,7 +707,6 @@ function setupFlowPlot(container, globalQuery) {
 		setLoadingIndicator(true);
 		startYear = startYearElt.val() != "" ? parseInt(startYearElt.val()) : null;
 		endYear = endYearElt.val() != "" ? parseInt(endYearElt.val()) : null;
-		relaxIters = parseInt(relaxItersElt.val());
 		setEntityString(entitiesElt.val());
 	});
 	formElt.submit(function () {
@@ -478,7 +719,7 @@ function setupFlowPlot(container, globalQuery) {
 			svgElt.children().remove();
 			var svg = jqueryToD3(svgElt);
 			setLoadingIndicator(false);
-			drawFlowPlot(svg, graphBox, resultToSankeyData(data, startYear, endYear), relaxIters);
+			drawFlowPlot(svg, graphBox, resultToSankeyData(data, startYear, endYear));
 			scaleSvg();
 		} else {
 			setLoadingIndicator(false);
