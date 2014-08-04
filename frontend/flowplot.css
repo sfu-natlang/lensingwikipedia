@@ -6,7 +6,10 @@
 .flowplot .topbox {
 	margin: 0;
 	padding: 0 10px 0 10px;
-	height: 26px;
+}
+.flowplot .topbox form {
+	margin: 0;
+	padding: 0;
 }
 .flowplot svg {
 	width: 100%;
@@ -56,4 +59,8 @@
 .flowplot .axis path, .timeline .axis line {
 	fill: none;
 	stroke: black;
+}
+.flowplot .brush .extent {
+	fill: #3a87ad;
+	fill-opacity: .5;
 }

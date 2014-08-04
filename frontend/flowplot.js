@@ -17,9 +17,7 @@ function yearsArrayOfTable(yearsTable) {
 /*
  * Convert data from backend to data for Sankey plot.
  */
-function resultToSankeyData(resultData, startYear, endYear) {
-	console.log("result data", resultData) // TODO
-
+function resultToSankeyData(resultData) {
 	function chooseNode(nodes, arbitraryNumber) {
 		// With arbitraryNumber being an arbitrary but deterministic number, this is a way to choose nodes deterministically but (hopefully) without any visually obvious pattern
 		var num = 0;
@@ -49,17 +47,15 @@ function resultToSankeyData(resultData, startYear, endYear) {
 			var addedEntity = false;
 			$.each(yearsTable, function (year, clusters) {
 				year = parseInt(year);
-				if (!((startYear != null && year < startYear) || (endYear != null && year > endYear))) {
-					if (!byYear.hasOwnProperty(year))
-						byYear[year] = {};
-					var forYear = byYear[year];
-					$.each(clusters, function (clusterI, cluster) {
-						if (!forYear.hasOwnProperty(cluster))
-							forYear[cluster] = [];
-						addedEntity = true;
-						forYear[cluster].push(nextEntityId);
-					});
-				}
+				if (!byYear.hasOwnProperty(year))
+					byYear[year] = {};
+				var forYear = byYear[year];
+				$.each(clusters, function (clusterI, cluster) {
+					if (!forYear.hasOwnProperty(cluster))
+						forYear[cluster] = [];
+					addedEntity = true;
+					forYear[cluster].push(nextEntityId);
+				});
 			});
 			if (addedEntity) {
 				entities.push({ field: field, value: value });
@@ -102,7 +98,6 @@ function resultToSankeyData(resultData, startYear, endYear) {
 			});
 		});
 	});
-	console.log("visClustersByYear", visClustersByYear);
 
 	var nodes = [];
 	$.each(visClusters, function (visClusterId, visCluster) {
@@ -146,7 +141,7 @@ function resultToSankeyData(resultData, startYear, endYear) {
 }
 
 // TODO: fix up the data converter function and remove this wrapper
-function layout(data, size, nodeHeightPerEntity, nodeHeightGap, looseRelaxationIters, middleRelaxationIters, tightRelaxationIters, yearDistWeight) {
+function layout(data, layoutHeight, nodeHeightPerEntity, nodeHeightGap, looseRelaxationIters, middleRelaxationIters, tightRelaxationIters, yearDistWeight) {
 	var byYear = {};
 	$.each(data.nodes, function (nodeI, node) {
 		if (!byYear.hasOwnProperty(node.year))
@@ -154,9 +149,7 @@ function layout(data, size, nodeHeightPerEntity, nodeHeightGap, looseRelaxationI
 		node.id = nodeI;
 		byYear[node.year].push(node);
 	});
-
-	console.log("size", size);
-	data.entityLines = flowLayout(byYear, size[1], nodeHeightPerEntity, nodeHeightGap, yearDistWeight, looseRelaxationIters, middleRelaxationIters, tightRelaxationIters);
+	data.entityLines = flowLayout(byYear, layoutHeight, nodeHeightPerEntity, nodeHeightGap, yearDistWeight, looseRelaxationIters, middleRelaxationIters, tightRelaxationIters);
 }
 
 function flowLayout(nodesByYear, layoutHeight, nodeHeightPerEntity, nodeHeightGap, yearDistWeight, looseRelaxationIters, middleRelaxationIters, tightRelaxationIters) {
@@ -521,34 +514,8 @@ function flowLayout(nodesByYear, layoutHeight, nodeHeightPerEntity, nodeHeightGa
 	return entityLines;
 }
 
-/*
- * Draw the whole visualization.
- */
-function drawFlowPlot(svg, box, data) {
-	console.log("plot", data); // TODO
-
-	var nodeWidth = box.width * 0.01;
-	var nodeHeightPerEntity = box.height * 0.06;
-	var nodeHeightGap = nodeHeightPerEntity * 2;
-	var yearDistWeight = 1;
-	var looseRelaxationIters = 3;
-	var middleRelaxationIters = 1;
-	var tightRelaxationIters = 3;
-
-	var chooseColor = d3.scale.category10();
-	$.each(data.links, function (linkI, link) {
-		link.value = 1.0;
-		link.colour = chooseColor((link.entity.field + link.entity.value).replace(/ /g, ""));
-	});
-
-	var clipId = "timelineclip" + timelineClipNum;
-	timelineClipNum++;
-	svg.append('defs')
-		.append('clipPath')
-		.attr('id', clipId)
-		.append('rect')
-		.attr('width', box.width)
-		.attr('height', box.height);
+function drawFlowPlotDiagram(svg, box, clipId, data, layoutHeight, nodeWidth, nodeHeightPerEntity, xAxisSpace, drawLabels, doMouseovers) {
+	var scale = box.height / layoutHeight;
 
 	var draw = svg.append('g')
 		.attr('transform', "translate(" + box.x + "," + box.y + ")");
@@ -561,42 +528,42 @@ function drawFlowPlot(svg, box, data) {
 		.orient('bottom')
 		.tickFormat(timeAxisTickFormater)
 		.tickValues(timeAxisTickValues(xScale));
-	var xAxisSpace = 100;
-
-	layout(data, [box.width, box.height - xAxisSpace], nodeHeightPerEntity, nodeHeightGap, looseRelaxationIters, middleRelaxationIters, tightRelaxationIters, yearDistWeight);
 
 	function classEnitityLines(entityIds, value) {
-		d3.selectAll(entityIds.map(function (eid) { return ".line" + eid; }).join(', '))
+		draw.selectAll(entityIds.map(function (eid) { return ".line" + eid; }).join(', '))
 			.classed('highlight', value);
 	}
+
+	draw.append('g')
+		.attr('class', "x axis ")
+		.attr('transform', "translate(0," + box.height + ")")
+		.attr('clip-path', "url(#" + clipId + ")")
+		.call(xAxis);
 
 	var linesColor = d3.scale.category10();
 	var linesLine = d3.svg.line()
 		.x(function (p) { return xScale(p.date); })
-		.y(function (p) { return p.y; })
+		.y(function (p) { return p.y * scale; })
 		.interpolate('cardinal')
 		.tension(0.8);
-	draw.append("g")
+	var lines = draw.append("g")
 		.selectAll(".line")
 		.data(data.entityLines)
 		.enter()
 		.append("path")
-		.attr("d", linesLine)
+		.attr('clip-path', "url(#" + clipId + ")")
 		.attr("class", function (l, i) { return "line line" + i; })
-		.style("stroke", function(l, i) { return linesColor(i); })
-		.on("mouseover", function () {
-			d3.select(this).classed('highlight', true);
-		})
-		.on("mouseout", function () {
-			d3.select(this).classed('highlight', false);
-		})
-		.append("title")
-		.text(function (l, i) { var e = data.entities[i]; return "" + e.field + ":" + e.value; });
-
-	draw.append('g')
-		.attr('class', "x axis ")
-		.attr('transform', "translate(0," + (box.height - xAxisSpace) + ")")
-		.call(xAxis);
+		.style("stroke", function(l, i) { return linesColor(i); });
+	if (doMouseovers)
+		lines
+			.on("mouseover", function () {
+				d3.select(this).classed('highlight', true);
+			})
+			.on("mouseout", function () {
+				d3.select(this).classed('highlight', false);
+			})
+			.append("title")
+			.text(function (l, i) { var e = data.entities[i]; return "" + e.field + ":" + e.value; });
 
 	var node = draw.append("g")
 		.selectAll(".node")
@@ -604,20 +571,127 @@ function drawFlowPlot(svg, box, data) {
 		.enter()
 		.append("rect")
 		.attr("class", "node")
-		.attr("x", function (n) { return xScale(n.date) - nodeWidth / 2; })
-		.attr("y", function (n) { return n.layout.y; })
-		.attr("height", function(n) { return n.layout.dy; })
-		.attr("width", nodeWidth)
-		.on("mouseover", function (n) {
-			d3.select(this).classed('highlight', true);
-			classEnitityLines(n.entityIds, true);
-		})
-		.on("mouseout", function (n) {
-			d3.select(this).classed('highlight', false);
-			classEnitityLines(n.entityIds, false);
-		})
-		.append("title")
-		.text(function(d) { return "" + timeAxisTickFormater(d.date) + "\n" + $.map(d.clusters, function (v, f) { return f; }).join("\n") });
+		.attr('clip-path', "url(#" + clipId + ")");
+	if (doMouseovers)
+		node
+			.on("mouseover", function (n) {
+				d3.select(this).classed('highlight', true);
+				classEnitityLines(n.entityIds, true);
+			})
+			.on("mouseout", function (n) {
+				d3.select(this).classed('highlight', false);
+				classEnitityLines(n.entityIds, false);
+			})
+			.append("title")
+			.text(function(d) { return "" + timeAxisTickFormater(d.date) + "\n" + $.map(d.clusters, function (v, f) { return f; }).join("\n") });
+
+	var labelGroups = null;
+	if (drawLabels) {
+		labelGroups = draw.append("g")
+			.selectAll(".linelabel")
+			.data(data.entityLines)
+			.enter()
+			.append("g")
+			.attr('class', "linelabel");
+		var text = labelGroups
+			.append("text")
+			.text(function (l, i) { var e = data.entities[i]; return "" + e.field + ":" + e.value; })
+			.attr("dy", ".35em");
+		if (doMouseovers)
+			text
+				.on("mouseover", function (l, i) {
+					classEnitityLines([i], true);
+				})
+				.on("mouseout", function (l, i) {
+					classEnitityLines([i], false);
+				})
+	}
+
+	function update() {
+		lines
+			.attr("d", linesLine);
+		node
+			.attr("x", function (n) { return xScale(n.date) - nodeWidth / 2; })
+			.attr("y", function (n) { return n.layout.y * scale; })
+			.attr("height", function(n) { return n.layout.dy * scale; })
+			.attr("width", nodeWidth);
+		if (labelGroups != null)
+			labelGroups
+				.attr('visibility', function (l) {
+					if (xScale(l[l.length - 1].date) < 0)
+						return 'hidden';
+					else if (xScale(l[0].date) > box.width)
+						return 'hidden';
+					else
+						return 'visible';
+				})
+				.attr('text-anchor', function (l) {
+					var x = xScale(l[0].date);
+					if (x <= 0)
+						return 'left';
+					else
+						return 'middle';
+				})
+				.attr('transform', function(l) {
+					var x = Math.min(box.width, Math.max(0, xScale(l[0].date)));
+					return "translate(" + x + "," + (l[0].y * scale - nodeHeightPerEntity / 3) + ")";
+				})
+	}
+	update();
+
+	function updateX(newXDomain) {
+		xScale.domain(newXDomain);
+		draw.select('.x.axis').call(xAxis);
+		update();
+	}
+
+	return {
+		draw: draw,
+		scales: { x: xScale },
+		updateX: updateX
+	};
+}
+
+/*
+ * Draw the whole visualization.
+ */
+function drawFlowPlot(svg, detailBox, selectBox, data) {
+	var nodeWidth = detailBox.width * 0.01;
+	var nodeHeightPerEntity = detailBox.height * 0.06;
+	var nodeHeightGap = nodeHeightPerEntity * 2;
+	var yearDistWeight = 1;
+	var looseRelaxationIters = 3;
+	var middleRelaxationIters = 1;
+	var tightRelaxationIters = 3;
+	var xAxisSpace = 100;
+	var layoutHeight = detailBox.height;
+
+	var clipId = "timelineclip" + timelineClipNum;
+	timelineClipNum++;
+	svg.append('defs')
+		.append('clipPath')
+		.attr('id', clipId)
+		.append('rect')
+		.attr('width', detailBox.width)
+		.attr('height', detailBox.height);
+
+	layout(data, layoutHeight, nodeHeightPerEntity, nodeHeightGap, looseRelaxationIters, middleRelaxationIters, tightRelaxationIters, yearDistWeight);
+	var detailPlot = drawFlowPlotDiagram(svg, detailBox, clipId, data, layoutHeight, nodeWidth, nodeHeightPerEntity, xAxisSpace, true, true);
+	var selectPlot = drawFlowPlotDiagram(svg, selectBox, clipId, data, layoutHeight, nodeWidth, nodeHeightPerEntity, xAxisSpace, false, false);
+
+	var brush = null;
+	function onBrush() {
+		detailPlot.updateX(brush.empty() ? selectPlot.scales.x.domain() : brush.extent());
+	}
+	brush = d3.svg.brush()
+		.x(selectPlot.scales.x)
+		.on('brush', onBrush);
+	selectPlot.draw.append('g')
+		.attr('class', 'x brush')
+		.call(brush)
+		.selectAll('rect')
+		.attr('y', -2)
+		.attr('height', selectBox.height + 6);
 }
 
 /*
@@ -628,14 +702,14 @@ function drawFlowPlot(svg, box, data) {
  */
 function setupFlowPlot(container, globalQuery) {
 	// TODO: this is just for testing
-	var defaultEntityString = "person:Hannibal, person:Scipio Africanus, person: Antiochus III the Great, person:Philip V of Macedon, person:Qin Shi Huang",
-	    defaultStartYear = -225,
-	    defaultEndYear = -180;
+	var defaultEntityString = "person:Hannibal, person:Scipio Africanus, person: Antiochus III the Great, person:Philip V of Macedon, person:Qin Shi Huang";
 
 	// The view space for SVG; this doesn't have to correspond to screen units.
 	var viewBox = { x: 0, y : 0, width: 1024, height: 768 };
 	// Margins for the graph
-	var margins = { left: 50, right: 30, top: 60, bottom: 60 };
+	var margins = { left: 30, right: 30, top: 60, bottom: 60, between: 40 };
+	// Vertical size of the detail area as a fraction of the total.
+	var split = 0.8;
 
 	var outerElt = $("<div class=\"flowplot\"></div>").appendTo(container);
 	var topBoxElt = $("<div class=\"topbox\"></div>").appendTo(outerElt);
@@ -645,8 +719,6 @@ function setupFlowPlot(container, globalQuery) {
 
 	var formElt = $("<form></form>").appendTo(topBoxElt);
 	var updateElt = $("<button type=\"submit\" class=\"btn btn-warning\" title=\"Update the visualization\">Update</button></ul>").appendTo(formElt);
-	var startYearElt = $("<input type=\"text\" class=\"year\" title=\"Starting year\"></input>").val(defaultStartYear).appendTo(formElt);
-	var endYearElt = $("<input type=\"text\" class=\"year\" title=\"End year\"></input>").val(defaultEndYear).appendTo(formElt);
 	var entitiesElt = $("<input type=\"text\" class=\"entities\" title=\"Entities\"></input>").appendTo($("<div class=\"inputbox\"></div>").appendTo(formElt));
 	entitiesElt.val(defaultEntityString);
 
@@ -655,8 +727,9 @@ function setupFlowPlot(container, globalQuery) {
 	var scaleSvg = dontScaleSvgParts(outerSvgElt, 'text,.tick');
 
 	var width = viewBox.width - margins.left - margins.right,
-	    height = viewBox.height - margins.top - margins.bottom;
-	var graphBox = { x: viewBox.x + margins.left, y: viewBox.y + margins.top, width: width, height: height };
+	    height = viewBox.height - margins.top - margins.bottom - margins.between;
+	var detailBox = { x: viewBox.x + margins.left, y: viewBox.y + margins.top, width: width, height: height * split },
+	    selectBox = { x: viewBox.x + margins.left, y: viewBox.y + margins.top + detailBox.height + margins.between, width: width, height: height * (1.0 - split) };
 
 	var globalQueryResultWatcher = new ResultWatcher(function () {});
 	globalQuery.addResultWatcher(globalQueryResultWatcher);
@@ -666,9 +739,6 @@ function setupFlowPlot(container, globalQuery) {
 		loadingIndicator.enabled(enabled);
 	}
 	setLoadingIndicator(true);
-
-	var startYear = defaultStartYear,
-	    endYear = defaultEndYear;
 
 	function parseEntitiesString(entitiesString) {
 		return entitiesString.split(",").map(function (entityString) {
@@ -705,8 +775,6 @@ function setupFlowPlot(container, globalQuery) {
 	setEntityString(defaultEntityString);
 	updateElt.bind('click', function() {
 		setLoadingIndicator(true);
-		startYear = startYearElt.val() != "" ? parseInt(startYearElt.val()) : null;
-		endYear = endYearElt.val() != "" ? parseInt(endYearElt.val()) : null;
 		setEntityString(entitiesElt.val());
 	});
 	formElt.submit(function () {
@@ -719,7 +787,7 @@ function setupFlowPlot(container, globalQuery) {
 			svgElt.children().remove();
 			var svg = jqueryToD3(svgElt);
 			setLoadingIndicator(false);
-			drawFlowPlot(svg, graphBox, resultToSankeyData(data, startYear, endYear));
+			drawFlowPlot(svg, detailBox, selectBox, resultToSankeyData(data));
 			scaleSvg();
 		} else {
 			setLoadingIndicator(false);
