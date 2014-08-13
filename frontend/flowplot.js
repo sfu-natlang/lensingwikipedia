@@ -153,363 +153,285 @@ function layout(data, layoutHeight, nodeHeightPerEntity, nodeHeightGap, looseRel
 }
 
 function flowLayout(nodesByYear, layoutHeight, nodeHeightPerEntity, nodeHeightGap, yearDistWeight, looseRelaxationIters, middleRelaxationIters, tightRelaxationIters) {
-	function initialYearLayout(yearNodes) {
-		var totalEntities = 0;
-		$.each(yearNodes, function (nodeI, node) {
-			totalEntities += node.entityIds.length;
-		});
-		var space = (layoutHeight - totalEntities * nodeHeightPerEntity) / (yearNodes.length + 1);
-		$.each(yearNodes, function (nodeI, node) {
-			node.layout.y = space * (nodeI + 1);
-			node.layout.dy = node.entityIds.length * nodeHeightPerEntity;
-		});
-	}
+	var topMargin = nodeHeightGap;
 
-	function makeEntityPaths(yearsOrder) {
-		var entityPaths = {};
+	function initialLayout(yearsOrder) {
 		$.each(yearsOrder, function (yearI, year) {
-			$.each(nodesByYear[year], function (nodeI, node) {
-				$.each(node.entityIds, function (entityIdI, entityId) {
-					if (!entityPaths.hasOwnProperty(entityId))
-						entityPaths[entityId] = [];
-					entityPaths[entityId].push({ node: node, yearIndex: yearI });
-				});
+			var yearNodes = nodesByYear[year];
+			var totalEntities = 0;
+			$.each(yearNodes, function (nodeI, node) {
+				totalEntities += node.entityIds.length;
 			});
-		});
-		return entityPaths;
-	}
-
-	function findNeighbours() {
-		$.each(entityPaths, function (entityId, entityPath) {
-			var lastSeenNode = {};
-			$.each(entityPath, function (pathPointI, pathPoint) {
-				var node = pathPoint.node;
-				if (lastSeenNode.hasOwnProperty(entityId)) {
-					var prevNode = lastSeenNode[entityId];
-					if (!prevNode.layout.neighbours.hasOwnProperty(node.layout.id))
-						prevNode.layout.neighbours[node.layout.id] = { node: node, count: 1 };
-					else
-						prevNode.layout.neighbours[node.layout.id].count += 1;
-					if (!node.layout.neighbours.hasOwnProperty(prevNode.layout.id))
-						node.layout.neighbours[prevNode.layout.id] = { node: prevNode, count: 1 };
-					else
-						node.layout.neighbours[prevNode.layout.id].count += 1;
-				}
-				lastSeenNode[entityId] = node;
+			var space = (layoutHeight - totalEntities * nodeHeightPerEntity) / (yearNodes.length + 1);
+			$.each(yearNodes, function (nodeI, node) {
+				node.layout.y = space * (nodeI + 1);
+				node.layout.dy = node.entityIds.length * nodeHeightPerEntity;
 			});
 		});
 	}
 
-	function neighbourWeight(diffYear) {
-		return (diffYear - 1) * yearDistWeight + 1;
-	}
+	function fixOverlaps(nodesByYear, entityLines) {
+		// TODO: unnecessary moving of some line points in fix step
 
-	function calculateNeighbourWeights() {
-		$.each(yearsOrder, function (yearI, year) {
-			$.each(nodesByYear[year], function (nodeI, node) {
-				node.layout.neighbourWeightsTotal = 0;
-				$.each(node.layout.neighbours, function (neighbourId, neighbour) {
-					var weight = neighbour.count / neighbourWeight(Math.abs(node.year - neighbour.node.year));
-					node.layout.neighbourWeightsTotal += weight;
-					neighbour.weight = weight;
-				});
-			});
-		});
-	}
-
-	function makeEntityLines(yearsOrder, entityPaths, addFillers) {
-		function assignNodeYs(entityLines) {
-			var lastYForLine = {};
-			$.each(yearsOrder, function (yearI, year) {
-				var yearNodes = nodesByYear[year];
-				$.each(yearNodes, function (nodeI, node) {
-					node.layout.lineIntersections.sort(function (li1, li2) { return lastYForLine[li1.lineId] - lastYForLine[li2.lineId] });
-					$.each(node.layout.lineIntersections, function (linePointI, linePoint) {
-						var entityLine = entityLines[linePoint.lineId];
-						var linePoint = entityLine[linePoint.pos];
-						linePoint.y = node.layout.y + (linePointI + 0.5) * (nodeHeightPerEntity);
-						lastYForLine[linePoint.lineId] = linePoint.y;
-					});
-				});
-			});
-		}
-		function assignFillerYs(entityLines) {
-			$.each(entityLines, function (entityLineI, entityLine) {
-				var lastNodeY = null;
-				$.each(entityLine, function (linePointI, linePoint) {
-					if (linePoint.node != null)
-						lastNodeY = linePoint.y;
-					else
-						linePoint.y = lastNodeY;
-				});
-			});
-		}
-		var entityLines = [];
-		$.each(entityPaths, function (entityPathI, entityPath) {
-			var entityLine = [];
-			var secondNodeLayout = null;
-			entityLines.push(entityLine);
-			$.each(entityPath, function (pathPointI, pathPoint) {
-				if (addFillers && pathPointI > 0) {
-					for (var yearI = entityPath[pathPointI - 1].yearIndex + 1; yearI < pathPoint.yearIndex; yearI++) {
-						entityLine.push({
-							year: yearsOrder[yearI],
-							date: jsDateOfYear(yearsOrder[yearI]),
-							node: null,
-							lineId: entityPathI,
-							pos: entityLine.length
-						});
-					}
-				}
-				var linePoint = {
-					year: pathPoint.node.year,
-					date: pathPoint.node.date,
-					node: pathPoint.node,
-					lineId: entityPathI,
-					yearIndex: pathPoint.yearIndex,
-					pos: entityLine.length
+		$.each(nodesByYear, function (year, yearNodes) {
+			yearNodes.sort(function (n1, n2) { return n1.layout.y - n2.layout.y });
+			var headInterval = {
+				y: yearNodes[0].layout.y,
+				dy: yearNodes[0].layout.dy,
+				nodes: [yearNodes[0]],
+				next: null
+			};
+			for (var nodeI = 1, lastInterval = headInterval; nodeI < yearNodes.length; nodeI++) {
+				lastInterval.next = {
+					y: yearNodes[nodeI].layout.y,
+					dy: yearNodes[nodeI].layout.dy,
+					nodes: [yearNodes[nodeI]],
+					next: null
 				};
-				pathPoint.node.layout.lineIntersections.push(linePoint);
-				entityLine.push(linePoint);
-				if (pathPointI == 1)
-					secondNodeLayout = pathPoint.node.layout;
-			});
-		});
-		assignNodeYs(entityLines);
-		if (addFillers)
-			assignFillerYs(entityLines);
-		return entityLines;
-	}
-
-	function fixNodeOverlaps(yearNodes) {
-		yearNodes.sort(function (n1, n2) { return n1.y - n2.y });
-		var carryYOffset = 0;
-		for (var nodeI = 0; nodeI < yearNodes.length - 1; nodeI++) {
-			var node1 = yearNodes[nodeI];
-			var node2 = yearNodes[nodeI + 1];
-			var d = node1.layout.y + node1.layout.dy + nodeHeightGap - node2.layout.y;
-			if (d > 0) {
-				node1.layout.toAdjustY = d / 2;
-				carryYOffset += d / 2;
-				node2.layout.y += carryYOffset;
-			} else {
-				node1.layout.toAdjustY = 0;
+				lastInterval = lastInterval.next;
 			}
-		}
-		yearNodes[yearNodes.length - 1].layout.toAdjustY = 0;
-		carryYOffset = 0;
-		for (var nodeI = yearNodes.length - 1; nodeI >= 0; nodeI--) {
-			var node = yearNodes[nodeI];
-			carryYOffset += node.layout.toAdjustY;
-			node.layout.y -= carryYOffset;
-		}
-		for (var nodeI = yearNodes.length - 1; nodeI >= 0; nodeI--) {
-			var node = yearNodes[nodeI];
-			if (node.layout.y < 0)
-				node.layout.y = 0;
-			if (node.layout.y + node.layout.dy > layoutHeight)
-				node.layout.y = layoutHeight - node.layout.dy;
-		}
-	}
 
-	function looseRelax(yearsOrder, iterations) {
-		for (var iter = 0; iter < iterations; iter++) {
-			console.log("loose relaxation iteration", iter);
-			$.each(yearsOrder, function (yearI, year) {
-				var yearNodes = nodesByYear[year];
-				$.each(yearNodes, function (nodeI, node) {
-					var sumCentreY = 0;
-					$.each(node.layout.neighbours, function (neighbourId, neighbour) {
-						sumCentreY += (neighbour.node.layout.y + neighbour.node.layout.dy / 2) * neighbour.weight;
-					});
-					node.layout.y = (sumCentreY / node.layout.neighbourWeightsTotal) - node.layout.dy / 2;
-				});
-				fixNodeOverlaps(yearNodes);
-			});
-		}
-	}
-
-	function getLinePointsByYear(yearsOrder, entityLines) {
-		var byYear = {};
-		$.each(yearsOrder, function (yearI, year) {
-			byYear[year] = [];
-		});
-		$.each(entityLines, function (entityLineI, entityLine) {
-			for (var linePointI = 0; linePointI < entityLine.length; linePointI++) {
-				var linePoint = entityLine[linePointI];
-				byYear[linePoint.year].push(linePoint);
-			}
-		});
-		return byYear;
-	}
-
-	function middleRelax(yearsOrder, entityLines, iterations) {
-		for (var iter = 0; iter < iterations; iter++) {
-			console.log("middle relaxation iteration", iter);
-			$.each(yearsOrder, function (yearI, year) {
-				var yearNodes = nodesByYear[year];
-				$.each(yearNodes, function (nodeI, node) {
-					var sumCentreY = 0;
-					var numSamples = 0;
-					$.each(node.layout.lineIntersections, function (linePointI, linePoint) {
-						var entityLine = entityLines[linePoint.lineId];
-						if (linePoint.pos > 0) {
-							sumCentreY += entityLine[linePoint.pos - 1].y
-							numSamples++;
-						}
-						if (linePoint.pos < entityLine.length - 1) {
-							sumCentreY += entityLine[linePoint.pos + 1].y
-							numSamples++;
-						}
-					});
-					var newY = (sumCentreY / numSamples) - node.layout.dy / 2;
-					var dY = newY - node.layout.y;
-					node.layout.y = newY;
-				});
-				fixNodeOverlaps(yearNodes);
-			});
-		}
-	}
-
-	function fixLineOverlaps(yearLinePoints) {
-		function dist(point1, point2) {
-			var d = point1.y + nodeHeightPerEntity - point2.y;
-			if (point1.node != null && point2.node != null && point1.node != point2.node)
-				d += nodeHeightGap;
-			return d;
-		}
-		yearLinePoints.sort(function (p1, p2) { return p1.y - p2.y });
-		var carryYOffset = 0;
-		for (var linePointI = 0; linePointI < yearLinePoints.length - 1; linePointI++) {
-			var point1 = yearLinePoints[linePointI];
-			var point2 = yearLinePoints[linePointI + 1];
-			var d = dist(point1, point2);
-			if (d > 0) {
-				point1.toAdjustY = d / 2;
-				carryYOffset += d / 2;
-				point2.y += carryYOffset;
-				point1.isClear = false;
-				point2.isClear = false;
-			} else {
-				point1.toAdjustY = 0;
-				point2.isClear = true;
-			}
-		}
-		yearLinePoints[yearLinePoints.length - 1].toAdjustY = 0;
-		carryYOffset = 0;
-		for (var linePointI = yearLinePoints.length - 1; linePointI >= 0; linePointI--) {
-			var point2 = yearLinePoints[linePointI];
-			carryYOffset += point2.toAdjustY;
-			if (carryYOffset != 0)
-				point2.isClear = false;
-			point2.y -= carryYOffset;
-		}
-	}
-
-	function tightRelax(yearsOrder, entityLines, linePointsByYear, iterations) {
-		for (var iter = 0; iter < iterations; iter++) {
-			console.log("tight relaxation iteration", iter);
-			$.each(entityLines, function (entityLineI, entityLine) {
-				if (entityLine.length > 1) {
-					for (var linePointI = 0; linePointI < entityLine.length; linePointI++) {
-						var linePoint = entityLine[linePointI],
-						    prevLinePoint = entityLine[linePointI - 1],
-						    nextLinePoint = entityLine[linePointI + 1];
-						var totalWeight = 0,
-						    newY = 0;
-						if (prevLinePoint != null) {
-							var weight1 = neighbourWeight(linePoint.year - prevLinePoint.year) / 2;
-							totalWeight += weight1;
-							newY += weight1 * prevLinePoint.y;
-						}
-						if (nextLinePoint != null) {
-							var weight2 = neighbourWeight(nextLinePoint.year - linePoint.year) / 2;
-							totalWeight += weight2;
-							newY += weight2 * nextLinePoint.y;
-						}
-						if (totalWeight != 0) {
-							newY /= totalWeight;
-							if (linePoint.node != null) {
-								var dy = newY - linePoint.y;
-								linePoint.node.layout.y += dy;
-								$.each(linePoint.node.layout.lineIntersections, function (linePoint2I, linePoint2) {
-									linePoint2.y += dy;
-								});
-							}
-							linePoint.y = newY;
-						}
+			while (true) {
+				var overlapped = false;
+				for (var interval1 = headInterval, interval2 = headInterval.next; interval2 != null; ) {
+					var dY = interval1.y + interval1.dy + nodeHeightGap - interval2.y;
+					if (dY > 0) {
+						interval1.y -= Math.min(dY / 2, interval1.y - topMargin);
+						interval1.dy += interval2.dy + nodeHeightGap;
+						interval1.nodes = interval1.nodes.concat(interval2.nodes);
+						interval1.next = interval2.next;
+						interval2 = interval2.next;
+						overlapped = true;
+					} else {
+						interval1 = interval2;
+						interval2 = interval2.next;
 					}
 				}
-			});
-			$.each(linePointsByYear, function (year, yearLinePoints) {
-				fixLineOverlaps(yearLinePoints);
-			});
-		}
+				if (!overlapped)
+					break;
+			}
+
+			for (var interval = headInterval; interval != null; interval = interval.next) {
+				var offset = 0;
+				for (var nodeI = 0; nodeI < interval.nodes.length; nodeI++) {
+					var layout = interval.nodes[nodeI].layout;
+					layout.y = interval.y + offset;
+					offset += layout.dy + nodeHeightGap;
+				}
+			}
+		});
 	}
 
-	function makeNodesMatchLines() {
+	function relax(nodesByYear, yearsOrder, entityLines) {
 		$.each(nodesByYear, function (year, yearNodes) {
 			$.each(yearNodes, function (nodeI, node) {
-				var minY = layoutHeight + 1,
-				    maxY = -1;
-				$.each(node.layout.lineIntersections, function (linePointI, linePoint) {
-					if (linePoint.y < minY)
-						minY = linePoint.y;
-					if (linePoint.y > maxY)
-						maxY = linePoint.y;
-				});
-				node.layout.y = minY - nodeHeightPerEntity / 2;
-				node.layout.dy = maxY - node.layout.y + nodeHeightPerEntity / 2;
+				node.layout.relaxYSum = 0;
+				node.layout.relaxYCount = 0;
+			});
+		});
+
+		function yearDistFactor(year1, year2) {
+			var d = Math.abs(year2 - year1);
+			return 1.0 / d;
+		}
+
+		$.each(entityLines, function (entityLineI, entityLine) {
+			$.each(entityLine.points, function (linePointI, linePoint) {
+				if (linePointI > 0) {
+					var f = yearDistFactor(linePoint.node.year, entityLine.points[linePointI - 1].node.year);
+					linePoint.node.layout.relaxYSum += f * entityLine.points[linePointI - 1].node.layout.y;
+					linePoint.node.layout.relaxYCount += f;
+				}
+				if (linePointI < entityLine.points.length - 1) {
+					var f = yearDistFactor(linePoint.node.year,  entityLine.points[linePointI + 1].node.year);
+					linePoint.node.layout.relaxYSum += f * entityLine.points[linePointI + 1].node.layout.y;
+					linePoint.node.layout.relaxYCount += f;
+				}
+			});
+		});
+
+		$.each(nodesByYear, function (year, yearNodes) {
+			$.each(yearNodes, function (nodeI, node) {
+				node.layout.y = node.layout.relaxYSum / node.layout.relaxYCount;
 			});
 		});
 	}
 
-	function trimEntityLines(entityLines) {
-		var newLines = [];
-		$.each(entityLines, function (entityLineI, entityLine) {
-			newLines.push(
-				$.map(entityLine, function (linePoint) {
-					if (linePoint.node != null || !linePoint.isClear)
-						return linePoint;
-					else
-						return null;
-				})
-			);
-		});
-		return newLines;
-	}
-
-	var id = 0;
 	$.each(nodesByYear, function (year, yearNodes) {
 		$.each(yearNodes, function (nodeI, node) {
-			node.layout = {
-				id: id++,
-				neighbours: {},
-				lineIntersections: []
-			};
+			node.layout = {};
 		});
-		initialYearLayout(yearNodes);
 	});
 
 	var yearsOrder = yearsArrayOfTable(nodesByYear);
+	initialLayout(yearsOrder);
 
-	var entityPaths = makeEntityPaths(yearsOrder);
-
-	findNeighbours();
-	calculateNeighbourWeights();
-	looseRelax(yearsOrder, looseRelaxationIters);
-	var entityLines = makeEntityLines(yearsOrder, entityPaths, false);
-	middleRelax(yearsOrder, entityLines, middleRelaxationIters);
-	$.each(nodesByYear, function (year, yearNodes) {
-		$.each(yearNodes, function (nodeI, node) {
-			node.layout.lineIntersections = []
+	function makeEntityLines(yearsOrder, addFillerNodes) {
+		var entityLines = [],
+		    entityLinesLookup = {};
+		$.each(yearsOrder, function (yearI, year) {
+			$.each(nodesByYear[year], function (nodeI, node) {
+				$.each(node.entityIds, function (entityIdI, entityId) {
+					var entityLineId = null,
+					    entityLine = null;
+					if (entityLinesLookup.hasOwnProperty(entityId)) {
+						entityLineId = entityLinesLookup[entityId];
+						entityLine = entityLines[entityLineId];
+					} else {
+						entityLineId = entityLines.length;
+						entityLine = {
+							entityId: entityId,
+							points: []
+						};
+						entityLinesLookup[entityId] = entityLineId;
+						entityLines.push(entityLine);
+					}
+					if (addFillerNodes && entityLine.points.length > 0) {
+						var lastPoint = entityLine.points[entityLine.points.length - 1];
+						for (var yearJ = lastPoint.yearIndex + 1; yearJ < yearI; yearJ++) {
+							var year = yearsOrder[yearJ],
+							    date = jsDateOfYear(year);
+							entityLine.points.push({
+								yearIndex: yearJ,
+								node: {
+									isDummy: true,
+									year: year,
+									date: date,
+									layout: {
+										dy: nodeHeightPerEntity
+									}
+								},
+								lineId: entityLineId,
+								pos: entityLine.points.length
+							});
+						}
+					}
+					entityLine.points.push({
+						yearIndex: yearI,
+						node: node,
+						lineId: entityLineId,
+						pos: entityLine.points.length
+					});
+				});
+			});
 		});
-	});
-	entityLines = makeEntityLines(yearsOrder, entityLines, true);
-	var linePointsByYear = getLinePointsByYear(yearsOrder, entityLines);
-	tightRelax(yearsOrder, entityLines, linePointsByYear, tightRelaxationIters);
-	makeNodesMatchLines();
-	entityLines = trimEntityLines(entityLines);
+		return entityLines;
+	}
+
+	function setInitialEntityLinePositions(entityLines) {
+		$.each(entityLines, function (entityLineI, entityLine) {
+			$.each(entityLine.points, function (linePointI, linePoint) {
+				linePoint.y = linePoint.node.layout.y + linePoint.node.layout.dy / 2;
+			});
+		});
+	}
+
+	function updateNodesWithLinePoints(entityLines) {
+		// TODO: is this init to empty lists really needed?
+		$.each(yearsOrder, function (yearI, year) {
+			$.each(nodesByYear[year], function (nodeI, node) {
+				node.layout.linePoints = [];
+			});
+		});
+
+		$.each(entityLines, function (entityLineI, entityLine) {
+			$.each(entityLine.points, function (linePointI, linePoint) {
+				if (linePoint.node != null) {
+					if (!linePoint.node.layout.hasOwnProperty('linePoints'))
+						linePoint.node.layout.linePoints = [];
+					linePoint.node.layout.linePoints.push(linePoint);
+				}
+			});
+		});
+	}
+
+	/*
+	 * Make a complete nodes-by-year table that includes any dummy nodes added.
+	 */
+	function completeNodesByYear(nodesByYear, entityLines) {
+		var complete = {};
+		$.each(nodesByYear, function (year, yearNodes) {
+			complete[year] = yearNodes.slice();
+		});
+		$.each(entityLines, function (entityLineI, entityLine) {
+			$.each(entityLine.points, function (linePointI, linePoint) {
+				if (linePoint.node.isDummy)
+					complete[linePoint.node.year].push(linePoint.node);
+			});
+		});
+		return complete;
+	}
+
+	/*
+	 * Set proper y positions for each line, separated in each node box and including dummy nodes.
+	 */
+	function setCompleteEntryLinePositions(nodesByYear, yearsOrder, entityLines) {
+		var lastNodePointY = {};
+		$.each(yearsOrder, function (yearI, year) {
+			$.each(nodesByYear[year], function (nodeI, node) {
+				node.layout.linePoints.sort(function (lp1, lp2) {
+					var lp1line = entityLines[lp1.lineId],
+					    lp2line = entityLines[lp2.lineId];
+					var lp1yp = lp1.pos > 0 ? lp1line.points[lp1.pos - 1].y : null,
+					    lp2yp = lp2.pos > 0 ? lp2line.points[lp2.pos - 1].y : null;
+					var lp1yn = lp1.pos < lp1line.points.length - 1 ? lp1line.points[lp1.pos + 1].y : null,
+					    lp2yn = lp2.pos < lp2line.points.length - 1 ? lp2line.points[lp2.pos + 1].y : null;
+					if (lp1yp != null && lp2yp != null && lp1yn != null && lp2yn != null
+						&& ((lp1yp - lp2yp) * (lp1yn - lp2yn)) < 0)
+						return 1;
+					else if (lp1yp != null && lp2yp != null)
+						return lp1yp - lp2yp;
+					else if (lp1yn != null && lp2yn != null)
+						return lp1yn - lp2yn;
+					else
+						return -1;
+				});
+				$.each(node.layout.linePoints, function (linePointI, linePoint) {
+					linePoint.y = node.layout.y + nodeHeightPerEntity * (linePointI + 0.5);
+					lastNodePointY[linePoint.lineId] = linePoint.y;
+				});
+			});
+		});
+		$.each(entityLines, function (entityLineI, entityLine) {
+			$.each(entityLine.points, function (linePointI, linePoint) {
+				if (linePoint.node.isDummy)
+					linePoint.y = linePoint.node.layout.y + nodeHeightPerEntity / 2;
+			});
+		});
+	}
+
+	function initDummyNodePositions(entityLines) {
+		$.each(entityLines, function (entityLineI, entityLine) {
+			var lastNonDummmyY = null;
+			$.each(entityLine.points, function (linePointI, linePoint) {
+				if (linePoint.node.isDummy) {
+					linePoint.node.layout.y = lastNonDummmyY - nodeHeightPerEntity;
+				} else {
+					lastNonDummmyY = linePoint.node.layout.y;
+				}
+			});
+		});
+	}
+
+	entityLines = makeEntityLines(yearsOrder, false);
+	for (var iter = 0; iter < 3; iter++) {
+		console.log("initial relax iter", iter);
+		relax(nodesByYear, yearsOrder, entityLines);
+		updateNodesWithLinePoints(entityLines);
+		fixOverlaps(nodesByYear, entityLines);
+	}
+	setCompleteEntryLinePositions(nodesByYear, yearsOrder, entityLines);
+
+	entityLines = makeEntityLines(yearsOrder, true);
+	nodesByYearWithDummies = completeNodesByYear(nodesByYear, entityLines);
+	for (var iter = 0; iter < 3; iter++) {
+		console.log("second relax iter", iter);
+		updateNodesWithLinePoints(entityLines);
+		initDummyNodePositions(entityLines);
+		relax(nodesByYearWithDummies, yearsOrder, entityLines);
+		fixOverlaps(nodesByYearWithDummies, entityLines);
+		setCompleteEntryLinePositions(nodesByYearWithDummies, yearsOrder, entityLines);
+	}
 
 	return entityLines;
 }
@@ -542,7 +464,7 @@ function drawFlowPlotDiagram(svg, box, clipId, data, layoutHeight, nodeWidth, no
 
 	var linesColor = d3.scale.category10();
 	var linesLine = d3.svg.line()
-		.x(function (p) { return xScale(p.date); })
+		.x(function (p, i) { return xScale(p.node.date); })
 		.y(function (p) { return p.y * scale; })
 		.interpolate('cardinal')
 		.tension(0.8);
@@ -552,7 +474,7 @@ function drawFlowPlotDiagram(svg, box, clipId, data, layoutHeight, nodeWidth, no
 		.enter()
 		.append("path")
 		.attr('clip-path', "url(#" + clipId + ")")
-		.attr("class", function (l, i) { return "line line" + i; })
+		.attr("class", function (l) { return "line line" + l.entityId; })
 		.style("stroke", function(l, i) { return linesColor(i); });
 	if (doMouseovers)
 		lines
@@ -563,7 +485,7 @@ function drawFlowPlotDiagram(svg, box, clipId, data, layoutHeight, nodeWidth, no
 				d3.select(this).classed('highlight', false);
 			})
 			.append("title")
-			.text(function (l, i) { var e = data.entities[i]; return "" + e.field + ":" + e.value; });
+			.text(function (l) { var e = data.entities[l.entityId]; return "" + e.field + ":" + e.value; });
 
 	var node = draw.append("g")
 		.selectAll(".node")
@@ -609,7 +531,7 @@ function drawFlowPlotDiagram(svg, box, clipId, data, layoutHeight, nodeWidth, no
 
 	function update() {
 		lines
-			.attr("d", linesLine);
+			.attr("d", function (d) { return linesLine(d.points); });
 		node
 			.attr("x", function (n) { return xScale(n.date) - nodeWidth / 2; })
 			.attr("y", function (n) { return n.layout.y * scale; })
@@ -618,23 +540,23 @@ function drawFlowPlotDiagram(svg, box, clipId, data, layoutHeight, nodeWidth, no
 		if (labelGroups != null)
 			labelGroups
 				.attr('visibility', function (l) {
-					if (xScale(l[l.length - 1].date) < 0)
+					if (xScale(l.points[l.points.length - 1].date) < 0)
 						return 'hidden';
-					else if (xScale(l[0].date) > box.width)
+					else if (xScale(l.points[0].date) > box.width)
 						return 'hidden';
 					else
 						return 'visible';
 				})
 				.attr('text-anchor', function (l) {
-					var x = xScale(l[0].date);
+					var x = xScale(l.points[0].date);
 					if (x <= 0)
 						return 'left';
 					else
 						return 'middle';
 				})
 				.attr('transform', function(l) {
-					var x = Math.min(box.width, Math.max(0, xScale(l[0].date)));
-					return "translate(" + x + "," + (l[0].y * scale - nodeHeightPerEntity / 3) + ")";
+					var x = Math.min(box.width, Math.max(0, xScale(l.points[0].node.date)));
+					return "translate(" + x + "," + (l.points[0].y * scale - nodeHeightPerEntity / 3) + ")";
 				})
 	}
 	update();
@@ -658,7 +580,7 @@ function drawFlowPlotDiagram(svg, box, clipId, data, layoutHeight, nodeWidth, no
 function drawFlowPlot(svg, detailBox, selectBox, data) {
 	var nodeWidth = detailBox.width * 0.01;
 	var nodeHeightPerEntity = detailBox.height * 0.06;
-	var nodeHeightGap = nodeHeightPerEntity * 2;
+	var nodeHeightGap = nodeHeightPerEntity;
 	var yearDistWeight = 1;
 	var looseRelaxationIters = 3;
 	var middleRelaxationIters = 1;
@@ -702,7 +624,7 @@ function drawFlowPlot(svg, detailBox, selectBox, data) {
  */
 function setupFlowPlot(container, globalQuery) {
 	// TODO: this is just for testing
-	var defaultEntityString = "person:Hannibal, person:Scipio Africanus, person: Antiochus III the Great, person:Philip V of Macedon, person:Qin Shi Huang";
+	var defaultEntityString = "person:Hannibal, person:Scipio Africanus, person:Antiochus III the Great, person:Philip V of Macedon, person:Gaius Flaminius Nepos, person:Masinissa, person:Hamilcar Barca, person:Demetrius of Pharo, person:Attalus I, person:Fabius Maximus";
 
 	// The view space for SVG; this doesn't have to correspond to screen units.
 	var viewBox = { x: 0, y : 0, width: 1024, height: 768 };

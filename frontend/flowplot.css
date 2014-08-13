@@ -64,3 +64,14 @@
 	fill: #3a87ad;
 	fill-opacity: .5;
 }
+
+/* TODO: remove dummy node support after debugging */
+.flowplot .dummynode {
+	shape-rendering: crispEdges;
+	fill: green;
+	fill-opacity: .5;
+	stroke: none;
+}
+.flowplot .dummynode.highlight {
+	fill-opacity: 0.9;
+}
