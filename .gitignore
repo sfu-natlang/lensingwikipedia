@@ -1,3 +1,4 @@
 *.pyc
 *.html~
 *.d
+.idea/
