@@ -23,6 +23,7 @@ import whooshutils
 
 
 def iter_events_from_index(index):
+    sys.stderr.write('Reading data from index\n')
     with index.searcher() as searcher:
         for i, hit in enumerate(searcher.search(whoosh.query.Every(), limit=None)):
             sentence = hit['sentence']
@@ -43,6 +44,8 @@ def run(input_index, output_index, doc_buffer_size, do_dummy):
 if __name__ == '__main__':
     import getopt
 
+    sys.stderr.write('Initializing 2D Visualization Coordinate Generator\n')
+
     try:
         opts, args = getopt.getopt(sys.argv[1:], ":Db:")
         if len(args) not in [1, 2]:
@@ -51,6 +54,8 @@ if __name__ == '__main__':
     except getopt.GetoptError:
         print >> sys.stderr, __doc__.strip('\n\r') % (sys.argv[0])
         sys.exit(1)
+
+    sys.stderr.write('Arguments read\n')
 
     input_index_path = args[0]
     output_index_path = args[1] if len(args) > 1 else None
@@ -63,6 +68,8 @@ if __name__ == '__main__':
     output_index = (whoosh.index.create_in(output_index_path, input_index.schema.copy())
                     if output_index_path is not None else input_index) if not do_dummy else None
 
+    sys.stderr.write('\n')
+    sys.stderr.write('Index loaded, generating coordinates for 2D visualization\n')
     run(input_index, output_index, doc_buffer_size, do_dummy)
 
 
