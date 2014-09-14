@@ -37,7 +37,6 @@ Version:    2013-01-22
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-from argparse import ArgumentParser, FileType
 from os.path import abspath, dirname, isfile, join as path_join
 from shutil import rmtree
 from struct import calcsize, pack, unpack
