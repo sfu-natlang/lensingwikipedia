@@ -44,9 +44,6 @@ from struct import calcsize, pack, unpack
 from subprocess import Popen
 from sys import stderr, stdin, stdout
 from tempfile import mkdtemp
-import gzip, string, numpy, sys, json
-import featureExtraction
-from scipy import sparse
 from numpy import *
 
 ### Constants
@@ -88,7 +85,8 @@ class TmpDir:
 def _read_unpack(fmt, fh):
     return unpack(fmt, fh.read(calcsize(fmt)))
 
-def PCA(dataMatrix, INITIAL_DIMS) :
+
+def PCA(dataMatrix, INITIAL_DIMS=30) :
     """
     Performs PCA on data.
     Reduces the dimensionality to INITIAL_DIMS
@@ -104,6 +102,7 @@ def PCA(dataMatrix, INITIAL_DIMS) :
     perm=argsort(-eigValues)
     eigVectors=eigVectors[:,perm[0:INITIAL_DIMS]]
     return dataMatrix
+
 
 def bh_tsne(samples, perplexity=DEFAULT_PERPLEXITY, theta=DEFAULT_THETA,
         verbose=False):
@@ -158,69 +157,4 @@ def bh_tsne(samples, perplexity=DEFAULT_PERPLEXITY, theta=DEFAULT_THETA,
                 yield result
             # The last piece of data is the cost for each sample, we ignore it
             #read_unpack('{}d'.format(sample_count), output_file)
-
-def main(args):
-    argp = _argparse().parse_args(args[1:])
-
-    # Read the data
-    data = []
-    titles = []
-    #gzipFile = gzip.open("data/english-embeddings.turian.txt.gz")
-
-    #for line in gzipFile:
-    #    tokens = string.split(line)
-    #    titles.append(tokens[0])
-    #    data.append([float(f) for f in tokens[1:]])
-    #data = numpy.array(data)
-    print "Reading Data"    
-    lensingJson = featureExtraction.readData('data/fullData.json')
-     
-    #ExtractBagOfWord features
-    print "Extracting Features"
-    data = featureExtraction.extBagOfWordFeatures(lensingJson)
-    
-    for i in range(0,len(lensingJson)):
-        titles.append(str(i))
-    
-    #Call PCA
-    data = PCA(data,30)
-    
-    #call bh_tsne and get the results. Zip the titles and results for writing
-    result = bh_tsne(data, perplexity=argp.perplexity, theta=argp.theta, 
-        verbose=argp.verbose)
-    
-    #render image
-    if argp.render:
-        print "Rendering Image"
-        import render
-        render.render([(title, point[0], point[1]) for title, point in zip(titles, result)], "output/lensing500p30-data.rendered.png", width=3000, height=1800) 
-    
-
-    #convert result into json and write it
-    if argp.write:
-        print "Writing data to file"
-        resData = {}
-        minx = 0
-        maxx = 0
-        miny = 0
-        maxy = 0
-        for (title,result) in zip(titles,[[res[0],res[1]] for res in result]):
-            resData[title] = {'x':result[0], 'y':result[1]}
-            if minx > result[0]: minx = result[0]
-            if maxx < result[0]: maxx = result[0]
-            if miny > result[1]: miny = result[1]
-            if maxy < result[1]: maxy = result[1]
-        
-        print "creating json" 
-        print len(resData)
-        jsonStr = json.dumps(resData)
-        print "MinX - %s MaxX - %s MinY - %s MaxY - %s" % (minx, maxx, miny, maxy)
-        with open('output/coordinateslensing.json','w') as outFile:
-            outFile.write("jsonstr = ");
-            outFile.write(jsonStr+'\n')
-
-if __name__ == '__main__':
-    from sys import argv
-    exit(main(argv))
-
 
