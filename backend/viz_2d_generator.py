@@ -3,6 +3,16 @@
 """
 Usage: %s [opts] WHOOSH-INDEX-DIR [OUTPUT-WHOOSH-INDEX-DIR]
 
+Options:
+  -D        Do dummy clustering; find cluster sizes and centres but don't
+    actually output a new index.
+  -b NUM    Number of events to keep in memory at once if writing in-place.
+  -P NUM    If want to run PCA then the number of dimensions to reduce to.
+  -p FLOAT  The perplexity value for bh-tSNE
+  -t FLOAT  The theta value for bh-tSNE
+  -v        Verbose bh-tSNE
+
+
 Arguments:
 WHOOSH-INDEX-DIR         Directory of the Whoosh index for the input data.
 OUTPUT-WHOOSH-INDEX-DIR  Directory of the Whoosh index for the output data.
@@ -20,6 +30,7 @@ import os, os.path
 import whoosh, whoosh.index
 import viz_feature_extractor
 import whooshutils
+import bhtsne.bhtsne as bhtsne
 
 
 def iter_events_from_index(index):
@@ -36,9 +47,12 @@ def extract_features(data):
     return features
 
 
-def run(input_index, output_index, doc_buffer_size, do_dummy):
+def run(input_index, perplexity, theta, pca_dimensions, verbose, output_index, doc_buffer_size, do_dummy):
     data = iter_events_from_index(input_index)
     features = extract_features(data)
+    if pca_dimensions:
+        features = bhtsne.pca(features, pca_dimensions)
+    coordinates = bhtsne.bh_tsne(features, perplexity, theta, verbose)
 
 
 if __name__ == '__main__':
@@ -47,7 +61,7 @@ if __name__ == '__main__':
     sys.stderr.write('Initializing 2D Visualization Coordinate Generator\n')
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], ":Db:")
+        opts, args = getopt.getopt(sys.argv[1:], "P:Db:p:t:v")
         if len(args) not in [1, 2]:
             raise getopt.GetoptError("wrong number of positional arguments")
         opts = dict(opts)
@@ -62,6 +76,14 @@ if __name__ == '__main__':
     do_dummy = '-D' in opts
     doc_buffer_size = None if output_index_path is not None else (int(opts['-b']) if '-b' in opts else 1000)
 
+    #bh-tSNE options
+    pca_dimensions = int(opts['-P']) if '-P' in opts else None
+    perplexity = float(opts['-p']) if '-p' in opts else bhtsne.DEFAULT_PERPLEXITY
+    theta = float(opts['-t']) if '-t' in opts else bhtsne.DEFAULT_THETA
+    verbose = '-v' in opts
+
+
+
     if output_index_path is not None and not os.path.exists(output_index_path):
         os.mkdir(output_index_path)
     input_index = whoosh.index.open_dir(input_index_path)
@@ -70,7 +92,7 @@ if __name__ == '__main__':
 
     sys.stderr.write('\n')
     sys.stderr.write('Index loaded, generating coordinates for 2D visualization\n')
-    run(input_index, output_index, doc_buffer_size, do_dummy)
+    run(input_index, perplexity, theta, pca_dimensions, verbose, output_index, doc_buffer_size, do_dummy)
 
 
 
