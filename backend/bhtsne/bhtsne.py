@@ -44,7 +44,9 @@ from struct import calcsize, pack, unpack
 from subprocess import Popen
 from sys import stderr, stdin, stdout
 from tempfile import mkdtemp
+from sklearn.decomposition import PCA
 from numpy import *
+
 
 ### Constants
 BH_TSNE_BIN_PATH = path_join(dirname(__file__), 'bh_tsne')
@@ -55,23 +57,6 @@ assert isfile(BH_TSNE_BIN_PATH), ('Unable to find the bh_tsne binary in the '
 DEFAULT_PERPLEXITY = 30.0
 DEFAULT_THETA = 0.5
 ###
-
-
-def _argparse():
-    argparse = ArgumentParser('bh_tsne Python wrapper')
-    argparse.add_argument('-p', '--perplexity', type=float,
-            default=DEFAULT_PERPLEXITY)
-    # 0.0 for theta is equivalent to vanilla t-SNE
-    argparse.add_argument('-t', '--theta', type=float, default=DEFAULT_THETA)
-
-    argparse.add_argument('-v', '--verbose', action='store_true')
-    argparse.add_argument('-i', '--input', type=FileType('r'), default=stdin)
-    argparse.add_argument('-o', '--output', type=FileType('w'),
-            default=stdout)
-    argparse.add_argument('-r', '--render', action='store_true')
-    argparse.add_argument('-w', '--write', action='store_true')
-    return argparse
-
 
 class TmpDir:
     def __enter__(self):
@@ -86,22 +71,14 @@ def _read_unpack(fmt, fh):
     return unpack(fmt, fh.read(calcsize(fmt)))
 
 
-def PCA(dataMatrix, INITIAL_DIMS=30) :
+def pca(data_matrix, required_dimensions=30):
     """
     Performs PCA on data.
     Reduces the dimensionality to INITIAL_DIMS
     """
-    print "Performing PCA"
-
-    dataMatrix= dataMatrix-dataMatrix.mean(axis=0)
-
-    if dataMatrix.shape[1]<INITIAL_DIMS:
-        INITIAL_DIMS=dataMatrix.shape[1]
-
-    (eigValues,eigVectors)=linalg.eig(cov(dataMatrix.T))
-    perm=argsort(-eigValues)
-    eigVectors=eigVectors[:,perm[0:INITIAL_DIMS]]
-    return dataMatrix
+    pca = PCA(n_components=required_dimensions)
+    reduced_matrix = pca.fit_transform(data_matrix)
+    return reduced_matrix
 
 
 def bh_tsne(samples, perplexity=DEFAULT_PERPLEXITY, theta=DEFAULT_THETA,
