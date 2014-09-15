@@ -30,11 +30,11 @@ import os, os.path
 import whoosh, whoosh.index
 import viz_feature_extractor
 import whooshutils
-import bhtsne.bhtsne as bhtsne
+import bhtsne.bhtsne as tsne
 
 
 def iter_events_from_index(index):
-    sys.stderr.write('Reading data from index\n')
+    log('Reading data from index')
     with index.searcher() as searcher:
         for i, hit in enumerate(searcher.search(whoosh.query.Every(), limit=None)):
             sentence = hit['sentence']
@@ -50,15 +50,25 @@ def extract_features(data):
 def run(input_index, perplexity, theta, pca_dimensions, verbose, output_index, doc_buffer_size, do_dummy):
     data = iter_events_from_index(input_index)
     features = extract_features(data)
+    log('Features extracted: ' + str(features.shape))
+    
     if pca_dimensions:
-        features = bhtsne.pca(features, pca_dimensions)
-    coordinates = bhtsne.bh_tsne(features, perplexity, theta, verbose)
+        log('PCA: reducing dimensions to ' + str(pca_dimensions))
+        features = tsne.pca(features, pca_dimensions)
+
+    log('Executing bh-tSNE')
+    coordinates = tsne.bh_tsne(features, perplexity, theta, verbose)
+    log('Executed bh-tSNE, total coordinates: ' + str(coordinates.shape))
+
+
+def log(log_str):
+    sys.stderr.write(log_str+'\n')
 
 
 if __name__ == '__main__':
     import getopt
 
-    sys.stderr.write('Initializing 2D Visualization Coordinate Generator\n')
+    log('Initializing 2D Visualization Coordinate Generator')
 
     try:
         opts, args = getopt.getopt(sys.argv[1:], "P:Db:p:t:v")
@@ -69,7 +79,7 @@ if __name__ == '__main__':
         print >> sys.stderr, __doc__.strip('\n\r') % (sys.argv[0])
         sys.exit(1)
 
-    sys.stderr.write('Arguments read\n')
+    log('Arguments read')
 
     input_index_path = args[0]
     output_index_path = args[1] if len(args) > 1 else None
@@ -78,8 +88,8 @@ if __name__ == '__main__':
 
     #bh-tSNE options
     pca_dimensions = int(opts['-P']) if '-P' in opts else None
-    perplexity = float(opts['-p']) if '-p' in opts else bhtsne.DEFAULT_PERPLEXITY
-    theta = float(opts['-t']) if '-t' in opts else bhtsne.DEFAULT_THETA
+    perplexity = float(opts['-p']) if '-p' in opts else tsne.DEFAULT_PERPLEXITY
+    theta = float(opts['-t']) if '-t' in opts else tsne.DEFAULT_THETA
     verbose = '-v' in opts
 
 
@@ -90,8 +100,8 @@ if __name__ == '__main__':
     output_index = (whoosh.index.create_in(output_index_path, input_index.schema.copy())
                     if output_index_path is not None else input_index) if not do_dummy else None
 
-    sys.stderr.write('\n')
-    sys.stderr.write('Index loaded, generating coordinates for 2D visualization\n')
+    log('')
+    log('Index loaded, generating coordinates for 2D visualization using the arguments; perplexity: ' + str(perplexity) + ', theta: ' + str(theta) + ', pca_dimensions: ' + str(pca_dimensions))
     run(input_index, perplexity, theta, pca_dimensions, verbose, output_index, doc_buffer_size, do_dummy)
 
 
