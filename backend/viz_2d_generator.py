@@ -58,7 +58,6 @@ def run(input_index, perplexity, theta, pca_dimensions, verbose, output_index, d
 
     log('Executing bh-tSNE')
     coordinates = tsne.bh_tsne(features, perplexity, theta, verbose)
-    log('Executed bh-tSNE, total coordinates: ' + str(coordinates.shape))
 
 
 def log(log_str):
