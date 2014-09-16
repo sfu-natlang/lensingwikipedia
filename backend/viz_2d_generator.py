@@ -26,13 +26,13 @@ def iter_events_from_index(index):
     sys.stderr.write('Reading data from index\n')
     with index.searcher() as searcher:
         for i, hit in enumerate(searcher.search(whoosh.query.Every(), limit=None)):
-            sentence = hit['sentence']
-            if sentence:
-                yield i, hit['id'], sentence
+            feature_string = hit['role']
+            if feature_string:
+                yield i, hit['id'], feature_string
 
 
 def extract_features(data):
-    features = viz_feature_extractor.extract_features((sentence for (i, id, sentence) in data))
+    features = viz_feature_extractor.extract_features((feature_string for (i, id, feature_string) in data))
     return features
 
 
