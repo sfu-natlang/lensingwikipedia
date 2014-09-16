@@ -12,7 +12,7 @@ from nltk import word_tokenize
 stop_words = set(stopwords.words("english"))
 
 
-def extract_features(sentences):
+def extract_features(feature_strings):
     """
     Extract bag of word features with counts
     :param sentences:
@@ -23,11 +23,11 @@ def extract_features(sentences):
     sys.stderr.write('\n')
     sys.stderr.write('Extracting features for 2D Visualization\n')
     
-    for sentence in sentences:
+    for feature_string in feature_strings:
         
-        sys.stderr.write("Features for: %s" % (sentence + '\n'))
+        sys.stderr.write("Features for: %s" % (feature_string + '\n'))
 
-        tokens = word_tokenize(sentence.lower())
+        tokens = word_tokenize(feature_string.lower())
         filtered_tokens = ' '.join([token for token in tokens if token not in stop_words and token not in punctuation])
         corpus.append(filtered_tokens)
 
