@@ -53,7 +53,7 @@ def extract_features(data):
     return metadata, features
 
 
-def run(input_index, perplexity, theta, pca_dimensions, verbose, output_index, doc_buffer_size, do_dummy, render):
+def run(input_index, perplexity, theta, pca_dimensions, verbose, output_index, doc_buffer_size, do_dummy):
     lookup = {}
     data = iter_events_from_index(input_index)
     metadata, features = extract_features(data)
@@ -100,11 +100,6 @@ def run(input_index, perplexity, theta, pca_dimensions, verbose, output_index, d
         writer.commit()
         log("Index commit complete.")
 
-    if render:
-        log("Rendering image")
-        import render
-        render.render([(i, coordinate[0], coordinate[1])for (i, coordinate) in lookup.iteritems()], "render.png", width=6000, height=3600)
-
 
 def log(log_str):
     sys.stderr.write(log_str+'\n')
@@ -116,7 +111,7 @@ if __name__ == '__main__':
     log('Initializing 2D Visualization Coordinate Generator')
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "P:Db:p:t:vr")
+        opts, args = getopt.getopt(sys.argv[1:], "P:Db:p:t:v")
         if len(args) not in [1, 2]:
             raise getopt.GetoptError("wrong number of positional arguments")
         opts = dict(opts)
@@ -136,7 +131,6 @@ if __name__ == '__main__':
     perplexity = float(opts['-p']) if '-p' in opts else tsne.DEFAULT_PERPLEXITY
     theta = float(opts['-t']) if '-t' in opts else tsne.DEFAULT_THETA
     verbose = '-v' in opts
-    render = '-r' in opts
 
     if output_index_path is not None and not os.path.exists(output_index_path):
         os.mkdir(output_index_path)
@@ -150,6 +144,5 @@ if __name__ == '__main__':
         log('##################### DUMMY RUN #####################')
     else:
         log('##################### THIS IS NOT A DUMMY RUN #####################')
-    if render:
-        log('##### IMAGE WILL BE RENDERED #####')
-    run(input_index, perplexity, theta, pca_dimensions, verbose, output_index, doc_buffer_size, do_dummy, render)
+
+    run(input_index, perplexity, theta, pca_dimensions, verbose, output_index, doc_buffer_size, do_dummy)
