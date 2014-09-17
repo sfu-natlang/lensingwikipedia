@@ -48,20 +48,51 @@ def extract_features(data):
 
 
 def run(input_index, perplexity, theta, pca_dimensions, verbose, output_index, doc_buffer_size, do_dummy):
+    lookup = {}
     data = iter_events_from_index(input_index)
     features = extract_features(data)
     log('Features extracted: ' + str(features.shape))
     
-    if pca_dimensions:
+    if pca_dimensions is not None:
         log('PCA: reducing dimensions to ' + str(pca_dimensions))
         features = tsne.pca(features, pca_dimensions)
 
     log('Executing bh-tSNE')
     coordinates = tsne.bh_tsne(features, perplexity, theta, verbose)
-    coordinate_length = 0
-    for coordinate in coordinates:
-        coordinate_length += 1
-    log('Coordinates extracted: ' + str(coordinate_length))
+
+    total_coordinates = 0
+    for (event, coordinate) in zip(data, coordinates):
+        log(str(event))
+        i, id, feature_string = event
+        lookup[id] = coordinate
+        total_coordinates += 1
+    log('Coordinates extracted: ' + str(total_coordinates))
+
+
+    if not do_dummy:
+        writer = output_index.writer()
+        try:
+            writer.add_field('2DtSNECoordinates', whoosh.fields.KEYWORD(stored=True, commas=whooshutils.keyword_field_commas))
+        except whoosh.fields.FieldConfigurationError:
+            pass
+
+        def modify(event):
+            if event['id'] in lookup:
+                coordinate = lookup[event['id']]
+                coordinate = [coordinate[0], coordinate[1]]
+            else:
+                coordinate = []
+            event['2DtSNECoordinates'] = unicode(whooshutils.join_keywords(coordinate))
+
+        if doc_buffer_size is not None:
+            whooshutils.update_all_in_place(input_index, writer, modify, 'id', buffer_size=doc_buffer_size)
+        else:
+            whooshutils.copy_all(input_index, writer, modify)
+
+        log(whooshutils.large_change_commit_message)
+        writer.commit()
+        log("Index commit complete.")
+
 
 def log(log_str):
     sys.stderr.write(log_str+'\n')
