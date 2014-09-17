@@ -43,15 +43,22 @@ def iter_events_from_index(index):
 
 
 def extract_features(data):
-    features = viz_feature_extractor.extract_features((feature_string for (i, id, feature_string) in data))
-    return features
+    feature_strings = []
+    metadata = []
+    for (i, id, feature_string) in data:
+        feature_strings.append(feature_string)
+        metadata.append((i, id))
+    features = viz_feature_extractor.extract_features(feature_strings)
+    feature_strings = []
+    return metadata, features
 
 
 def run(input_index, perplexity, theta, pca_dimensions, verbose, output_index, doc_buffer_size, do_dummy):
     lookup = {}
     data = iter_events_from_index(input_index)
-    features = extract_features(data)
+    metadata, features = extract_features(data)
     log('Features extracted: ' + str(features.shape))
+    log('Metadata length: ' + str(len(metadata)))
     
     if pca_dimensions is not None:
         log('PCA: reducing dimensions to ' + str(pca_dimensions))
@@ -61,9 +68,9 @@ def run(input_index, perplexity, theta, pca_dimensions, verbose, output_index, d
     coordinates = tsne.bh_tsne(features, perplexity, theta, verbose)
 
     total_coordinates = 0
-    for (event, coordinate) in zip(data, coordinates):
-        log(str(event))
-        i, id, feature_string = event
+    for (metadatum, coordinate) in zip(metadata, coordinates):
+        log(str(metadatum))
+        i, id = metadatum
         lookup[id] = coordinate
         total_coordinates += 1
     log('Coordinates extracted: ' + str(total_coordinates))
@@ -135,6 +142,11 @@ if __name__ == '__main__':
 
     log('')
     log('Index loaded, generating coordinates for 2D visualization using the arguments; perplexity: ' + str(perplexity) + ', theta: ' + str(theta) + ', pca_dimensions: ' + str(pca_dimensions))
+    if do_dummy:
+        log('##################### DUMMY RUN #####################')
+    else:
+        log('##################### THIS IS NOT A DUMMY RUN #####################')
+
     run(input_index, perplexity, theta, pca_dimensions, verbose, output_index, doc_buffer_size, do_dummy)
 
 
