@@ -14,6 +14,6 @@ build:
 	ln -s /usr/lib64/libgslcblas.so.0 $(OUT)/bhtsne/libcblas.so
 	cd $(OUT)/bhtsne
 	g++ $(OUT)/bhtsne/quadtree.cpp $(OUT)/bhtsne/tsne.cpp -o $(OUT)/bhtsne/bh_tsne -O3 -I/cs/natlang-sw/Linux-x86_64/NL/LINALG/ATLAS/3.9.11/include -L$(OUT)/bhtsne -lcblas
-
+	mkdir $(OUT)/Temp
 clean:
 	rm -rf $(OUT)
