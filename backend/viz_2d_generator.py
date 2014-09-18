@@ -86,7 +86,7 @@ def run(input_index, perplexity, theta, pca_dimensions, verbose, output_index, d
         def modify(event):
             if event['id'] in lookup:
                 coordinate = lookup[event['id']]
-                coordinate = [coordinate[0], coordinate[1]]
+                coordinate = ['%f,%f' % (coordinate[0], coordinate[1])]
             else:
                 coordinate = []
             event['2DtSNECoordinates'] = unicode(whooshutils.join_keywords(coordinate))
