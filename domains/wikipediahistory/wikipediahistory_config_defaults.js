@@ -14,6 +14,8 @@ facets = {
 	"category": "Category",
 	"location": "Location"
 };
+// Default facet to use for the storyline view
+defaultStorylineFacet = "person";
 // Verbose log settings that can be set in the browser console
 verbose_log = {
 	// Print out the queries being sent to the backend

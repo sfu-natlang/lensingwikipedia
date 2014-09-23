@@ -14,6 +14,40 @@ function yearsArrayOfTable(yearsTable) {
 	return years;
 }
 
+// TODO: extract the fields list help from the text search message and share here?
+var storylineQueryHelpText = " \
+	<strong>Query format:</strong> \
+	A query is a list of entities separated by spaces. An entity is determined by a field name and value separated by a colon. For example: \
+	<blockquote> \
+		person:Hannibal, person:Scipio Africanus, person:Antiochus III the Great \
+	</blockquote> \
+"
+var storylineFacetHelpText = " \
+	Make a selection in the facet to generate a storyline. \
+"
+
+/*
+ * Parse the manual query format.
+ */
+function parsePlotlineQueryString(entitiesString) {
+	return entitiesString.split(",").map(function (entityString) {
+		var parts = entityString.split(":").map(function (p) { return p.replace(/^\s+|\s+$/g, "") });
+		return {
+			field: parts[0],
+			value: parts[1]
+		}
+	});
+} 
+
+/*
+ * Output the manual query format.
+ */
+function unparsePlotlineQuery(entities) {
+	return $.map(entities, function (entity) {
+		return [entity.field, entity.value].join(":");
+	}).join(", ");
+} 
+
 /*
  * Convert data from backend to data for Sankey plot.
  */
@@ -36,77 +70,113 @@ function resultToSankeyData(resultData) {
 		return nodeId;
 	}
 
-	var nodes = [],
-	    links = [];
+	var nodes = [];
 
 	var byYear = {};
 	var entities = [];
 	var nextEntityId = 0;
 	$.each(resultData.timeline, function (field, valueTable) {
 		$.each(valueTable, function (value, yearsTable) {
-			var addedEntity = false;
+			// We ignore entities that only appear once, and thus can't form a line
+			// TODO: is this a sensible place to do this?
+			var nonEmptyYearCount = 0;
 			$.each(yearsTable, function (year, clusters) {
-				year = parseInt(year);
-				if (!byYear.hasOwnProperty(year))
-					byYear[year] = {};
-				var forYear = byYear[year];
-				$.each(clusters, function (clusterI, cluster) {
-					if (!forYear.hasOwnProperty(cluster))
-						forYear[cluster] = [];
-					addedEntity = true;
-					forYear[cluster].push(nextEntityId);
-				});
+				if (clusters.length > 0) {
+					nonEmptyYearCount++;
+					if (nonEmptyYearCount > 1)
+						return false;
+				}
 			});
-			if (addedEntity) {
-				entities.push({ field: field, value: value });
-				nextEntityId++;
-			}
-		});
-	});
-
-	var visClusters = {};
-	var visClustersByYear = {};
-	var nextVisClusterId = 0;
-	$.each(byYear, function (year, clusters) {
-		year = parseInt(year);
-		var inVisCluster = {};
-		var yearVisClusters = {};
-		visClustersByYear[year] = yearVisClusters;
-		$.each(clusters, function (cluster, entityIds) {
-			var assignedVisCluster = null;
-			for (var entityIdI = 0; entityIdI < entityIds.length; entityIdI++) {
-				var entityId = entityIds[entityIdI];
-				if (inVisCluster.hasOwnProperty(entityId)) {
-					assignedVisCluster = inVisCluster[entityId];
-					break;
+			if (nonEmptyYearCount > 1) {
+				var addedEntity = false;
+				$.each(yearsTable, function (year, clusters) {
+					year = parseInt(year);
+					if (!byYear.hasOwnProperty(year))
+						byYear[year] = {};
+					var forYear = byYear[year];
+					$.each(clusters, function (clusterI, cluster) {
+						if (!forYear.hasOwnProperty(cluster))
+							forYear[cluster] = [];
+						addedEntity = true;
+						forYear[cluster].push(nextEntityId);
+					});
+				});
+				if (addedEntity) {
+					entities.push({ field: field, value: value });
+					nextEntityId++;
 				}
 			}
-			if (assignedVisCluster == null) {
-				assignedVisCluster = nextVisClusterId;
-				visClusters[assignedVisCluster] = {
-					year: year,
-					clusters: {}
-				};
-				nextVisClusterId++;
-			}
-			visClusters[assignedVisCluster].clusters[cluster] = true;
-			if (!yearVisClusters.hasOwnProperty(assignedVisCluster))
-				yearVisClusters[assignedVisCluster] = [];
-			$.each(entityIds, function (entityIdI, entityId) {
-				inVisCluster[entityId] = assignedVisCluster;
-				yearVisClusters[assignedVisCluster].push(entityId);
-			});
 		});
 	});
 
-	var nodes = [];
-	$.each(visClusters, function (visClusterId, visCluster) {
-		visCluster.date = jsDateOfYear(visCluster.year);
-		nodes.push(visCluster);
+	var visClusters = [],
+	    visClustersByYear = {};
+	$.each(byYear, function (year, clusters) {
+		year = parseInt(year);
+		var yearVisClusters = $.map(clusters, function (entityIds, cluster) {
+			var visCluster = {
+				clusters: {},
+				entityIds: {}
+			};
+			visCluster.clusters[cluster] = true;
+			$.each(entityIds, function (entityIdI, entityId) {
+				visCluster.entityIds[entityId] = true;
+			});
+			return visCluster;
+		});
+		while (true) {
+			var changed = false;
+			var entityAssignment = {};
+			for (var visClusterI = 0; visClusterI < yearVisClusters.length; visClusterI++) {
+				var visCluster = yearVisClusters[visClusterI];
+				if (visCluster != undefined) {
+					var mergeWithI = null;
+					$.each(visCluster.entityIds, function (entityId) {
+						if (entityAssignment.hasOwnProperty(entityId)) {
+							mergeWithI = entityAssignment[entityId];
+							return false;
+						}
+					});
+					if (mergeWithI == null) {
+						$.each(visCluster.entityIds, function (entityId) {
+								entityAssignment[entityId] = visClusterI;
+						});
+					} else {
+						var mergeWith = yearVisClusters[mergeWithI];
+						$.each(visCluster.clusters, function (cluster) {
+							mergeWith.clusters[cluster] = true;
+						});
+						$.each(visCluster.entityIds, function (entityId) {
+							mergeWith.entityIds[entityId] = true;
+						});
+						delete yearVisClusters[visClusterI];
+						changed = true;
+					}
+				}
+			}
+			if (!changed)
+				break;
+		}
+		visClustersByYear[year] = $.map(yearVisClusters, function (visCluster) {
+			if (visCluster != null) {
+				var visClusterId = visClusters.length;
+				visClusters.push({
+					year: year,
+					date: jsDateOfYear(year),
+					clusters: visCluster.clusters,
+					entityIds: Object.keys(visCluster.entityIds)
+				});
+				return visClusterId;
+			}
+		});
 	});
+
+	var nodes = visClusters;
 
 	var yearsOrder = yearsArrayOfTable(visClustersByYear);
 
+	// TODO: I think this was compensating for an old bug that is now fixed properly. Is that right?
+	/*
 	var lastSeen = {};
 	$.each(yearsOrder, function (yearI, year) {
 		$.each(visClustersByYear[year], function (visCluster, entityIds) {
@@ -117,11 +187,6 @@ function resultToSankeyData(resultData) {
 					var lastVisCluster = lastSeen[entityId];
 					if (lastVisCluster != visCluster) {
 						visClusters[visCluster].entityIds.push(entityId);
-						links.push({
-							source: lastSeen[entityId],
-							target: visCluster,
-							entity: entities[entityId]
-						});
 					}
 				} else
 					visClusters[visCluster].entityIds.push(entityId);
@@ -129,13 +194,13 @@ function resultToSankeyData(resultData) {
 			});
 		});
 	});
+	*/
 
 	// TODO: if we calculate the years order here, should we return it for later?
 
 	// TODO: what do we actually need to return in this function?
 	return {
 		nodes: nodes,
-		links: links,
 		entities: entities
 	}
 }
@@ -436,7 +501,7 @@ function storylineLayout(nodesByYear, layoutHeight, nodeHeightPerEntity, nodeHei
 	return entityLines;
 }
 
-function drawStorylineDiagram(svg, box, clipId, data, layoutHeight, nodeWidth, nodeHeightPerEntity, xAxisSpace, drawLabels, doMouseovers, onSelectNode) {
+function drawStorylineDiagram(svg, box, clipId, data, layoutHeight, nodeWidth, nodeHeightPerEntity, xAxisSpace, drawLabels, doMouseovers, useFieldPrefixes, importantEntities, onSelectNode) {
 	var scale = box.height / layoutHeight;
 
 	var draw = svg.append('g')
@@ -474,7 +539,13 @@ function drawStorylineDiagram(svg, box, clipId, data, layoutHeight, nodeWidth, n
 		.enter()
 		.append("path")
 		.attr('clip-path', "url(#" + clipId + ")")
-		.attr("class", function (l) { return "line line" + l.entityId; })
+		.attr("class", function (l) {
+			var e = data.entities[l.entityId];
+			var c = "line line" + l.entityId;
+			if (importantEntities.hasOwnProperty(e.field) && importantEntities[e.field].indexOf(e.value) >= 0)
+				c += " important";
+			return c;
+		})
 		.style("stroke", function(l, i) { return linesColor(i); });
 	if (doMouseovers)
 		lines
@@ -485,7 +556,7 @@ function drawStorylineDiagram(svg, box, clipId, data, layoutHeight, nodeWidth, n
 				d3.select(this).classed('highlight', false);
 			})
 			.append("title")
-			.text(function (l) { var e = data.entities[l.entityId]; return "" + e.field + ":" + e.value; });
+			.text(function (l) { var e = data.entities[l.entityId]; return "" + (useFieldPrefixes ? e.field + ":" : "") + e.value; });
 
 	var node = draw.append("g")
 		.selectAll(".node")
@@ -507,7 +578,7 @@ function drawStorylineDiagram(svg, box, clipId, data, layoutHeight, nodeWidth, n
 			.append("title")
 			.text(function(d) {
 				return "" + timeAxisTickFormater(d.date)
-					+ "\n" + $.map(d.entityIds, function (eid, i) { var e = data.entities[eid]; return "" + e.field + ":" + e.value; }).join("\n")
+					+ "\n" + $.map(d.entityIds, function (eid, i) { var e = data.entities[eid]; return "" + (useFieldPrefixes ? e.field + ":" : "") + e.value; }).join("\n")
 					+ "\n" + $.map(d.clusters, function (v, f) { return f; }).join("\n");
 			});
 	if (onSelectNode != null)
@@ -523,7 +594,7 @@ function drawStorylineDiagram(svg, box, clipId, data, layoutHeight, nodeWidth, n
 			.attr('class', "linelabel");
 		var text = labelGroups
 			.append("text")
-			.text(function (l, i) { var e = data.entities[i]; return "" + e.field + ":" + e.value; })
+			.text(function (l, i) { var e = data.entities[l.entityId]; return "" + (useFieldPrefixes ? e.field + ":" : "") + e.value; })
 			.attr("dy", ".35em");
 		if (doMouseovers)
 			text
@@ -583,7 +654,7 @@ function drawStorylineDiagram(svg, box, clipId, data, layoutHeight, nodeWidth, n
 /*
  * Draw the whole visualization.
  */
-function drawStoryline(svg, detailBox, selectBox, data, onSelectNode) {
+function drawStoryline(svg, detailBox, selectBox, data, useFieldPrefixes, importantEntities, onSelectNode) {
 	var nodeWidth = detailBox.width * 0.01;
 	var nodeHeightPerEntity = detailBox.height * 0.06;
 	var nodeHeightGap = nodeHeightPerEntity;
@@ -604,8 +675,8 @@ function drawStoryline(svg, detailBox, selectBox, data, onSelectNode) {
 		.attr('height', detailBox.height);
 
 	layout(data, layoutHeight, nodeHeightPerEntity, nodeHeightGap, looseRelaxationIters, middleRelaxationIters, tightRelaxationIters, yearDistWeight);
-	var detailPlot = drawStorylineDiagram(svg, detailBox, clipId, data, layoutHeight, nodeWidth, nodeHeightPerEntity, xAxisSpace, true, true, onSelectNode);
-	var selectPlot = drawStorylineDiagram(svg, selectBox, clipId, data, layoutHeight, nodeWidth, nodeHeightPerEntity, xAxisSpace, false, false, null);
+	var detailPlot = drawStorylineDiagram(svg, detailBox, clipId, data, layoutHeight, nodeWidth, nodeHeightPerEntity, xAxisSpace, true, true, useFieldPrefixes, importantEntities, onSelectNode);
+	var selectPlot = drawStorylineDiagram(svg, selectBox, clipId, data, layoutHeight, nodeWidth, nodeHeightPerEntity, xAxisSpace, false, false, useFieldPrefixes, importantEntities, null);
 
 	var brush = null;
 	function onBrush() {
@@ -628,10 +699,7 @@ function drawStoryline(svg, detailBox, selectBox, data, onSelectNode) {
  * initialQuery: the initial (empty) query
  * globalQuery: the global query
  */
-function setupStoryline(container, globalQuery) {
-	// TODO: this is just for testing
-	var defaultEntityString = "person:Hannibal, person:Scipio Africanus, person:Antiochus III the Great, person:Philip V of Macedon, person:Gaius Flaminius Nepos, person:Masinissa, person:Hamilcar Barca, person:Demetrius of Pharo, person:Attalus I, person:Fabius Maximus";
-
+function setupStoryline(container, globalQuery, facets) {
 	// The view space for SVG; this doesn't have to correspond to screen units.
 	var viewBox = { x: 0, y : 0, width: 1024, height: 768 };
 	// Margins for the graph
@@ -644,12 +712,14 @@ function setupStoryline(container, globalQuery) {
 	var loadingIndicator = new LoadingIndicator(outerElt);
 	var outerSvgElt = $("<svg class=\"outersvg\"></svg>").appendTo(outerElt);
 	var svgElt = $("<svg class=\"innersvg\" viewBox=\"" + viewBox.x + " " + viewBox.y + " " + viewBox.width + " " + viewBox.height + "\" preserveAspectRatio=\"none\"></svg>").appendTo(outerSvgElt);
+	var helpElt = $("<div class=\"alert alert-warning alert-dismissable\"></div>").appendTo(outerElt);
 
 	var formElt = $("<form></form>").appendTo(topBoxElt);
-	var clearSelElt = $("<button type=\"button\" class=\"btn btn-warning clear mapclear\" title=\"Clear the map selection.\">Clear selection</button>").appendTo(formElt);
-	var updateElt = $("<button type=\"submit\" class=\"btn btn-warning\" title=\"Update the visualization\">Update</button></ul>").appendTo(formElt);
-	var entitiesElt = $("<input type=\"text\" class=\"entities\" title=\"Entities\"></input>").appendTo($("<div class=\"inputbox\"></div>").appendTo(formElt));
-	entitiesElt.val(defaultEntityString);
+	var clearSelElt = $("<button type=\"button\" class=\"btn btn-mini btn-warning clear mapclear\" title=\"Clear the map selection.\">Clear selection</button>").appendTo(formElt);
+	var modeElt = $("<select class=\"btn btn-mini\"></select>").appendTo(formElt);
+	var queryFormElt = $("<form class=\"query\"></form>").appendTo(topBoxElt);
+	var updateElt = $("<button type=\"submit\" class=\"btn btn-warning\" title=\"Update the visualization\">Update</button></ul>").appendTo(queryFormElt);
+	var queryElt = $("<input type=\"text\" title=\"Query\"></input>").appendTo($("<div class=\"inputbox\"></div>").appendTo(queryFormElt));
 
 	fillElement(container, outerElt, 'vertical');
 	setupPanelled(outerElt, topBoxElt, outerSvgElt, 'vertical', 0, false);
@@ -669,53 +739,59 @@ function setupStoryline(container, globalQuery) {
 	var resultWatcher = new ResultWatcher(function () {});
 	contextQuery.addResultWatcher(resultWatcher);
 
+	var facetManagers = null;
+
 	function setLoadingIndicator(enabled) {
 		svgElt.css('display', !enabled ? '' : 'none');
 		loadingIndicator.enabled(enabled);
 	}
-	setLoadingIndicator(true);
 
-	function parseEntitiesString(entitiesString) {
-		return entitiesString.split(",").map(function (entityString) {
-			return entityString.split(":").map(function (p) { return p.replace(/^\s+|\s+$/g, "") });
-		});
-	} 
-	function organizeEntities(entities) {
-		var entitiesLookup = {};
-		for (var i = 0; i < entities.length; i++) {
-			var field = entities[i][0],
-			    value = entities[i][1];
-			if (!entitiesLookup.hasOwnProperty(field))
-				entitiesLookup[field] = [];
-			entitiesLookup[field].push(value);
+	var queryEntities = [],
+	    oldResultWatcher = null,
+	    drawEntityTitlePrefixes = true,
+	    drawImportantEntities = {};
+	function updateQuery(resultWatcher, cooccurrenceFields) {
+		function organizeEntities(entities) {
+			var entitiesLookup = {};
+			for (var i = 0; i < entities.length; i++) {
+				var entity = entities[i];
+				if (!entitiesLookup.hasOwnProperty(entity.field))
+					entitiesLookup[entity.field] = [];
+				entitiesLookup[entity.field].push(entity.value);
+			}
+			return entitiesLookup;
 		}
-		return entitiesLookup;
-	}
-	function setEntityString(entityString) {
-		var entities = parseEntitiesString(entityString);
-		if (entities.length > 0) {
-			resultWatcher.set({
+		if (queryEntities.length > 0) {
+			var entities = organizeEntities(queryEntities);
+			var view = {
 				"plottimeline": {
 					"type": "plottimeline",
 					"clusterField": "referencePoints",
-					"entities": organizeEntities(entities)
+					"entities": entities
 				}
-			});
-			globalQuery.update();
+			};
+			if (cooccurrenceFields != null) {
+				view.plottimeline.cooccurrences = 'and';
+				view.plottimeline.cooccurrenceFields = cooccurrenceFields;
+				drawEntityTitlePrefixes = false;
+				drawImportantEntities = entities;
+			} else {
+				drawEntityTitlePrefixes = true;
+				drawImportantEntities = {};
+			}
+			if (oldResultWatcher != null)
+				oldResultWatcher.clear();
+			oldResultWatcher = resultWatcher;
+			resultWatcher.set(view);
+			contextQuery.update();
+			setLoadingIndicator(true);
 		} else {
 			resultWatcher.clear();
-			setLoadingIndicator(true);
+			setLoadingIndicator(false);
+			helpElt.show();
+			outerSvgElt.hide();
 		}
 	}
-	setEntityString(defaultEntityString);
-	updateElt.bind('click', function() {
-		setLoadingIndicator(true);
-		setEntityString(entitiesElt.val());
-	});
-	formElt.submit(function () {
-		return false;
-	});
-
 
 	var selection = {};
 	function updateSelection() {
@@ -764,22 +840,111 @@ function setupStoryline(container, globalQuery) {
 			svgElt.children().remove();
 			var svg = jqueryToD3(svgElt);
 			setLoadingIndicator(false);
-			drawStoryline(svg, detailBox, selectBox, resultToSankeyData(data), onSelectNode);
+			outerSvgElt.show();
+			helpElt.hide();
+			drawStoryline(svg, detailBox, selectBox, resultToSankeyData(data), drawEntityTitlePrefixes, drawImportantEntities, onSelectNode);
 			scaleSvg();
 		} else {
 			setLoadingIndicator(false);
 		}
 	}
 
-	resultWatcher.setCallback(function(result, getContinuer) {
+	function onResult(result) {
 		if (result.plottimeline.hasOwnProperty('error')) {
 			data = null;
 			loadingIndicator.error('storyline', true);
 			loadingIndicator.enabled(true);
 		} else {
 			loadingIndicator.error('storyline', false);
+			loadingIndicator.enabled(false);
 			data = result.plottimeline;
+			outerSvgElt.show();
+			helpElt.hide();
 			draw();
 		}
+	}
+
+	resultWatcher.setCallback(function (a) {
+		onResult(a);
 	});
+
+	updateElt.bind('click', function() {
+		setLoadingIndicator(true);
+		queryEntities = parsePlotlineQueryString(queryElt.val());
+		updateQuery(resultWatcher, null);
+	});
+	queryFormElt.submit(function () {
+		return false;
+	});
+
+	var defaultFacetI = -1;
+	facetManagers = $.map(facets, function (facet, facetI) {
+		var excludeQuery = new Query(globalQuery.backendUrl(), 'setminus', globalQuery, facet.constraintsQuery);
+		var excludeResultWatcher = new ResultWatcher(function (a) {
+			onResult(a);
+		});
+		excludeResultWatcher.enabled(false);
+		excludeQuery.addResultWatcher(excludeResultWatcher);
+		function useFacet() {
+			var seenFields = {},
+			allFields = [];
+			queryEntities = $.map(facet.constraintsQuery.constraints(), function (cnstr) {
+				var cnstrValue = cnstr.value();
+				if (!seenFields.hasOwnProperty(cnstrValue.field)) {
+					seenFields[cnstrValue] = true;
+					allFields.push(cnstrValue.field);
+				}
+				return {
+					field: cnstrValue.field,
+					value: cnstrValue.value
+				}
+			});
+			updateQuery(excludeResultWatcher, allFields);
+		}
+		var watcher = new ChangeWatcher(function () { useFacet() });
+		watcher.active(false);
+		facet.constraintsQuery.addChangeWatcher(watcher);
+		if (facet.field == defaultStorylineFacet)
+			defaultFacetI = facetI;
+		return {
+			use: useFacet,
+			watcher: watcher,
+			excludeResultWatcher: excludeResultWatcher
+		}
+	});
+
+	$.each(facets, function (facetI, facet) {
+		$("<option value=\"" + facetI + "\">" + facet.title + " facet</option>").appendTo(modeElt);
+	});
+	var queryModeElt = $("<option>Query</option>").appendTo(modeElt);
+	var curFacetManager = null;
+	modeElt.bind('change', function () {
+		var newMode = this.options[this.selectedIndex].value;
+		var curQueryText = $.trim(queryElt.val());
+		if (curFacetManager != null)
+			curFacetManager.watcher.active(false);
+		if (newMode == queryModeElt.text()) {
+			if (curFacetManager != null) {
+				facetQueryText = unparsePlotlineQuery(queryEntities);
+				queryEntities = [];
+				updateQuery(resultWatcher, null);
+			}
+			queryFormElt.show();
+			helpElt.html(storylineQueryHelpText);
+			curFacetManager = null;
+			if (curQueryText)
+				updateElt.click();
+		} else {
+			queryFormElt.hide();
+			helpElt.html(storylineFacetHelpText);
+			facetManagers[this.selectedIndex].use();
+			curFacetManager = facetManagers[this.selectedIndex];
+			curFacetManager.watcher.active(true);
+		}
+	});
+	queryFormElt.hide();
+	if (defaultFacetI > 0)
+		modeElt.val(defaultFacetI);
+	modeElt.change();
+	updateQuery(resultWatcher, null);
 }

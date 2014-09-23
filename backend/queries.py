@@ -184,23 +184,40 @@ class Querier:
     }
 
   def _handle_plottimeline_view(self, view, whoosh_query):
+    def find_cooccurrences(entities, cooc_fields, need_field, is_disjunctive):
+      op = whoosh.query.Or if is_disjunctive else whoosh.query.And
+      rel_query = op([whoosh.query.Term(ef, ev) for ef, evs in entities.iteritems() for ev in evs])
+      with self.whoosh_index.searcher() as searcher:
+        hits = searcher.search(whoosh.query.And([whoosh_query, rel_query]), limit=None)
+        cooc_entities = dict((ef, set()) for ef in cooc_fields)
+        for hit in hits:
+          if need_field in hit:
+            for cooc_field in cooc_fields:
+              cooc_entities[cooc_field].update(whooshutils.split_keywords(hit[cooc_field]))
+      return cooc_entities
+
     cluster_field = view['clusterField']
+    entities = view['entities']
+    if 'cooccurrences' in view:
+      is_disjunctive = { 'and': False, 'or': True }[view['cooccurrences']]
+      entities = find_cooccurrences(entities, set(view['cooccurrenceFields']), cluster_field, is_disjunctive)
+
     # Checking for cluster_field per hit below seems to be slightly faster (empirically) than including Every(cluster_field) in the query
-    rel_query = whoosh.query.Or([whoosh.query.Term(ef, ev) for ef, evs in view['entities'].iteritems() for ev in evs])
-    timeline = dict((ef, dict((ev, {}) for ev in evs)) for ef, evs in view['entities'].iteritems())
+    rel_query = whoosh.query.Or([whoosh.query.Term(ef, ev) for ef, evs in entities.iteritems() for ev in evs])
+    timeline = dict((ef, dict((ev, {}) for ev in evs)) for ef, evs in entities.iteritems())
     with self.whoosh_index.searcher() as searcher:
       hits = searcher.search(whoosh.query.And([whoosh_query, rel_query]), limit=None)
       for hit in hits:
         if cluster_field in hit:
           year = int(hit['year'])
           cluster_values = set(whooshutils.split_keywords(hit[cluster_field]))
-          for entity_field, entity_values in view['entities'].iteritems():
+          for entity_field, entity_values in entities.iteritems():
             hit_entity_values = set(whooshutils.split_keywords(hit[entity_field]))
             for entity_value in entity_values:
               if entity_value in hit_entity_values:
                 timeline[entity_field][entity_value].setdefault(year, set())
                 timeline[entity_field][entity_value][year] |= cluster_values
-    for entity_field, entity_values in view['entities'].iteritems():
+    for entity_field, entity_values in entities.iteritems():
       field_timeline = timeline[entity_field]
       for entity_value in entity_values:
         field_timeline[entity_value] = dict((y, list(cvs)) for y, cvs in field_timeline[entity_value].iteritems())

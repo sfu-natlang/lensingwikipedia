@@ -283,4 +283,6 @@ function setupFacet(container, globalQuery, name, field, isConjunctive) {
 				addData(result.counts.counts);
 			});
 	});
+
+	return ownCnstrQuery;
 }

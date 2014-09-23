@@ -11,31 +11,37 @@
 	margin: 0;
 	padding: 0;
 }
+.storyline .topbox form.query {
+	margin: 0.2em 0 0.1em 0;
+}
+.storyline .alert {
+	margin: 1em;
+}
+.storyline select.btn {
+	height: auto;
+	line-height: 14px;
+	display: inline;
+	margin: 0 4px 0 4px;
+}
+.storyline .inputbox {
+	display: block;
+	overflow: hidden;
+	padding: 0 10px 0 20px;
+}
+.storyline .inputbox input {
+	float: right;
+	margin-bottom: 0.25em;
+	width: 100%;
+}
+.storyline .topbox form.query button {
+	float: right;
+	margin: 0 0.5em 0 0.5em;
+}
 .storyline svg {
 	width: 100%;
 	margin: 0;
 	padding: 0;
 }
-.storyline .topbox .inputbox {
-	display: block;
-	overflow: hidden;
-	padding: 0 20px 0 10px;
-}
-.storyline .topbox input.year {
-	float: left;
-	margin-bottom: 0.25em;
-	width: 4em;
-}
-.storyline .topbox input.entities {
-	float: left;
-	margin-bottom: 0.25em;
-	width: 100%;
-}
-.storyline .topbox button {
-	float: left;
-	margin: 0 0.5em 0 0.5em;
-}
-
 .storyline .node {
 	shape-rendering: crispEdges;
 	fill: black;
@@ -48,10 +54,14 @@
 .storyline .line {
 	fill: none;
 	stroke: black;
-	stroke-opacity: .5;
+	stroke-opacity: .3;
 	stroke-linecap: round;
 	stroke-width: 6;
 	vector-effect: non-scaling-stroke;
+}
+.storyline .line.important {
+	stroke-width: 8;
+	stroke-opacity: .6;
 }
 .storyline .line.highlight {
 	stroke-opacity: 1.0;
