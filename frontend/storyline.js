@@ -149,10 +149,10 @@ function layout(data, layoutHeight, nodeHeightPerEntity, nodeHeightGap, looseRel
 		node.id = nodeI;
 		byYear[node.year].push(node);
 	});
-	data.entityLines = flowLayout(byYear, layoutHeight, nodeHeightPerEntity, nodeHeightGap, yearDistWeight, looseRelaxationIters, middleRelaxationIters, tightRelaxationIters);
+	data.entityLines = storylineLayout(byYear, layoutHeight, nodeHeightPerEntity, nodeHeightGap, yearDistWeight, looseRelaxationIters, middleRelaxationIters, tightRelaxationIters);
 }
 
-function flowLayout(nodesByYear, layoutHeight, nodeHeightPerEntity, nodeHeightGap, yearDistWeight, looseRelaxationIters, middleRelaxationIters, tightRelaxationIters) {
+function storylineLayout(nodesByYear, layoutHeight, nodeHeightPerEntity, nodeHeightGap, yearDistWeight, looseRelaxationIters, middleRelaxationIters, tightRelaxationIters) {
 	var topMargin = nodeHeightGap;
 
 	function initialLayout(yearsOrder) {
@@ -436,7 +436,7 @@ function flowLayout(nodesByYear, layoutHeight, nodeHeightPerEntity, nodeHeightGa
 	return entityLines;
 }
 
-function drawFlowPlotDiagram(svg, box, clipId, data, layoutHeight, nodeWidth, nodeHeightPerEntity, xAxisSpace, drawLabels, doMouseovers) {
+function drawStorylineDiagram(svg, box, clipId, data, layoutHeight, nodeWidth, nodeHeightPerEntity, xAxisSpace, drawLabels, doMouseovers) {
 	var scale = box.height / layoutHeight;
 
 	var draw = svg.append('g')
@@ -577,7 +577,7 @@ function drawFlowPlotDiagram(svg, box, clipId, data, layoutHeight, nodeWidth, no
 /*
  * Draw the whole visualization.
  */
-function drawFlowPlot(svg, detailBox, selectBox, data) {
+function drawStoryline(svg, detailBox, selectBox, data) {
 	var nodeWidth = detailBox.width * 0.01;
 	var nodeHeightPerEntity = detailBox.height * 0.06;
 	var nodeHeightGap = nodeHeightPerEntity;
@@ -598,8 +598,8 @@ function drawFlowPlot(svg, detailBox, selectBox, data) {
 		.attr('height', detailBox.height);
 
 	layout(data, layoutHeight, nodeHeightPerEntity, nodeHeightGap, looseRelaxationIters, middleRelaxationIters, tightRelaxationIters, yearDistWeight);
-	var detailPlot = drawFlowPlotDiagram(svg, detailBox, clipId, data, layoutHeight, nodeWidth, nodeHeightPerEntity, xAxisSpace, true, true);
-	var selectPlot = drawFlowPlotDiagram(svg, selectBox, clipId, data, layoutHeight, nodeWidth, nodeHeightPerEntity, xAxisSpace, false, false);
+	var detailPlot = drawStorylineDiagram(svg, detailBox, clipId, data, layoutHeight, nodeWidth, nodeHeightPerEntity, xAxisSpace, true, true);
+	var selectPlot = drawStorylineDiagram(svg, selectBox, clipId, data, layoutHeight, nodeWidth, nodeHeightPerEntity, xAxisSpace, false, false);
 
 	var brush = null;
 	function onBrush() {
@@ -622,7 +622,7 @@ function drawFlowPlot(svg, detailBox, selectBox, data) {
  * initialQuery: the initial (empty) query
  * globalQuery: the global query
  */
-function setupFlowPlot(container, globalQuery) {
+function setupStoryline(container, globalQuery) {
 	// TODO: this is just for testing
 	var defaultEntityString = "person:Hannibal, person:Scipio Africanus, person:Antiochus III the Great, person:Philip V of Macedon, person:Gaius Flaminius Nepos, person:Masinissa, person:Hamilcar Barca, person:Demetrius of Pharo, person:Attalus I, person:Fabius Maximus";
 
@@ -633,7 +633,7 @@ function setupFlowPlot(container, globalQuery) {
 	// Vertical size of the detail area as a fraction of the total.
 	var split = 0.8;
 
-	var outerElt = $("<div class=\"flowplot\"></div>").appendTo(container);
+	var outerElt = $("<div class=\"storyline\"></div>").appendTo(container);
 	var topBoxElt = $("<div class=\"topbox\"></div>").appendTo(outerElt);
 	var loadingIndicator = new LoadingIndicator(outerElt);
 	var outerSvgElt = $("<svg class=\"outersvg\"></svg>").appendTo(outerElt);
@@ -709,7 +709,7 @@ function setupFlowPlot(container, globalQuery) {
 			svgElt.children().remove();
 			var svg = jqueryToD3(svgElt);
 			setLoadingIndicator(false);
-			drawFlowPlot(svg, detailBox, selectBox, resultToSankeyData(data));
+			drawStoryline(svg, detailBox, selectBox, resultToSankeyData(data));
 			scaleSvg();
 		} else {
 			setLoadingIndicator(false);
@@ -719,10 +719,10 @@ function setupFlowPlot(container, globalQuery) {
 	globalQueryResultWatcher.setCallback(function(result, getContinuer) {
 		if (result.plottimeline.hasOwnProperty('error')) {
 			data = null;
-			loadingIndicator.error('flowplot', true);
+			loadingIndicator.error('storyline', true);
 			loadingIndicator.enabled(true);
 		} else {
-			loadingIndicator.error('flowplot', false);
+			loadingIndicator.error('storyline', false);
 			data = result.plottimeline;
 			draw();
 		}

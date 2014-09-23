@@ -1,51 +1,51 @@
-.flowplot {
+.storyline {
 	width: 100%;
 	margin: 0;
 	padding: 0;
 }
-.flowplot .topbox {
+.storyline .topbox {
 	margin: 0;
 	padding: 0 10px 0 10px;
 }
-.flowplot .topbox form {
+.storyline .topbox form {
 	margin: 0;
 	padding: 0;
 }
-.flowplot svg {
+.storyline svg {
 	width: 100%;
 	margin: 0;
 	padding: 0;
 }
-.flowplot .topbox .inputbox {
+.storyline .topbox .inputbox {
 	display: block;
 	overflow: hidden;
 	padding: 0 20px 0 10px;
 }
-.flowplot .topbox input.year {
+.storyline .topbox input.year {
 	float: left;
 	margin-bottom: 0.25em;
 	width: 4em;
 }
-.flowplot .topbox input.entities {
+.storyline .topbox input.entities {
 	float: left;
 	margin-bottom: 0.25em;
 	width: 100%;
 }
-.flowplot .topbox button {
+.storyline .topbox button {
 	float: left;
 	margin: 0 0.5em 0 0.5em;
 }
 
-.flowplot .node {
+.storyline .node {
 	shape-rendering: crispEdges;
 	fill: black;
 	fill-opacity: .15;
 	stroke: none;
 }
-.flowplot .node.highlight {
+.storyline .node.highlight {
 	fill-opacity: 0.4;
 }
-.flowplot .line {
+.storyline .line {
 	fill: none;
 	stroke: black;
 	stroke-opacity: .5;
@@ -53,25 +53,25 @@
 	stroke-width: 6;
 	vector-effect: non-scaling-stroke;
 }
-.flowplot .line.highlight {
+.storyline .line.highlight {
 	stroke-opacity: 1.0;
 }
-.flowplot .axis path, .timeline .axis line {
+.storyline .axis path, .timeline .axis line {
 	fill: none;
 	stroke: black;
 }
-.flowplot .brush .extent {
+.storyline .brush .extent {
 	fill: #3a87ad;
 	fill-opacity: .5;
 }
 
 /* TODO: remove dummy node support after debugging */
-.flowplot .dummynode {
+.storyline .dummynode {
 	shape-rendering: crispEdges;
 	fill: green;
 	fill-opacity: .5;
 	stroke: none;
 }
-.flowplot .dummynode.highlight {
+.storyline .dummynode.highlight {
 	fill-opacity: 0.9;
 }
