@@ -436,7 +436,7 @@ function storylineLayout(nodesByYear, layoutHeight, nodeHeightPerEntity, nodeHei
 	return entityLines;
 }
 
-function drawStorylineDiagram(svg, box, clipId, data, layoutHeight, nodeWidth, nodeHeightPerEntity, xAxisSpace, drawLabels, doMouseovers) {
+function drawStorylineDiagram(svg, box, clipId, data, layoutHeight, nodeWidth, nodeHeightPerEntity, xAxisSpace, drawLabels, doMouseovers, onSelectNode) {
 	var scale = box.height / layoutHeight;
 
 	var draw = svg.append('g')
@@ -505,7 +505,13 @@ function drawStorylineDiagram(svg, box, clipId, data, layoutHeight, nodeWidth, n
 				classEnitityLines(n.entityIds, false);
 			})
 			.append("title")
-			.text(function(d) { return "" + timeAxisTickFormater(d.date) + "\n" + $.map(d.clusters, function (v, f) { return f; }).join("\n") });
+			.text(function(d) {
+				return "" + timeAxisTickFormater(d.date)
+					+ "\n" + $.map(d.entityIds, function (eid, i) { var e = data.entities[eid]; return "" + e.field + ":" + e.value; }).join("\n")
+					+ "\n" + $.map(d.clusters, function (v, f) { return f; }).join("\n");
+			});
+	if (onSelectNode != null)
+		node.on("click", onSelectNode);
 
 	var labelGroups = null;
 	if (drawLabels) {
@@ -577,7 +583,7 @@ function drawStorylineDiagram(svg, box, clipId, data, layoutHeight, nodeWidth, n
 /*
  * Draw the whole visualization.
  */
-function drawStoryline(svg, detailBox, selectBox, data) {
+function drawStoryline(svg, detailBox, selectBox, data, onSelectNode) {
 	var nodeWidth = detailBox.width * 0.01;
 	var nodeHeightPerEntity = detailBox.height * 0.06;
 	var nodeHeightGap = nodeHeightPerEntity;
@@ -598,8 +604,8 @@ function drawStoryline(svg, detailBox, selectBox, data) {
 		.attr('height', detailBox.height);
 
 	layout(data, layoutHeight, nodeHeightPerEntity, nodeHeightGap, looseRelaxationIters, middleRelaxationIters, tightRelaxationIters, yearDistWeight);
-	var detailPlot = drawStorylineDiagram(svg, detailBox, clipId, data, layoutHeight, nodeWidth, nodeHeightPerEntity, xAxisSpace, true, true);
-	var selectPlot = drawStorylineDiagram(svg, selectBox, clipId, data, layoutHeight, nodeWidth, nodeHeightPerEntity, xAxisSpace, false, false);
+	var detailPlot = drawStorylineDiagram(svg, detailBox, clipId, data, layoutHeight, nodeWidth, nodeHeightPerEntity, xAxisSpace, true, true, onSelectNode);
+	var selectPlot = drawStorylineDiagram(svg, selectBox, clipId, data, layoutHeight, nodeWidth, nodeHeightPerEntity, xAxisSpace, false, false, null);
 
 	var brush = null;
 	function onBrush() {
@@ -640,6 +646,7 @@ function setupStoryline(container, globalQuery) {
 	var svgElt = $("<svg class=\"innersvg\" viewBox=\"" + viewBox.x + " " + viewBox.y + " " + viewBox.width + " " + viewBox.height + "\" preserveAspectRatio=\"none\"></svg>").appendTo(outerSvgElt);
 
 	var formElt = $("<form></form>").appendTo(topBoxElt);
+	var clearSelElt = $("<button type=\"button\" class=\"btn btn-warning clear mapclear\" title=\"Clear the map selection.\">Clear selection</button>").appendTo(formElt);
 	var updateElt = $("<button type=\"submit\" class=\"btn btn-warning\" title=\"Update the visualization\">Update</button></ul>").appendTo(formElt);
 	var entitiesElt = $("<input type=\"text\" class=\"entities\" title=\"Entities\"></input>").appendTo($("<div class=\"inputbox\"></div>").appendTo(formElt));
 	entitiesElt.val(defaultEntityString);
@@ -653,8 +660,14 @@ function setupStoryline(container, globalQuery) {
 	var detailBox = { x: viewBox.x + margins.left, y: viewBox.y + margins.top, width: width, height: height * split },
 	    selectBox = { x: viewBox.x + margins.left, y: viewBox.y + margins.top + detailBox.height + margins.between, width: width, height: height * (1.0 - split) };
 
-	var globalQueryResultWatcher = new ResultWatcher(function () {});
-	globalQuery.addResultWatcher(globalQueryResultWatcher);
+	var ownCnstrQuery = new Query(globalQuery.backendUrl());
+	var constraint = new Constraint();
+	globalQuery.addConstraint(constraint);
+	ownCnstrQuery.addConstraint(constraint);
+	var contextQuery = new Query(globalQuery.backendUrl(), 'setminus', globalQuery, ownCnstrQuery);
+
+	var resultWatcher = new ResultWatcher(function () {});
+	contextQuery.addResultWatcher(resultWatcher);
 
 	function setLoadingIndicator(enabled) {
 		svgElt.css('display', !enabled ? '' : 'none');
@@ -681,7 +694,7 @@ function setupStoryline(container, globalQuery) {
 	function setEntityString(entityString) {
 		var entities = parseEntitiesString(entityString);
 		if (entities.length > 0) {
-			globalQueryResultWatcher.set({
+			resultWatcher.set({
 				"plottimeline": {
 					"type": "plottimeline",
 					"clusterField": "referencePoints",
@@ -690,7 +703,7 @@ function setupStoryline(container, globalQuery) {
 			});
 			globalQuery.update();
 		} else {
-			globalQueryResultWatcher.clear();
+			resultWatcher.clear();
 			setLoadingIndicator(true);
 		}
 	}
@@ -703,20 +716,62 @@ function setupStoryline(container, globalQuery) {
 		return false;
 	});
 
+
+	var selection = {};
+	function updateSelection() {
+		if ($.isEmptyObject(selection)) {
+			clearSelElt.attr('disabled', 'disabled');
+			constraint.clear();
+		} else {
+			var nodeCount = 0,
+			    seen = {},
+			    selPointStrs = [];
+			$.each(selection, function (nodeId, clusters) {
+				nodeCount += 1;
+				$.each(clusters, function (cluster, mem) {
+					if (!seen.hasOwnProperty(cluster)) {
+						seen[cluster] = true;
+						selPointStrs.push(cluster);
+					}
+				});
+			});
+			constraint.name("Storyline: " + nodeCount + (nodeCount == 1 ? " node" : " nodes"));
+			constraint.set({
+				type: 'referencepoints',
+				points: selPointStrs
+			});
+			clearSelElt.removeAttr('disabled');
+		}
+		globalQuery.update();
+	}
+	function onClearSelection() {
+		selection = {};
+		updateSelection();
+	}
+	function onSelectNode(node) {
+		if (!selection.hasOwnProperty(node.id))
+			selection[node.id] = node.clusters;
+		else
+			delete selection[node.id];
+		updateSelection();
+	}
+	clearSelElt.attr('disabled', 'disabled');
+	clearSelElt.bind('click', onClearSelection);
+
 	var data = null;
 	function draw() {
 		if (data != null) {
 			svgElt.children().remove();
 			var svg = jqueryToD3(svgElt);
 			setLoadingIndicator(false);
-			drawStoryline(svg, detailBox, selectBox, resultToSankeyData(data));
+			drawStoryline(svg, detailBox, selectBox, resultToSankeyData(data), onSelectNode);
 			scaleSvg();
 		} else {
 			setLoadingIndicator(false);
 		}
 	}
 
-	globalQueryResultWatcher.setCallback(function(result, getContinuer) {
+	resultWatcher.setCallback(function(result, getContinuer) {
 		if (result.plottimeline.hasOwnProperty('error')) {
 			data = null;
 			loadingIndicator.error('storyline', true);
