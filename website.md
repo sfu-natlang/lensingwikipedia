@@ -149,7 +149,7 @@ The make command above creates default settings files. If you already have your 
     cd /var/www/html/checkouts/20131017/domains/wikipediahistory/backend
     nohup python2.7 backend -p 1510 -c full.conf
 
-Note that you do not always need to restart the backed to change to new data; see the backend README.
+Note that you do not always need to restart the backend to change to new data; see the backend README.
 
 ## Pull new frontend and deploy
 
