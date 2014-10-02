@@ -6,10 +6,10 @@ Usage and introduction
 Domain-specific code
 --------------------
 
-To use the backend you first need to create a backend_domain_config.py and any
-other needed file containing domain-specific code. This file can provide names
-for extra keyword fields (especially for facets) and functions that provide
-values for both the required fields and extra keyword fields.
+To use the backend you first need to create a `backend_domain_config.py` and
+any other needed file containing domain-specific code. This file can provide
+names for extra keyword fields (especially for facets) and functions that
+provide values for both the required fields and extra keyword fields.
 
 After the domain code is in place then the following steps will work.
 
@@ -66,7 +66,7 @@ Backend behaviour and configuration
 -----------------------------------
 
 The backend reloads the configuration file and updates its settings at an
-interval determined by the settings_timeout server setting. If there is any
+interval determined by the `settings_timeout` server setting. If there is any
 error reading the configuration file, the backend ignores the file and
 continues using the current settings.
 
@@ -78,11 +78,11 @@ replace the configuration file atomically.
 When the backend reloads the configuration file, it also checks for changes to
 the index. If the index path has not changed but the index has been modified
 since the last settings reload, the backend resets by clearing all caches and
-re-priming them. If the index path (given by the index_dir_path server setting)
-has changed, it starts using the new index and then does the same reset. If you
-want to force the backend to reset at every settings reload regardless of index
-changes you can use the always_reset server setting (but there is no obvious
-reason to do so).
+re-priming them. If the index path (given by the `index_dir_path` server
+setting) has changed, it starts using the new index and then does the same
+reset. If you want to force the backend to reset at every settings reload
+regardless of index changes you can use the `always_reset `server setting (but
+there is no obvious reason to do so).
 
 The settings reload and any necessary index loading and cache priming is done
 in a background thread. The changes will be applied at the next query received
@@ -94,9 +94,9 @@ configuration for the data. In general each live instance of the backend should
 have its own configuration file so that its settings can be changed without
 restarting.
 
-See backend_settings_defaults.py for a list of settings and the format of a
+See `backend_settings_defaults.py` for a list of settings and the format of a
 configuration file. In general you would want to at least set the index path
-and make sure that the all_argument_numbers and fields_to_prime querier
+and make sure that the `all_argument_numbers` and `fields_to_prime` querier
 settings match your data.
 
 Testing queries
@@ -105,14 +105,14 @@ Testing queries
 For testing, we can run a query directly against the index (without the
 backend, but using the same query handling code):
 
-        queryindex -c demo.conf test.index query.json
+    queryindex -c demo.conf test.index query.json
 
 The -c option here uses the querier settings (but not server settings) from
 test.conf.
 
 We can also run a query through a running backend:
 
-        querybackend http://localhost:1500 query.json
+    querybackend http://localhost:1500 query.json
 
 You can try this with the .json query files in examplequeries/, for example.
 
@@ -165,17 +165,17 @@ The backend is designed to have no per-client state. Caching is used in limited
 cases where being stateless is a potential performance issue.
 
 We cache all initial (empty constraint) view results. The predicate
-should_cache() in queries.py determines which views need result caching, so the
-scope of this caching can be expanded easily if desired.
+`should_cache()` in `queries.py` determines which views need result caching, so
+the scope of this caching can be expanded easily if desired.
 
 All caches are cleared at the timeout when the backend reloads its settings if
 there has been any change to the index (identity or contents), so that if the
 data changed we get the current version. The caches are initially primed by
-auto-submitting common queries. The queries_to_prime() function in queries.py
-generates the queries for priming.
+auto-submitting common queries. The `queries_to_prime()` function in
+`queries.py` generates the queries for priming.
 
-Caches are controlled by being isolated in a query handler (Querier in
-queries.py) object. This allows a complete reset of the query handling state
+Caches are controlled by being isolated in a query handler (`Querier` in
+`queries.py`) object. This allows a complete reset of the query handling state
 (for resetting caches) by creating a new query handler.
 
 The backend uses a single background thread which handles settings loading,
@@ -191,10 +191,10 @@ pagination), sort by the count, and clip to the desired page size. We cache the
 unclipped results so that this isn't horribly inefficient. It should be
 efficient enough as long as the cache is large enough relative to the number of
 users. Which views get this kind of pagination is controlled by
-how_to_paginate_results() in queries.py.
+`how_to_paginate_results()` in `queries.py`.
 
 For queries which don't need counting, Whoosh handles pagination for us through
-its search_page() function. The Whoosh documentation indicates that this
+its `search_page()` function. The Whoosh documentation indicates that this
 function simply runs the complete query but only returns the appropriate page
 (presumably similar to our clipping on counted results), but in practice this
 seems incur little slowdown for larger page numbers.
