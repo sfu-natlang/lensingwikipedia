@@ -4,7 +4,10 @@ This assumes a bare bones CentOS 6 install.
 
 ## Choose a domain
 
-The instructions below assume we are building the main Lensing Wikipedia site. We therefore use the domains/wikipediahistory/ directory for the backend and frontend. For a different domain use the appropriate sub-directory in domains/ instead, and adjust local paths and URLs as needed.
+The instructions below assume we are building the main Lensing Wikipedia site.
+We therefore use the domains/wikipediahistory/ directory for the backend and
+frontend. For a different domain use the appropriate sub-directory in domains/
+instead, and adjust local paths and URLs as needed.
 
 ## Set up packages on CentOS 6
 
@@ -65,7 +68,7 @@ The instructions below assume we are building the main Lensing Wikipedia site. W
     create file /etc/httpd/sites-available/lensingwikipedia.cs.sfu.ca.conf # see below
     symlink above file to /etc/httpd/sites-enabled/lensingwikipedia.cs.sfu.ca.conf
 
-### sites-available/lensingwikipedia.cs.sfu.ca.conf 
+### sites-available/lensingwikipedia.cs.sfu.ca.conf
 
     <VirtualHost lensingwikipedia.cs.sfu.ca:80>
       ServerName lensingwikipedia.cs.sfu.ca
@@ -75,6 +78,7 @@ The instructions below assume we are building the main Lensing Wikipedia site. W
       DocumentRoot /var/www/html/lensingwikipedia.cs.sfu.ca
       <Directory /var/www/html/lensingwikipedia.cs.sfu.ca>
         Options -Indexes FollowSymLinks MultiViews
+        AddDefaultCharset utf-8
         AllowOverride None
         Order allow,deny
         allow from all
@@ -125,7 +129,7 @@ Now the appropriate programs are in `/var/www/html/checkouts/20131017/domains/wi
       'querier': {
       }
     }
-    
+
 ## Configure frontend and deploy
 
     cd /var/www/html/checkouts/20131017/domains/wikipediahistory
