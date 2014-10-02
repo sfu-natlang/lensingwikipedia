@@ -1,6 +1,9 @@
 Lensing Wikipedia
+=================
+
 Anoop Sarkar, Maryam Siahbani, Ravikiran Vadlapudi, and Max Whitney
-Simon Fraser University, School of Computing Science
+
+Simon Fraser University, School of Computing Science  
 Burnaby, BC V5A 1S6, Canada
 
 For license information, see the LICENCE file.
