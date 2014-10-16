@@ -182,6 +182,24 @@ class Querier:
     return {
       'links': [{ 'refpoints': p, 'count': c } for (p, c) in link_counts.iteritems()]
     }
+  
+  def _handle_tsnecoordinates_view(self, view, whoosh_query):
+    print >> sys.stderr, whoosh_query
+    coordinates = {}
+    with self.whoosh_index.searcher() as searcher:
+      hits = searcher.search(whoosh_query, limit=None)
+      print >> sys.stderr, "whoosh search results: %s" % (repr(hits))
+      for hit in hits:
+        refpoints = whooshutils.split_keywords(hit['2DtSNECoordinates'])
+        id = hit['id']
+        for refpoint in refpoints:
+          if refpoint:
+            coordinate_splits = whooshutils.split_keywords(refpoint)
+            coordinates[id] = {'x': coordinate_splits[0], 'y': coordinate_splits[1]}
+    return {
+      'coordinates': [{ 'id': i, 'coordinates': p } for i, p in coordinates.iteritems()]
+    }
+
 
   def handle_independent_view(self, view, whoosh_query):
     """
@@ -193,6 +211,8 @@ class Querier:
       return self._handle_descriptions_view(view, whoosh_query)
     elif type == 'referencepointlinks':
       return self._handle_referencepointlinks_view(view, whoosh_query)
+    elif type == 'tsnecoordinates':
+      return self._handle_tsnecoordinates_view(view, whoosh_query)
     else:
       raise ValueError("unknown view type \"%s\"" % (type))
 
