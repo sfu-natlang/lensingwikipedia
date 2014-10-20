@@ -2,6 +2,120 @@
  * Entity timeline visualization similar to XKCD #657.
  */
 
+var doublyLinkedList = (function () {
+	function empty() {
+		return {
+			head: null,
+			last: null,
+			length: 0
+		};
+	}
+
+	function eachNode(list, f) {
+		for (var node = list.head; node != null; node = node.next)
+			if (f(node) == false)
+				break;
+	}
+
+	function each(list, f) {
+		for (var node = list.head; node != null; node = node.next)
+			if (f(node.value) == false)
+				break;
+	}
+
+	function mapNodes(list, f) {
+		if (list.head == null)
+			return null;
+		var head = {
+			index: 0,
+			value: list.head.value,
+			prev: null,
+			next: null
+		};
+		var last = head;
+		for (var node = list.next, i = 1; node != null; node = node.next, i++) {
+			last.next = {
+				index: i,
+				value: f(node.value),
+				prev: last,
+				next: null
+			};
+			last = last.next;
+		}
+		return {
+			head: head,
+			last: last,
+			length: list.length
+		};
+	}
+
+	function map(list, f) {
+		return mapNodes(list, function (n) { return f(n.value); });
+	}
+
+	function ofArray(array) {
+		var head = {
+			index: 0,
+			value: array[0],
+			prev: null,
+			next: null
+		};
+		var last = head;
+		for (var i = 1; i < array.length; i++) {
+			last.next = {
+				index: i,
+				value: array[i],
+				prev: last,
+				next: null
+			};
+			last = last.next;
+		}
+		return {
+			head: head,
+			last: last,
+			length: array.length
+		};
+	}
+
+	function toArray(list) {
+		var array = [];
+		var node = list.head;
+		while (node != null) {
+			array.push(node.value);
+			node = node.next;
+		}
+		return array;
+	}
+
+	function moveNodeToBefore(list, moveFromNode, moveToNode) {
+		if (moveFromNode.prev == null)
+			list.head = moveFromNode.next;
+		else
+			moveFromNode.prev.next = moveFromNode.next;
+		if (moveFromNode.next == null)
+			list.last = moveFromNode.prev;
+		else
+			moveFromNode.next.prev = moveFromNode.prev;
+		if (moveToNode.prev == null)
+			list.head = moveFromNode;
+		else
+			moveToNode.prev.next = moveFromNode;
+		moveFromNode.prev = moveToNode.prev;
+		moveFromNode.next = moveToNode;
+		moveToNode.prev = moveFromNode;
+	}
+
+	return {
+		each: each,
+		eachNode: eachNode,
+		map: map,
+		mapNodes: mapNodes,
+		ofArray: ofArray,
+		toArray: toArray,
+		moveNodeToBefore: moveNodeToBefore
+	}
+})();
+
 // Number for generating unique clipping element IDs
 var timelineClipNum = 0;
 
@@ -196,94 +310,50 @@ function makeRows(visClusters) {
 	return rows;
 }
 
-function sortRows(rows, metric) {
-	function listify(array) {
-		var head = {
-			index: 0,
-			value: array[0],
-			prev: null,
-			next: null
-		};
-		var node = head;
-		for (var i = 1; i < array.length; i++) {
-			node.next = {
-				index: i,
-				value: array[i],
-				prev: node,
-				next: null
-			};
-			node = node.next;
-		}
-		return head;
-	}
+function sortRows(rows, metric, hillclimbIters) {
+	var rowsList = doublyLinkedList.ofArray(rows);
+	var nodeLookup = {};
+	doublyLinkedList.eachNode(rowsList, function (rowNode) {
+		nodeLookup[rowNode.index] = rowNode;
+	});
 
-	function delistify(list) {
-		var array = [];
-		var node = list;
-		while (node != null) {
-			array.push(node.value);
-			node = node.next;
-		}
-		return array;
-	}
-
-	function moveListElt(head, moveFromNode, moveToNode) {
-		if (moveFromNode.prev == null)
-			head = moveFromNode.next;
-		else
-			moveFromNode.prev.next = moveFromNode.next;
-		if (moveFromNode.next != null)
-			moveFromNode.next.prev = moveFromNode.prev;
-		if (moveToNode.prev == null)
-			head = moveFromNode;
-		else
-			moveToNode.prev.next = moveFromNode;
-		moveFromNode.prev = moveToNode.prev;
-		moveFromNode.next = moveToNode;
-		moveToNode.prev = moveFromNode;
-		return head;
-	}
-
-	var rowsList = listify(rows);
-
-	var iters = 2 * rows.length;
 	var lastBestSim = {};
-	for (var iter = 0; iter < iters; iter++) {
-		var moveFromI = Math.floor(Math.random() * rows.length),
-		    moveFromNode = null;
-		for (var rowNode = rowsList; rowNode != null; rowNode = rowNode.next) {
-			if (rowNode.index == moveFromI) {
-				moveFromNode = rowNode;
-				break;
-			}
-		}
-		var lastSim = 0;
-		if (moveFromNode.prev != null)
-			bestSim += metric(moveFromI, moveFromNode.prev.index);
-		if (moveFromNode.next != null)
-			bestSim += metric(moveFromI, moveFromNode.next.index);
-		var moveToNode = null,
-		    bestSim = lastSim
-		for (var rowNode = rowsList; rowNode != null; rowNode = rowNode.next) {
-			if (rowNode.index != moveFromI && (rowNode.prev == null || rowNode.prev.index != moveFromI)) {
-				var sim = metric(moveFromI, rowNode.index);
-				if (rowNode.prev != null)
-					sim += metric(moveFromI, rowNode.prev.index);
-				if (sim > bestSim) {
-					moveToNode = rowNode;
-					bestSim = sim;
+	for (var iter = 0; iter < hillclimbIters; iter++) {
+		for (var moveFromI = 0; moveFromI < rows.length; moveFromI++) {
+			var moveFromNode = nodeLookup[moveFromI];
+			doublyLinkedList.eachNode(rowsList, function (rowNode) {
+				if (rowNode.index == moveFromI) {
+					moveFromNode = rowNode;
+					return false;
 				}
-			}
+			});
+			var lastSim = 0;
+			if (moveFromNode.prev != null)
+				bestSim += metric(moveFromI, moveFromNode.prev.index);
+			if (moveFromNode.next != null)
+				bestSim += metric(moveFromI, moveFromNode.next.index);
+			var moveToNode = null,
+			    bestSim = lastSim
+			doublyLinkedList.eachNode(rowsList, function (rowNode) {
+				if (rowNode.index != moveFromI && (rowNode.prev == null || rowNode.prev.index != moveFromI)) {
+					var sim = metric(moveFromI, rowNode.index);
+					if (rowNode.prev != null)
+						sim += metric(moveFromI, rowNode.prev.index);
+					if (sim > bestSim) {
+						moveToNode = rowNode;
+						bestSim = sim;
+					}
+				}
+			});
+			if (moveToNode != null)
+				doublyLinkedList.moveNodeToBefore(rowsList, moveFromNode, moveToNode);
 		}
-		if (moveToNode != null)
-			rowsList = moveListElt(rowsList, moveFromNode, moveToNode);
-		console.log("hillclimb iter", iter, lastSim, bestSim, bestSim - lastSim);
 	}
 
-	return delistify(rowsList);
+	return rowsList;
 }
 
-function orderRows(yearsOrder, rows, visClusters) {
+function orderRows(yearsOrder, rows, visClusters, hillclimbIters) {
 	function similarity(row1, row2) {
 		var same = 0,
 		    notSame = 0;
@@ -362,19 +432,19 @@ function orderRows(yearsOrder, rows, visClusters) {
 		return m;
 	}
 
-	return sortRows(rows, metric);
+	return sortRows(rows, metric, hillclimbIters);
 }
 
-function storylineLayout(resultData, layoutHeight, marginRows) {
-	function makeNodes(rows, spacePerRow) {
+function storylineLayout(resultData, layoutHeight, layoutMarginLineSpaces, rowMarginLineSpaces, minRowYSpace, hillclimbIters) {
+	function makeNodes(rows) {
 		var nodes = [];
 		$.each(rows, function (rowI, row) {
-			var y = (marginRows / 2 + 0.5 + rowI) * spacePerRow;
 			$.each(row.visClusters, function (visClusterI, visCluster) {
+				// TODO: can we get rid of the reference to row?
 				node = {
+					row: row,
 					visCluster: visCluster,
-					linePoints: [],
-					y: y
+					linePoints: []
 				};
 				nodes.push(node);
 				// TODO: can we get rid of this back reference?
@@ -393,7 +463,8 @@ function storylineLayout(resultData, layoutHeight, marginRows) {
 					var node = visCluster.layoutNode;
 					var linePoint = {
 						node: node,
-						y: node.y
+						prev: null,
+						next: null
 					};
 					node.linePoints.push(linePoint);
 					if (!lineLookup.hasOwnProperty(entityId)) {
@@ -404,7 +475,11 @@ function storylineLayout(resultData, layoutHeight, marginRows) {
 						lines.push(line);
 						lineLookup[entityId] = line;
 					} else {
-						lineLookup[entityId].points.push(linePoint);
+						var points = lineLookup[entityId].points;
+						var lastPoint = points[points.length - 1];
+						lastPoint.next = linePoint;
+						linePoint.prev = lastPoint;
+						points.push(linePoint);
 					}
 				});
 			});
@@ -412,32 +487,104 @@ function storylineLayout(resultData, layoutHeight, marginRows) {
 		return lines;
 	}
 
+	function findMaxLinesPerNode(rows) {
+		var overallMax = 0;
+		var maxByRow = $.map(rows, function (row, rowI) {
+			var maxLines = 0;
+			$.each(row.visClusters, function (visClusterI, visCluster) {
+				var node = visCluster.layoutNode;
+				var num = node.linePoints.length;
+				if (num > maxLines) {
+					maxLines = num;
+					if (num > overallMax)
+						overallMax = num
+				}
+			});
+			return maxLines;
+		});
+		return {
+			overall: overallMax,
+			byRow: maxByRow
+		};
+	}
+
+	function spaceRows(rows, maxLines) {
+		var totalLines = 0;
+		$.each(maxLines.byRow, function (i, m) { totalLines += m });
+
+		var ySpacePerLine = layoutHeight / (totalLines + layoutMarginLineSpaces + (rows.length * rowMarginLineSpaces));
+		var availLayoutHeight = layoutHeight - layoutMarginLineSpaces * ySpacePerLine;
+		var freeSpaceForRows = availLayoutHeight - rows.length * minRowYSpace;
+
+		if (freeSpaceForRows <= 0) {
+			var spacePerRow = availLayoutHeight / rows.length;
+			$.each(rows, function (rowI, row) {
+				row.ySpace = spacePerRow;
+			});
+		} else {
+			$.each(rows, function (rowI, row) {
+				row.ySpace = minRowYSpace + freeSpaceForRows * (maxLines.byRow[rowI] / totalLines);
+			});
+		}
+
+		return ySpacePerLine;
+	}
+
+	function setPositions(yearsOrder, visClustersByYear, rows, lines, maxLines) {
+		var ySpacePerLine = spaceRows(rows, maxLines);
+
+		var ySpaceAbove = (layoutMarginLineSpaces / 2) * ySpacePerLine;
+		$.each(rows, function (rowI, row) {
+			y = ySpaceAbove;
+			ySpaceAbove += row.ySpace;
+			$.each(row.visClusters, function (visClusterI, visCluster) {
+				var node = visCluster.layoutNode;
+				node.y = y;
+				node.ySpace = row.ySpace;
+			});
+		});
+
+		$.each(yearsOrder, function (yearI, year) {
+			$.each(visClustersByYear[year], function (visClusterI, visCluster) {
+				var node = visCluster.layoutNode;
+				node.linePoints.sort(function (linePoint1, linePoint2) {
+					if (linePoint1.prev == null || linePoint2.prev == null)
+						return 0;
+					else
+						return linePoint1.prev.y - linePoint2.prev.y;
+				});
+				var nodeOffset = node.y + (rowMarginLineSpaces / 2) * ySpacePerLine;
+				node.ySpacePerLine = (node.row.ySpace - rowMarginLineSpaces * ySpacePerLine) / node.linePoints.length;
+				$.each(node.linePoints, function (linePointI, linePoint) {
+					linePoint.y = nodeOffset + (0.5 + linePointI) * node.ySpacePerLine;
+				});
+			});
+		});
+
+		return ySpacePerLine;
+	}
+
 	var entities = extractEntities(resultData);
 	var yearsOrder = Object.keys(entities.byYear);
 	yearsOrder.sort(function (y1, y2) { return y1 - y2; });
 	var visClusters = makeVisClusters(entities.byYear);
 	var rows = makeRows(visClusters.all);
-	rows = orderRows(yearsOrder, rows, visClusters);
-	var spacePerRow = layoutHeight / (rows.length + marginRows);
-	var nodes = makeNodes(rows, spacePerRow);
+	rows = orderRows(yearsOrder, rows, visClusters, hillclimbIters);
+	rows = doublyLinkedList.toArray(rows);
+	var nodes = makeNodes(rows);
 	var lines = makeLines(yearsOrder, visClusters.byYear);
-
-	var maxLinesPerNode = 0;
-	$.each(nodes, function (nodeI, node) {
-		if (node.linePoints.length > maxLinesPerNode)
-			maxLinesPerNode = node.linePoints.length;
-	});
+	var maxLines = findMaxLinesPerNode(rows);
+	var ySpacePerLine = setPositions(yearsOrder, visClusters.byYear, rows, lines, maxLines);
 
 	return {
-		ySpacePerRow: spacePerRow,
-		maxLinesPerNode: maxLinesPerNode,
 		entities: entities.all,
 		nodes: nodes,
-		lines: lines
+		lines: lines,
+		ySpacePerLine: ySpacePerLine
 	}
 }
 
-function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, nodeHeight, nodeWidth, lineWidth, drawLabels, doMouseovers, useFieldPrefixes, importantEntities, onSelectNode) {
+function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, ySpacePerLine, nodeWidth, lineWidth, drawLabels, doMouseovers, useFieldPrefixes, importantEntities, onSelectNode) {
 	var scale = box.height / layoutHeight;
 
 	var draw = svg.append('g')
@@ -470,21 +617,101 @@ function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, node
 		.attr('clip-path', "url(#" + clipId + ")")
 		.call(xAxis);
 
+	function buildLinks(lines) {
+		var links = [];
+		$.each(lines, function (lineI, line) {
+			var firstPoint = line.points[0];
+			links.push({
+				type: 'through',
+				entityId: line.entityId,
+				source: firstPoint,
+				target: firstPoint
+			});
+			var linePoint = line.points[1];
+			while (linePoint != null) {
+				var moveDate = null;
+				if (linePoint.node.visCluster.year > linePoint.prev.node.visCluster.year + 1) {
+					moveDate = new Date(linePoint.node.visCluster.date);
+					moveDate.setFullYear(moveDate.getFullYear() - 1);
+					links.push({
+						type: 'continue',
+						entityId: line.entityId,
+						source: linePoint.prev,
+						target: linePoint,
+						moveDate: moveDate
+					});
+				}
+				links.push({
+					type: 'move',
+					entityId: line.entityId,
+					source: linePoint.prev,
+					target: linePoint,
+					moveDate: moveDate
+				});
+				links.push({
+					type: 'through',
+					entityId: line.entityId,
+					source: linePoint,
+					target: linePoint
+				});
+				linePoint = linePoint.next;
+			}
+		});
+		return links;
+	}
+	var lineLinks = buildLinks(layout.lines);
+
 	var linesColor = d3.scale.category10();
-	var linesLine = d3.svg.line()
-		.x(function (p, i) { return xScale(p.node.visCluster.date); })
-		.y(function (p) { return p.y * scale; })
-		.interpolate('cardinal')
-		.tension(0.8);
+	var linesLine = d3.svg.diagonal()
+		.source(function (l) {
+			if (l.type == 'through') {
+				return {
+					y: xScale(l.source.node.visCluster.date) - nodeWidth / 2,
+					x: l.source.y * scale
+				};
+			} else if (l.type == 'continue') {
+				return {
+					y: xScale(l.source.node.visCluster.date) + nodeWidth / 2,
+					x: l.source.y * scale
+				};
+			} else if (l.type == 'move') {
+				return {
+					y: l.moveDate == null ? xScale(l.source.node.visCluster.date) + nodeWidth / 2 : xScale(l.moveDate),
+					x: l.source.y * scale
+				};
+			}
+		})
+		.target(function (l) {
+			if (l.type == 'through') {
+				return {
+					y: xScale(l.source.node.visCluster.date) + nodeWidth / 2,
+					x: l.source.y * scale
+				};
+			} else if (l.type == 'continue') {
+				return {
+					y: xScale(l.moveDate),
+					x: l.source.y * scale
+				};
+			} else if (l.type == 'move') {
+				return {
+					y: xScale(l.target.node.visCluster.date) - nodeWidth / 2,
+					x: l.target.y * scale
+				};
+			}
+		})
+		.projection(function (xy) {
+			// We swap x and y above and put them back here to get the right orientation of curves (see http://stackoverflow.com/questions/15007877/how-to-use-the-d3-diagonal-function-to-draw-curved-lines)
+			return [xy.y, xy.x];
+		});
 	var lines = draw.append("g")
 		.selectAll(".line")
-		.data(layout.lines)
+		.data(lineLinks)
 		.enter()
 		.append("path")
 		.attr('clip-path', "url(#" + clipId + ")")
 		.attr("class", classForLine)
 		.style('stroke-width', lineWidth)
-		.style("stroke", function(l, i) { return linesColor(i); });
+		.style("stroke", function(l, i) { return linesColor(l.entityId); });
 	if (doMouseovers)
 		lines
 			.on("mouseover", function (l) {
@@ -533,29 +760,28 @@ function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, node
 		var text = labelGroups
 			.append("text")
 			.text(function (l, i) { var e = layout.entities[l.entityId]; return "" + (useFieldPrefixes ? e.field + ":" : "") + e.value; })
-			.attr("dy", ".35em");
-		if (doMouseovers)
-			text
-				.on("mouseover", function (l) {
-					classEnitityLines([l.entityId], true);
-				})
-				.on("mouseout", function (l) {
-					classEnitityLines([l.entityId], false);
-				});
+			.attr("dy", ".35em")
+			.style('pointer-events', 'none');
 	}
 
 	function update() {
 		lines
-			.attr("d", function (l) { return linesLine(l.points); });
+			.attr("d", linesLine);
 		node
-			.attr("x", function (n) { return xScale(n.visCluster.date) - nodeWidth / 2; })
-			.attr("y", function (n) { return n.y * scale; })
-			.attr("height", function(n) { return nodeHeight * scale; })
+			.attr("x", function (n) {
+				return xScale(n.visCluster.date) - nodeWidth / 2;
+			})
+			.attr("y", function (n) {
+				return (n.y + (n.ySpace - Math.min(ySpacePerLine, n.ySpacePerLine) * n.linePoints.length) / 2) * scale;
+			})
+			.attr("height", function(n) {
+				return (Math.min(ySpacePerLine, n.ySpacePerLine) * n.linePoints.length) * scale;
+			})
 			.attr("width", nodeWidth);
 		if (labelGroups != null)
 			labelGroups
 				.attr('visibility', function (l) {
-					if (xScale(l.points[l.points.length - 1].node.visCluster.date) < 0)
+					if (xScale(l.points[l.points.length - 1].date) < 0)
 						return 'hidden';
 					else if (xScale(l.points[0].node.visCluster.date) > box.width)
 						return 'hidden';
@@ -571,7 +797,7 @@ function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, node
 				})
 				.attr('transform', function(l) {
 					var x = Math.min(box.width, Math.max(0, xScale(l.points[0].node.visCluster.date)));
-					return "translate(" + x + "," + (l.points[0].node.y * scale - lineWidth / 2) + ")";
+					return "translate(" + x + "," + (l.points[0].y * scale - lineWidth / 2) + ")";
 				});
 	}
 	update();
@@ -593,14 +819,14 @@ function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, node
  * Draw the whole visualization.
  */
 function drawStoryline(svg, detailBox, selectBox, data, useFieldPrefixes, importantEntities, onSelectNode) {
-	var nodeWidth = detailBox.width * 0.01;
-	var nodeHeightPerEntity = detailBox.height * 0.06;
-	var nodeHeightGap = nodeHeightPerEntity;
-	var yearDistWeight = 1;
-	var looseRelaxationIters = 3;
-	var middleRelaxationIters = 1;
-	var tightRelaxationIters = 3;
-	var layoutHeight = detailBox.height;
+	var nodeWidth = detailBox.width * 0.01,
+	    layoutHeight = detailBox.height,
+	    hillclimbIters = 2,
+			layoutMarginLineSpaces = 4,
+	    rowMarginLineSpaces = 0.4,
+			minRowYSpace = 8,
+			minLineWidth = 1,
+			lineWidthAsFracOfSpace = 0.25;
 
 	var clipId = "timelineclip" + timelineClipNum;
 	timelineClipNum++;
@@ -611,13 +837,11 @@ function drawStoryline(svg, detailBox, selectBox, data, useFieldPrefixes, import
 		.attr('width', detailBox.width)
 		.attr('height', detailBox.height);
 
-	var layout = storylineLayout(data, layoutHeight, 2);
+	var layout = storylineLayout(data, layoutHeight, layoutMarginLineSpaces, rowMarginLineSpaces, minRowYSpace, hillclimbIters);
+	var lineWidth = Math.max(minLineWidth, layout.ySpacePerLine * lineWidthAsFracOfSpace);
 
-	var nodeHeight = Math.max(4, layout.ySpacePerRow * 0.9);
-	var lineWidth = Math.max(2, nodeHeight / (layout.maxLinesPerNode * 2));
-
-	var detailPlot = drawStorylineDiagram(svg, detailBox, clipId, data, layout, layoutHeight, nodeHeight, nodeWidth, lineWidth, true, true, useFieldPrefixes, importantEntities, onSelectNode);
-	var selectPlot = drawStorylineDiagram(svg, selectBox, clipId, data, layout, layoutHeight, nodeHeight, nodeWidth, lineWidth, false, false, useFieldPrefixes, importantEntities, null);
+	var detailPlot = drawStorylineDiagram(svg, detailBox, clipId, data, layout, layoutHeight, layout.ySpacePerLine, nodeWidth, lineWidth, true, true, useFieldPrefixes, importantEntities, onSelectNode);
+	var selectPlot = drawStorylineDiagram(svg, selectBox, clipId, data, layout, layoutHeight, layout.ySpacePerLine, nodeWidth, lineWidth, false, false, useFieldPrefixes, importantEntities, null);
 
 	var brush = null;
 	function onBrush() {
@@ -890,7 +1114,7 @@ function setupStoryline(container, globalQuery, facets) {
 	updateQuery(resultWatcher, null);
 
 	// FIXME: testing
-	queryEntities = parsePlotlineQueryString("person:Hannibal, person:Scipio Africanus, person: Antiochus III the Great, person:Philip V of Macedon, person:Qin Shi Huang");
-	//queryEntities = parsePlotlineQueryString("person:Hannibal, person:Scipio Africanus");
-	updateQuery(resultWatcher, null);
+	//queryEntities = parsePlotlineQueryString("person:Hannibal, person:Scipio Africanus, person: Antiochus III the Great, person:Philip V of Macedon, person:Qin Shi Huang");
+	queryEntities = parsePlotlineQueryString("person:Hannibal, person:Scipio Africanus");
+updateQuery(resultWatcher, null);
 }

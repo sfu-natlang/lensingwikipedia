@@ -55,7 +55,6 @@
 	fill: none;
 	stroke: black;
 	stroke-opacity: .3;
-	stroke-linecap: round;
 	vector-effect: non-scaling-stroke;
 }
 .storyline .line.important {
@@ -80,15 +79,4 @@
 .storyline .brush .extent {
 	fill: #3a87ad;
 	fill-opacity: .5;
-}
-
-/* TODO: remove dummy node support after debugging */
-.storyline .dummynode {
-	shape-rendering: crispEdges;
-	fill: green;
-	fill-opacity: .5;
-	stroke: none;
-}
-.storyline .dummynode.highlight {
-	fill-opacity: 0.9;
 }
