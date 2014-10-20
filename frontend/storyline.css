@@ -56,15 +56,22 @@
 	stroke: black;
 	stroke-opacity: .3;
 	stroke-linecap: round;
-	stroke-width: 6;
 	vector-effect: non-scaling-stroke;
 }
 .storyline .line.important {
-	stroke-width: 8;
 	stroke-opacity: .6;
 }
 .storyline .line.highlight {
 	stroke-opacity: 1.0;
+}
+.storyline .linelabelline {
+	fill-opacity: .5;
+}
+.storyline .linelabelline.important {
+	fill-opacity: .8;
+}
+.storyline .linelabelline.highlight {
+	fill-opacity: 1.0;
 }
 .storyline .axis path, .timeline .axis line {
 	fill: none;
