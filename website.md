@@ -145,7 +145,9 @@ The make command above creates default settings files. If you already have your 
 
 ## Deploying frontend without Apache
 If Apache is not available and you only want to execute the frontend locally, execute the following command:
+
     python -c "import SimpleHTTPServer; m = SimpleHTTPServer.SimpleHTTPRequestHandler.extensions_map; m[''] = 'text/plain'; m.update(dict([(k, v + ';charset=UTF-8') for k, v in m.items()])); SimpleHTTPServer.test();"
+
 
 # Update the website
 
