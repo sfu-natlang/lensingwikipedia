@@ -62,6 +62,7 @@ class Querier:
       yield { 'type': 'countbyreferencepoint' }
       yield { 'type': 'referencepointlinks' }
       yield { 'type': 'descriptions' }
+      yield { 'type': 'tsnecoordinates' }
       for page_num in range(self.num_initial_description_pages_to_cache):
         yield { 'type': 'descriptions', 'page': page_num }
     yield { 'constraints': {}, 'views': dict((i, v) for i, v in enumerate(views_for_initial())) }
