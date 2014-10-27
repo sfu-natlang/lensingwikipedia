@@ -64,13 +64,18 @@
 	stroke-opacity: 1.0;
 }
 .storyline .linelabelline {
-	fill-opacity: .5;
+	fill-opacity: .3;
+	stroke-opacity: .5;
+	stroke-color: black;
+	font-size: small;
 }
 .storyline .linelabelline.important {
-	fill-opacity: .8;
+	fill-opacity: .5;
+	stroke-opacity: .7;
 }
 .storyline .linelabelline.highlight {
-	fill-opacity: 1.0;
+	fill-opacity: 8.0;
+	stroke-opacity: 1.0;
 }
 .storyline .axis path, .timeline .axis line {
 	fill: none;

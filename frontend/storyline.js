@@ -169,333 +169,348 @@ function makeVisClusters(yearsOrder, entitiesByYear) {
 	}
 }
 
-function SelfList() {
-	this._head = null;
-	this._length = 0;
-}
+function calcEntityPriority(yearsOrder, visClustersByYear, entities, importantEntities) {
+	var priorityTable = {};
 
-SelfList.prototype.length = function() {
-	return this._length;
-}
-
-SelfList.prototype.each = function(f) {
-	for (var node = this._head, i = 0; node != null; node = node.next, i++) {
-		f(node, i);
-	}
-}
-
-SelfList.prototype.pushFirst = function(newNode) {
-	newNode.prev = null;
-	newNode.next = this._head;
-	if (this._head != null)
-		this._head.prev = newNode;
-	this._head = newNode;
-	this._length++;
-}
-
-SelfList.prototype.pushBefore = function(before, newNode) {
-	if (before.prev == null)
-		this._head = newNode;
-	else
-		before.prev.next = newNode;
-	newNode.prev = before.prev;
-	newNode.next = before;
-	before.prev = newNode;
-	this._length++;
-}
-
-SelfList.prototype.find = function (pred) {
-	for (var node = this._head; node != null; node = node.next) {
-		if (pred(node))
-			return node;
-	}
-	return null;
-}
-
-SelfList.prototype.max = function (f) {
-	var bestNode = null,
-	    bestValue = Number.MIN_VALUE;
-	for (var node = this._head; node != null; node = node.next) {
-		var value = f(node);
-		if (value > bestValue) {
-			bestNode = node;
-			bestValue = value;
-		}
-	}
-	return bestNode;
-}
-
-function calcClusterSetAffinity(yearsOrder, visClusters) {
-	function clusterOverlap(clusters1, clusters2) {
-		var same = 0,
-		    notSame = 0;
-		$.each(clusters1, function (cluster1) {
-			if (clusters2.hasOwnProperty(cluster1))
-				same += 1;
-			else
-				notSame += 1;
-		});
-		return same / (same + notSame);
-	}
-
-	function makeOverlapTable(visClusters) {
-		var clusterSetLookup = {};
-		$.each(visClusters, function (visClusterI, visCluster) {
-			if (!clusterSetLookup.hasOwnProperty(visCluster.clusterSetId)) {
-				clusterSetLookup[visCluster.clusterSetId] = visCluster.clusters;
-			}
-		});
-
-		var table = {};
-		$.each(clusterSetLookup, function (clusterSetId, clusterSet) {
-			table[clusterSetId] = {};
-		});
-		$.each(clusterSetLookup, function (clusterSetId1, clusterSet1) {
-			$.each(clusterSetLookup, function (clusterSetId2, clusterSet2) {
-				if (clusterSetId1 < clusterSetId2) {
-					var overlap = clusterOverlap(clusterSet1, clusterSet2);
-					table[clusterSetId1][clusterSetId2] = overlap;
-				}
+	$.each(yearsOrder, function (yearI, year) {
+		$.each(visClustersByYear[year], function (visClusterI, visCluster) {
+			$.each(visCluster.entityIds, function (entityIdI, entityId) {
+				if (!priorityTable.hasOwnProperty(entityId))
+					priorityTable[entityId] = 0;
+				priorityTable[entityId] += visCluster.entityIds.length - 1;
 			});
 		});
-		return table;
-	}
-
-	function countLineMoves(yearsOrder, visClusters) {
-		var lastSeen = {},
-		    countTable = {};
-		function incrCount(clusterSetId1, clusterSetId2) {
-			if (clusterSetId2 < clusterSetId1) {
-				var tmp = clusterSetId1;
-				clusterSetId1 = clusterSetId2;
-				clusterSetId2 = tmp;
-			}
-			if (!countTable.hasOwnProperty(clusterSetId1))
-				countTable[clusterSetId1] = {};
-			if (!countTable[clusterSetId1].hasOwnProperty(clusterSetId2))
-				countTable[clusterSetId1][clusterSetId2] = 1;
-			else
-				countTable[clusterSetId1][clusterSetId2] += 1;
-		}
-		$.each(yearsOrder, function (yearI, year) {
-			$.each(visClusters.byYear[year], function (visClusterI, visCluster) {
-				$.each(visCluster.entityIds, function (entityIdI, entityId) {
-					if (lastSeen.hasOwnProperty(entityId))
-						incrCount(lastSeen[entityId], visCluster.clusterSetId);
-					lastSeen[entityId] = visCluster.clusterSetId;
-				});
-			});
-		});
-		var maxCount = 0;
-		$.each(countTable, function (clusterSetId1, part) {
-			$.each(part, function (clusterSetId2, count) {
-				if (count > maxCount)
-					maxCount = count;
-			});
-		});
-		$.each(countTable, function (clusterSetId1, part) {
-			$.each(part, function (clusterSetId2, count) {
-				part[clusterSetId2] = count / maxCount;
-			});
-		});
-		return countTable;
-	}
-
-	var overlapTable = makeOverlapTable(visClusters.all),
-	    lineMovesTable = countLineMoves(yearsOrder, visClusters);
-
-	function affinity(clusterSetId1, clusterSetId2) {
-		if (clusterSetId2 < clusterSetId1) {
-			var tmp = clusterSetId1;
-			clusterSetId1 = clusterSetId2;
-			clusterSetId2 = tmp;
-		}
-		var value = overlapTable[clusterSetId1][clusterSetId2];
-		if (lineMovesTable.hasOwnProperty(clusterSetId1)) {
-			var part = lineMovesTable[clusterSetId1];
-			if (part.hasOwnProperty(clusterSetId2))
-				value += part[clusterSetId2];
-		}
-		return value;
-	}
-	return affinity;
-}
-
-function makeInitialSlots(yearsOrder, visClustersByYear, clusterSetAffinity, mergeMinYearDist) {
-	var slots = new SelfList(),
-	    slotByClusterSetId = {};
-
-	function insertFirstYearVisCluster(visCluster) {
-		var newSlot = {
-			fixedVisClusters: [visCluster],
-			lastClusterSetId: visCluster.clusterSetId
-		};
-		visCluster.isFixed = true; // TODO: remove after testing
-		slotByClusterSetId[visCluster.clusterSetId] = newSlot
-		var closest = slots.max(function (slots) {
-			return clusterSetAffinity(visCluster.clusterSetId, slots.clusterSetId);
-		});
-		if (closest != null)
-			slots.pushBefore(closest, newSlot);
-		else
-			slots.pushFirst(newSlot);
-	}
-
-	function insertJoinVisCluster(visCluster) {
-		visCluster.isFixed = true; // TODO: remove after testing
-		if (slotByClusterSetId.hasOwnProperty(visCluster.clusterSetId)) {
-			slotByClusterSetId[visCluster.clusterSetId].fixedVisClusters.push(visCluster);
-		} else {
-			var bestSlot = slots.max(function (slot) {
-				return clusterSetAffinity(visCluster.clusterSetId, slot.lastClusterSetId);
-			});
-			if (bestSlot != null && visCluster.year - bestSlot.fixedVisClusters[bestSlot.fixedVisClusters.length - 1].year >= mergeMinYearDist) {
-				bestSlot.fixedVisClusters.push(visCluster);
-				bestSlot.lastClusterSetId = visCluster.clusterSetId;
-			} else {
-				var newSlot = {
-					fixedVisClusters: [visCluster],
-					lastClusterSetId: visCluster.clusterSetId
-				};
-				if (bestSlot != null)
-					slots.pushBefore(bestSlot, newSlot);
-				else
-					slots.pushFirst(newSlot);
-			}
-		}
-	}
-
-	$.each(visClustersByYear[yearsOrder[0]], function (visClusterI, visCluster) {
-		insertFirstYearVisCluster(visCluster);
 	});
 
-	for (var yearI = 1; yearI < yearsOrder.length; yearI++) {
-		$.each(visClustersByYear[yearsOrder[yearI]], function (visClusterI, visCluster) {
-			if (visCluster.entityIds.length > 1)
-				insertJoinVisCluster(visCluster);
+	$.each(entities.all, function (entityId, entity) {
+		if (importantEntities.hasOwnProperty(entity.field) && importantEntities[entity.field].indexOf(entity.value) >= 0)
+			priorityTable[entityId] *= 2;
+	});
+
+	return function(entityId) {
+		if (priorityTable.hasOwnProperty(entityId))
+			return priorityTable[entityId];
+		else
+			return 0;
+	}
+}
+
+function prioritizeNodes(yearsOrder, nodesByYear, entityPriority) {
+	for (var yearI = 0; yearI < yearsOrder.length; yearI++) {
+		var year = +yearsOrder[yearI],
+				yearNodes = nodesByYear[year];
+		$.each(yearNodes, function (nodeI, node) {
+			node.priority = 0;
+			$.each(node.entityIds, function (entityIdI, entityId) {
+				node.priority += entityPriority(entityId);
+			});
 		});
+		yearNodes.sort(function (vc1, vc2) { return vc2.priority - vc1.priority; });
+	}
+}
+
+function makeFullNodes(yearsOrder, visClustersByYear, allEntities) {
+	// Here a node will be either a vis cluster or a filler node so that every entity has a node at each year
+
+	function findEntityFirstLastYears(yearsOrder, visClustersByYear) {
+		var firstYears = {},
+		    lastYears = {};
+		for (var yearI = 0; yearI < yearsOrder.length; yearI++) {
+			var year = +yearsOrder[yearI],
+			    yearVisClusters = visClustersByYear[year];
+			$.each(yearVisClusters, function (visClusterI, visCluster) {
+				$.each(visCluster.entityIds, function (entityIdI, entityId) {
+					if (!firstYears.hasOwnProperty(entityId))
+						firstYears[entityId] = year;
+					lastYears[entityId] = year;
+				});
+			});
+		}
+		return {
+			first: firstYears,
+			last: lastYears
+		};
+	}
+
+	var entityYears = findEntityFirstLastYears(yearsOrder, visClustersByYear);
+	var nodesByYear = {};
+	for (var yearI = 0; yearI < yearsOrder.length; yearI++) {
+		var year = +yearsOrder[yearI],
+				yearVisClusters = visClustersByYear[year],
+				yearNodes = [],
+				seen = {};
+		nodesByYear[year] = yearNodes;
+		$.each(yearVisClusters, function (visClusterI, visCluster) {
+			yearNodes.push(visCluster);
+			$.each(visCluster.entityIds, function (entityIdI, entityId) {
+				seen[entityId] = true;
+			});
+		});
+		$.each(allEntities, function (entityId) {
+			if (!seen.hasOwnProperty(entityId) && year >= entityYears.first[entityId] && year <= entityYears.last[entityId]) {
+				yearNodes.push({
+					isFiller: true,
+					year: year,
+					date: jsDateOfYear(year),
+					entityIds: [entityId]
+				});
+			}
+		});
+	}
+	return nodesByYear;
+}
+
+function makeEntityLines(yearsOrder, nodesByYear) {
+	var entityLines = [],
+	    lookup = {};
+	for (var yearI = 0; yearI < yearsOrder.length; yearI++) {
+		var year = +yearsOrder[yearI],
+				yearNodes = nodesByYear[year];
+		$.each(yearNodes, function (nodeI, node) {
+			node.linePoints = {};
+			$.each(node.entityIds, function (entityIdI, entityId) {
+				var entityLine = null;
+				if (lookup.hasOwnProperty(entityId)) {
+					entityLine = lookup[entityId];
+				} else {
+					entityLine = {
+						entityId: entityId,
+						points: []
+					};
+					entityLines.push(entityLine);
+					lookup[entityId] = entityLine;
+				}
+				var linePoint = {
+					node: node
+				};
+				entityLine.points.push(linePoint);
+				node.linePoints[entityId] = linePoint;
+			});
+		});
+	}
+	return entityLines;
+}
+
+function slottifyNodes(yearsOrder, nodesByYear, entityPriority) {
+	function insertSlot(slots, index) {
+		slots.splice(index, 0, {
+			index: index,
+			linePoints: [],
+			lastUsedYear: null
+		});
+		for (var i = index + 1; i < slots.length; i++)
+			slots[i].index = i;
+	}
+
+	function makeTopSpace(slots, numSlots, forceNew) {
+		var slotsToAdd = numSlots;
+		if (!forceNew) {
+			for (var i = 0; i < numSlots && i < slots.length; i++) {
+				if (slots[i].lastUsedYear != year)
+					slotsToAdd--;
+				else
+					break;
+			}
+		}
+		for (var i = 0; i < slotsToAdd; i++) {
+			slots.unshift({
+				index: i,
+				linePoints: [],
+				lastUsedYear: null
+			});
+		}
+		for (var i = slotsToAdd; i < slots.length; i++)
+			slots[i].index = i;
+		return 0;
+	}
+
+	function makeBottomSpace(slots, numSlots, forceNew) {
+		var slotsToAdd = numSlots;
+		if (!forceNew) {
+			for (var i = 0; i < numSlots && i < slots.length; i++) {
+				if (slots[slots.length - 1 - i].lastUsedYear != year)
+					slotsToAdd--;
+				else
+					break;
+			}
+		}
+		var origLength = slots.length;
+		for (var i = 0; i < slotsToAdd; i++) {
+			slots.push({
+				index: slots.length,
+				linePoints: [],
+				lastUsedYear: null
+			});
+		}
+		return slots.length - numSlots;
+	}
+
+	function updateDesiredPositions(nodes, lastSeenEntities) {
+		$.each(nodes, function (nodeI, node) {
+			var total = 0,
+			    samples = 0;
+			$.each(node.entityIds, function (entityIdI, entityId) {
+				if (lastSeenEntities.hasOwnProperty(entityId)) {
+					total += lastSeenEntities[entityId].index;
+					samples += 1;
+				}
+			});
+			node.desiredSlotIndex = samples > 0 ? Math.round(total / samples) : undefined;
+		});
+	}
+
+	function closestAvailPosition(slots, year, wantIndex, numSlots) {
+		// The code complexity here is to minimize the number of slots that we have to look at before stopping
+
+		var bestIndex = null,
+		    bestDist = Number.MAX_VALUE;
+
+		var atWantUsedI = null;
+		    atWantIsAvail = true;
+		for (atWantUsedI = wantIndex; atWantUsedI < wantIndex + numSlots; atWantUsedI++) {
+			if (atWantUsedI == slots.length || slots[atWantUsedI].lastUsedYear == year) {
+				atWantIsAvail = false;
+				break;
+			}
+		}
+		if (atWantIsAvail)
+			return wantIndex;
+
+		for (var i = Math.min(slots.length, wantIndex + numSlots) - 1; i >= numSlots - 1; i--) {
+			var usedI = null,
+			    isAvail = true;
+			for (usedI = i; usedI > i - numSlots; usedI--) {
+				if (slots[usedI].lastUsedYear == year) {
+					isAvail = false;
+					break;
+				}
+			}
+			var startI = i - numSlots + 1,
+			    dist = Math.abs(wantIndex - startI);
+			if (isAvail) {
+				bestIndex = startI;
+				bestDist = dist;
+				break;
+			} else {
+				i = usedI;
+			}
+		}
+
+		for (var i = wantIndex + 1; i < slots.length - numSlots + 1; i++) {
+			var usedI = null,
+			    isAvail = true;
+			for (usedI = i; usedI < i + numSlots; usedI++) {
+				if (slots[usedI].lastUsedYear == year) {
+					isAvail = false;
+					break;
+				}
+			}
+			var dist = Math.abs(wantIndex - i);
+			if (bestDist != null && dist >= bestDist)
+				break;
+			if (isAvail) {
+				bestIndex = i;
+				bestDist = dist;
+				break;
+			} else {
+				i = usedI;
+			}
+		}
+
+		return bestIndex;
+	}
+
+	function clearSlotsLastUsed(slots) {
+		for (var slotI = 0; slotI < slots.length; slotI++)
+			slots[slotI].lastUsedYear = null;
+	}
+
+	function handleYearNodes(year, yearNodes, slots, lastSeenEntities) {
+		$.each(yearNodes, function (nodeI, node) {
+			var insertI = null;
+			if (node.desiredSlotIndex == null) {
+				insertI = makeBottomSpace(slots, node.entityIds.length, true);
+			} else {
+				insertI = closestAvailPosition(slots, year, node.desiredSlotIndex, node.entityIds.length);
+				if (insertI == null) {
+					if (insertI < slots.length / 2)
+						insertI = makeTopSpace(slots, node.entityIds.length);
+					else
+						insertI = makeBottomSpace(slots, node.entityIds.length);
+				}
+			}
+			node.entityIds.sort(function (eid1, eid2) {
+				if (lastSeenEntities.hasOwnProperty(eid1) && lastSeenEntities.hasOwnProperty(eid2))
+					return lastSeenEntities[eid1].index - lastSeenEntities[eid2].index;
+			});
+			if (insertI != null) {
+				node.startSlot = slots[insertI];
+				for (var entityIdI = 0; entityIdI < node.entityIds.length; entityIdI++) {
+					var entityId = node.entityIds[entityIdI],
+					    slot = slots[insertI + entityIdI];
+					node.linePoints[entityId].slot = slot;
+					slot.lastUsedYear = year;
+					lastSeenEntities[entityId] = slot;
+				}
+			} else {
+				console.log("error: unable to place node", year, nodeI);
+			}
+		});
+	}
+
+	var slots = [],
+	    lastSeenEntities = {};
+	for (var yearI = 0; yearI < yearsOrder.length; yearI++) {
+		var year = +yearsOrder[yearI];
+		    yearNodes = nodesByYear[year];
+		updateDesiredPositions(yearNodes, lastSeenEntities);
+		handleYearNodes(year, yearNodes, slots, lastSeenEntities);
+	}
+	clearSlotsLastUsed(slots);
+	for (var yearI = yearsOrder.length - 1; yearI >= 0; yearI--) {
+		var year = +yearsOrder[yearI];
+		    yearNodes = nodesByYear[year];
+		updateDesiredPositions(yearNodes, lastSeenEntities);
+		handleYearNodes(year, yearNodes, slots, lastSeenEntities);
 	}
 
 	return slots;
 }
 
-function storylineLayout(resultData, layoutHeight, layoutMarginLineSpaces, slotMarginLineSpaces, minSlot, hillclimbIters) {
+function storylineLayout(resultData, importantEntities) {
 	var mergeMinYearDist = 4;
 
 	var entities = extractEntities(resultData);
 	var yearsOrder = Object.keys(entities.byYear);
 	yearsOrder.sort(function (y1, y2) { return y1 - y2; });
 	var visClusters = makeVisClusters(yearsOrder, entities.byYear);
-	var clusterSetAffinity = calcClusterSetAffinity(yearsOrder, visClusters);
-	var slots = makeInitialSlots(yearsOrder, visClusters.byYear, clusterSetAffinity, mergeMinYearDist);
-
-	var ySpacePerSlot = layoutHeight / slots.length();
-	var ySpacePerLine = ySpacePerSlot;
-
-	var usedVisClusters = [];
-	slots.each(function (slot, slotI) {
-		$.each(slot.fixedVisClusters, function (visClusterI, visCluster) {
-			usedVisClusters.push(visCluster);
-		});
-	});
-
-	var entityLines = [],
-	    lookup = {};
-	for (var yearI = 0; yearI < yearsOrder.length; yearI++) {
-		$.each(visClusters.byYear[yearsOrder[yearI]], function (visClusterI, visCluster) {
-			if (visCluster.isFixed) {
-				visCluster.linePoints = [];
-				$.each(visCluster.entityIds, function (entityI, entityId) {
-					var entityLine = null;
-					if (!lookup.hasOwnProperty(entityId)) {
-						entityLine = {
-							entityId: entityId,
-							points: []
-						};
-						entityLines.push(entityLine);
-						lookup[entityId] = entityLine;
-					} else {
-						entityLine = lookup[entityId];
-					}
-					if (entityLine.points.length > 0 && visCluster.year - entityLine.points[entityLine.points.length - 1].visCluster.year > 1) {
-						var moveLinePoint = {
-							visCluster: null,
-							year: visCluster.year - 1
-						};
-						moveLinePoint.date = jsDateOfYear(moveLinePoint.year);
-						entityLine.points.push(moveLinePoint);
-					}
-					var clusterLinePoint = {
-						visCluster: visCluster
-					};
-					entityLine.points.push(clusterLinePoint);
-					visCluster.linePoints.push(clusterLinePoint);
-				});
-			}
-		});
-	}
-
-	// TODO: margins etc.
-	slots.each(function (slot, slotI) {
-		slot.y = ySpacePerSlot * (slotI + 0.5);
-		$.each(slot.fixedVisClusters, function (visClusterI, visCluster) {
-			usedVisClusters.push(visCluster);
-			visCluster.y = slot.y;
-			visCluster.ySpace = ySpacePerSlot;
-			visCluster.ySpacePerLine = ySpacePerSlot / visCluster.linePoints.length;
-		});
-	});
-	$.each(entityLines, function (entityLineI, entityLine) {
-		var lastPoint = null;
-		$.each(entityLine.points, function (pointI, point) {
-			if (point.visCluster != null)
-				point.y = point.visCluster.y;
-			else
-				point.y = lastPoint.y;
-			lastPoint = point;
-		});
-	});
-
-	slots.each(function (slot, slotI) {
-		var years = [];
-		$.each(slot.fixedVisClusters, function (visClusterI, visCluster) {
-			years.push(visCluster.year);
-		});
-		console.log("slot", slotI, slot.fixedVisClusters.length, years.join(','));
-	});
-	slots.each(function (slot, slotI) {
-		$.each(slot.fixedVisClusters, function (visClusterI, visCluster) {
-			console.log("vis cluster", slotI, visClusterI, visCluster.y, visCluster.ySpacePerLine);
-		});
-	});
-	$.each(entityLines, function (entityLineI, entityLine) {
-		var years = [];
-		$.each(entityLine.points, function (linePointI, linePoint) {
-			if (linePoint.visCluster != null)
-				years.push(linePoint.visCluster.year);
-			else
-				years.push(linePoint.year);
-		});
-		console.log("entity line", entityLineI, entityLine.entityId, entityLine.points.length, years.join(','));
-	});
+	var nodesByYear = makeFullNodes(yearsOrder, visClusters.byYear, entities.all);
+	var entityLines = makeEntityLines(yearsOrder, nodesByYear);
+	var entityPriority = calcEntityPriority(yearsOrder, visClusters.byYear, entities, importantEntities);
+	prioritizeNodes(yearsOrder, nodesByYear, entityPriority);
+	var slots = slottifyNodes(yearsOrder, nodesByYear, entityPriority);
 
 	return {
 		entities: entities.all,
-		visClusters: usedVisClusters,
+		visClusters: visClusters.all,
 		entityLines: entityLines,
-		ySpacePerLine: ySpacePerLine
+		numSlots: slots.length
 	}
 }
 
-function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, ySpacePerLine, nodeWidth, lineWidth, drawLabels, doMouseovers, useFieldPrefixes, importantEntities, onSelectNode) {
+function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, ySlotOffset, ySpacePerSlot, nodeWidth, lineWidth, drawLabels, doMouseovers, useFieldPrefixes, importantEntities, onSelectNode) {
 	var scale = box.height / layoutHeight;
 
 	var draw = svg.append('g')
 		.attr('transform', "translate(" + box.x + "," + box.y + ")");
 
+	var xExtent = d3.extent(layout.visClusters, function (vc) { return vc.date; });
+	xExtent = [new Date(xExtent[0]), new Date(xExtent[1])];
+	xExtent[0].setFullYear(xExtent[0].getFullYear() - 1);
+	xExtent[1].setFullYear(xExtent[1].getFullYear() + 1);
 	var xScale = d3.time.scale()
 		.range([0, box.width])
-		.domain(d3.extent(layout.visClusters, function (vc) { return vc.date; }));
+		.domain(xExtent);
 	var xAxis = d3.svg.axis()
 		.scale(xScale)
 		.orient('bottom')
@@ -520,11 +535,21 @@ function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, ySpa
 		.attr('clip-path', "url(#" + clipId + ")")
 		.call(xAxis);
 
+	function slotY(slot) {
+		return (ySlotOffset + slot.index) * ySpacePerSlot * scale;
+	}
+	function slotsDY(numSlots) {
+		return numSlots * ySpacePerSlot * scale;
+	}
+	var yLineOffset = (ySpacePerSlot / 2) * scale,
+	    yNodeOffset = (ySpacePerSlot * 0.1) * scale;
+
 	function buildLinks(entityLines) {
 		var links = [];
 		$.each(entityLines, function (entityLineI, entityLine) {
+		entityLine  = entityLines[entityLineI];
 			var lastPoint = entityLine.points[0];
-			if (lastPoint.visCluster != null) {
+			if (!lastPoint.node.isFiller) {
 				links.push({
 					entityId: entityLine.entityId,
 					type: 'cluster',
@@ -534,13 +559,37 @@ function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, ySpa
 			}
 			for (var pointI = 1; pointI < entityLine.points.length; pointI++) {
 				var point = entityLine.points[pointI];
-				links.push({
-					entityId: entityLine.entityId,
-					type: 'connect',
-					source: lastPoint,
-					target: point
-				});
-				if (point.visCluster != null) {
+				if (!point.node.isFiller || point.slot != lastPoint.slot) {
+					if (point.node.year - lastPoint.node.year > 1) {
+						var movePoint = entityLine.points[pointI - 1];
+						if (point.node.year - movePoint.node.year > 1) {
+							var moveDate = new Date(point.node.date);
+							moveDate.setFullYear(moveDate.getFullYear() - 1);
+							var movePoint = {
+								node: {
+									date: moveDate,
+									isFiller: true
+								},
+								slot: lastPoint.slot
+							};
+						}
+						links.push({
+							entityId: entityLine.entityId,
+							type: 'connectpart1',
+							source: lastPoint,
+							target: movePoint
+						});
+						lastPoint = movePoint;
+					}
+					links.push({
+						entityId: entityLine.entityId,
+						type: 'connect',
+						source: lastPoint,
+						target: point
+					});
+					lastPoint = point;
+				}
+				if (!point.node.isFiller) {
 					links.push({
 						entityId: entityLine.entityId,
 						type: 'cluster',
@@ -548,36 +597,34 @@ function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, ySpa
 						target: point
 					});
 				}
-				lastPoint = point;
 			}
 		});
+
 		return links;
 	}
 
-	var linesColor = d3.scale.category10();
+	var linesColor = d3.scale.category10()
 	var linesLine = d3.svg.diagonal()
 		.source(function (l) {
 			var xOffset = 0;
 			if (l.type == 'cluster')
 				xOffset = -nodeWidth / 2;
-			else if (l.source.visCluster != null)
+			else if (!l.source.node.isFiller)
 				xOffset = nodeWidth / 2;
-			var date = l.source.visCluster != null ? l.source.visCluster.date : l.source.date;
 			return {
-				y: xScale(date) + xOffset,
-				x: l.source.y * scale
+				y: xScale(l.source.node.date) + xOffset,
+				x: slotY(l.source.slot) + yLineOffset
 			};
 		})
 		.target(function (l) {
 			var xOffset = 0;
 			if (l.type == 'cluster')
 				xOffset = nodeWidth / 2;
-			else if (l.target.visCluster != null)
+			else if (!l.target.node.isFiller)
 				xOffset = -nodeWidth / 2;
-			var date = l.target.visCluster != null ? l.target.visCluster.date : l.target.date;
 			return {
-				y: xScale(date) + xOffset,
-				x: l.target.y * scale
+				y: xScale(l.target.node.date) + xOffset,
+				x: slotY(l.target.slot) + yLineOffset
 			};
 		})
 		.projection(function (xy) {
@@ -637,8 +684,9 @@ function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, ySpa
 			.data(layout.entityLines)
 			.enter()
 			.append("g")
-			.attr('class', function (l) { return "linelabel" + classForLine(l); });
-		var text = labelGroups
+			.attr('class', function (l) { return "linelabel" + classForLine(l); })
+			.style("stroke", function(l, i) { return linesColor(l.entityId); });
+		labelGroups
 			.append("text")
 			.text(function (l, i) { var e = layout.entities[l.entityId]; return "" + (useFieldPrefixes ? e.field + ":" : "") + e.value; })
 			.attr("dy", ".35em")
@@ -649,36 +697,31 @@ function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, ySpa
 		lines
 			.attr("d", linesLine);
 		node
-			.attr("x", function (vc) {
-				return xScale(vc.date) - nodeWidth / 2;
-			})
-			.attr("y", function (vc) {
-				return (vc.y + (vc.ySpace - Math.min(ySpacePerLine, vc.ySpacePerLine) * vc.linePoints.length) / 2) * scale;
-			})
-			.attr("height", function(vc) {
-				return (Math.min(ySpacePerLine, vc.ySpacePerLine) * vc.linePoints.length) * scale;
-			})
+			.attr("x", function (vc) { return xScale(vc.date) - nodeWidth / 2; })
+			.attr("y", function (vc) { return slotY(vc.startSlot) + yNodeOffset; })
+			.attr("height", function(vc) { return slotsDY(vc.entityIds.length) - yNodeOffset * 2; })
 			.attr("width", nodeWidth);
 		if (labelGroups != null)
 			labelGroups
 				.attr('visibility', function (l) {
 					if (xScale(l.points[l.points.length - 1].date) < 0)
 						return 'hidden';
-					else if (xScale(l.points[0].visCluster.date) > box.width)
+					else if (xScale(l.points[0].node.date) > box.width)
 						return 'hidden';
 					else
 						return 'visible';
 				})
 				.attr('text-anchor', function (l) {
-					var x = xScale(l.points[0].visCluster.date);
+					var x = xScale(l.points[0].node.date);
 					if (x <= 0)
 						return 'left';
 					else
 						return 'middle';
 				})
 				.attr('transform', function(l) {
-					var x = Math.min(box.width, Math.max(0, xScale(l.points[0].visCluster.date)));
-					return "translate(" + x + "," + (l.points[0].y * scale - lineWidth / 2) + ")";
+					var x = Math.min(box.width, Math.max(0, xScale(l.points[0].node.date))),
+					    y = slotY(l.points[0].slot) + yLineOffset;
+					return "translate(" + x + "," + (y - lineWidth / 2) + ")";
 				});
 	}
 	update();
@@ -702,12 +745,8 @@ function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, ySpa
 function drawStoryline(svg, detailBox, selectBox, data, useFieldPrefixes, importantEntities, onSelectNode) {
 	var nodeWidth = detailBox.width * 0.01,
 	    layoutHeight = detailBox.height,
-	    hillclimbIters = 2,
-			layoutMarginLineSpaces = 4,
-	    slotMarginLineSpaces = 0.4,
-			minSlotYSpace = 8,
-			minLineWidth = 1,
-			lineWidthAsFracOfSpace = 0.25;
+			layoutMarginSlots = 4,
+			lineWidth = 4;
 
 	var clipId = "timelineclip" + timelineClipNum;
 	timelineClipNum++;
@@ -718,13 +757,12 @@ function drawStoryline(svg, detailBox, selectBox, data, useFieldPrefixes, import
 		.attr('width', detailBox.width)
 		.attr('height', detailBox.height);
 
-	var layout = storylineLayout(data, layoutHeight, layoutMarginLineSpaces, slotMarginLineSpaces, minSlotYSpace, hillclimbIters);
-	// TODO
-	//var lineWidth = Math.max(minLineWidth, layout.ySpacePerLine * lineWidthAsFracOfSpace);
-	var lineWidth = 4;
+	var layout = storylineLayout(data, importantEntities);
+	var ySpacePerSlot = layoutHeight / (layout.numSlots + layoutMarginSlots);
+	var ySlotOffset = layoutMarginSlots / 2;
 
-	var detailPlot = drawStorylineDiagram(svg, detailBox, clipId, data, layout, layoutHeight, layout.ySpacePerLine, nodeWidth, lineWidth, true, true, useFieldPrefixes, importantEntities, onSelectNode);
-	var selectPlot = drawStorylineDiagram(svg, selectBox, clipId, data, layout, layoutHeight, layout.ySpacePerLine, nodeWidth, lineWidth, false, false, useFieldPrefixes, importantEntities, null);
+	var detailPlot = drawStorylineDiagram(svg, detailBox, clipId, data, layout, layoutHeight, ySlotOffset, ySpacePerSlot, nodeWidth, lineWidth, true, true, useFieldPrefixes, importantEntities, onSelectNode);
+	var selectPlot = drawStorylineDiagram(svg, selectBox, clipId, data, layout, layoutHeight, ySlotOffset, ySpacePerSlot, nodeWidth, lineWidth, false, false, useFieldPrefixes, importantEntities, null);
 
 	var brush = null;
 	function onBrush() {
@@ -995,9 +1033,4 @@ function setupStoryline(container, globalQuery, facets) {
 		modeElt.val(defaultFacetI);
 	modeElt.change();
 	updateQuery(resultWatcher, null);
-
-	// FIXME: testing
-	queryEntities = parsePlotlineQueryString("person:Hannibal, person:Scipio Africanus, person: Antiochus III the Great, person:Philip V of Macedon, person:Qin Shi Huang");
-	//queryEntities = parsePlotlineQueryString("person:Hannibal, person:Scipio Africanus");
-updateQuery(resultWatcher, null);
 }
