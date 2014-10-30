@@ -663,6 +663,38 @@ Query.prototype.clearAll = function() {
 };
 
 /*
+ * Save the constraints in the query
+ */
+Query.prototype.save = function() {
+    var json_constraints = new Array();
+
+	for (cnstrKey in this._constraints) {
+		var cnstr = this._constraints[cnstrKey];
+        var constraint_attrs = {name: cnstr._name, value: cnstr._value};
+        json_constraints.push(JSON.stringify(constraint_attrs));
+	}
+
+    return JSON.stringify(json_constraints);
+};
+
+Query.prototype.load = function(json_constraints) {
+    // this should be an Array
+    var constraints = JSON.parse(json_constraints);
+
+    for (i in constraints) {
+        var parsed_constraint = JSON.parse(constraints[i]);
+        if (parsed_constraint.value != null) {
+            var c = new Constraint();
+            c.name(parsed_constraint.name);
+            c.set(JSON.parse(parsed_constraint.value));
+
+            this.addConstraint(c);
+        }
+    }
+    this.update();
+};
+
+/*
  * Check if this query has no constraints.
  */
 Query.prototype.isEmpty = function() {
