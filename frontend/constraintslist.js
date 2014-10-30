@@ -10,6 +10,8 @@
 function setupConstraintList(container, globalQuery) {
 	var outerElt = $("<div class=\"constraintslist\">").appendTo(container);
 
+    var saveElt = $('<button type="button" class="btn btn-block btn-mini btn-warning" title="Save query">Save query</button>').appendTo(outerElt);
+    var loadElt = $('<button type="button" class="btn btn-block btn-mini btn-warning" title="Load query">Load query</button>').appendTo(outerElt);
 	var clearAllElt = $("<button type=\"button\" class=\"btn btn-block btn-mini btn-warning\" title=\"Remove all current constraints.\">Clear all constraints</button></ul>").appendTo(outerElt);
 	var listElt = $("<ul></ul>").appendTo(outerElt);
 	var errorBox = $("<div class=\"alert alert-error\" style=\"display: none\"></div>").appendTo(outerElt);
@@ -83,6 +85,35 @@ function setupConstraintList(container, globalQuery) {
 		setClearEnabled(!globalQuery.isEmpty());
 	}, true);
 
+    saveElt.click(function() {
+        var saveName = prompt("Query name:");
+        var saveQuery = {name: saveName, query: globalQuery.save()};
+        if (window.savedQueries === undefined) {
+            window.savedQueries = new Array();
+        }
+
+        window.savedQueries.push(saveQuery);
+    });
+
+    loadElt.click(function() {
+        if (window.savedQueries === undefined ||
+            window.savedQueries.length == 0) {
+
+            alert("No queries available to load");
+            return;
+        }
+
+        var names = new Array();
+        for (i in window.savedQueries) {
+            names.push(['[', i, '] ', window.savedQueries[i].name].join(''));
+        }
+
+        names = names.join('\n');
+
+        var idx = Number(prompt("Which query do you want to load? (Type a number)\n\n" + names));
+
+        globalQuery.load(window.savedQueries[idx].query);
+    });
 	clearAllElt.click(function() {
 		$(".mapclear").click();
 		globalQuery.clearAll();

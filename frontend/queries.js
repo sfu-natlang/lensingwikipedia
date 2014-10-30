@@ -678,6 +678,9 @@ Query.prototype.save = function() {
 };
 
 Query.prototype.load = function(json_constraints) {
+    this.clearAll();
+    this.update();
+
     // this should be an Array
     var constraints = JSON.parse(json_constraints);
 
