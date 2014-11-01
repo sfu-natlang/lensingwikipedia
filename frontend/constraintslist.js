@@ -16,6 +16,11 @@ function setupConstraintList(container, globalQuery) {
 	var listElt = $("<ul></ul>").appendTo(outerElt);
 	var errorBox = $("<div class=\"alert alert-error\" style=\"display: none\"></div>").appendTo(outerElt);
 
+    // check if there are any saved queries
+    if (window.savedQueries === undefined) {
+        loadElt.attr('disabled', 'disabled');
+    }
+
 	function setClearEnabled(enabled) {
 		if (enabled)
 			clearAllElt.removeAttr('disabled');
@@ -87,12 +92,16 @@ function setupConstraintList(container, globalQuery) {
 
     saveElt.click(function() {
         var saveName = prompt("Query name:");
-        var saveQuery = {name: saveName, query: globalQuery.save()};
-        if (window.savedQueries === undefined) {
-            window.savedQueries = new Array();
-        }
+        if (saveName !== null) {
+            var saveQuery = {name: saveName, query: globalQuery.save()};
+            if (window.savedQueries === undefined) {
+                window.savedQueries = new Array();
+            }
 
-        window.savedQueries.push(saveQuery);
+            window.savedQueries.push(saveQuery);
+
+            loadElt.removeAttr('disabled');
+        }
     });
 
     loadElt.click(function() {
@@ -110,9 +119,11 @@ function setupConstraintList(container, globalQuery) {
 
         names = names.join('\n');
 
-        var idx = Number(prompt("Which query do you want to load? (Type a number)\n\n" + names));
-
-        globalQuery.load(window.savedQueries[idx].query);
+        var res = prompt("Which query do you want to load? (Type a number)\n\n" + names);
+        if (res !== null) {
+            var idx = Number(res);
+            globalQuery.load(window.savedQueries[idx].query);
+        }
     });
 	clearAllElt.click(function() {
 		$(".mapclear").click();
