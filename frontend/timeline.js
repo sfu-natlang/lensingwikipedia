@@ -211,12 +211,12 @@ function setupTimeline(container, initialQuery, globalQuery) {
 	// Delay before updating the query after a selection change (to avoid sending queries to the backend at each mouse movement).
 	var updateDelay = 500;
 
-	var outerElt = $("<div class=\"timeline\"></div>").appendTo(container);
-	var topBoxElt = $("<div class=\"topbox\"></div>").appendTo(outerElt);
-	var clearElt = $("<button type=\"button\" class=\"btn btn-block btn-mini btn-warning\" title=\"Clear the timeline selection.\">Clear selection</button></ul>").appendTo(topBoxElt);
+	var outerElt = $('<div class="timeline"></div>').appendTo(container);
+	var topBoxElt = $('<div class="topbox"></div>').appendTo(outerElt);
+	var clearElt = $('<button type="button" class="btn btn-block btn-mini btn-warning" title="Clear the timeline selection.">Clear selection</button></ul>').appendTo(topBoxElt);
 	var loadingIndicator = new LoadingIndicator(outerElt);
-	var outerSvgElt = $("<svg class=\"outersvg\"></svg>").appendTo(outerElt);
-	var svgElt = $("<svg class=\"innersvg\" viewBox=\"" + viewBox.x + " " + viewBox.y + " " + viewBox.width + " " + viewBox.height + "\" preserveAspectRatio=\"none\"></svg>").appendTo(outerSvgElt);
+	var outerSvgElt = $('<svg class="outersvg"></svg>').appendTo(outerElt);
+	var svgElt = $('<svg class="innersvg" viewBox="' + viewBox.x + " " + viewBox.y + " " + viewBox.width + " " + viewBox.height + '" preserveAspectRatio="none"></svg>').appendTo(outerSvgElt);
 
 	fillElement(container, outerElt, 'vertical');
 	setupPanelled(outerElt, topBoxElt, outerSvgElt, 'vertical', 0, false);
