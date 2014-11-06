@@ -39,8 +39,8 @@ function resultToPlotData(initialCounts, contextCounts) {
 		sample = {
 			year: jsYear,
 			date: date,
-            // TODO smooth data here. It's too slow to loop over the entire
-            // array afterwards
+			// TODO smooth data here. It's too slow to loop over the entire
+			// array afterwards
 			initialCount: +initialCounts[year] || 0,
 			contextCount: +contextCounts[year] || 0
 		};
@@ -54,31 +54,31 @@ function resultToPlotData(initialCounts, contextCounts) {
 }
 
 function smoothData(data, k) {
-    if (k == 0) {
-        return data;
-    }
+	if (k == 0) {
+		return data;
+	}
 
 	var samples = [];
 
-    for (i = 0; i < data.length; i++) {
-        var start_at = (i-k) < 0 ? 0 : i - k;
-        var end_at = (i+k) >= data.length ? data.length : i + k;
+	for (i = 0; i < data.length; i++) {
+		var start_at = (i-k) < 0 ? 0 : i - k;
+		var end_at = (i+k) >= data.length ? data.length : i + k;
 
-        var smooth_sum = 0;
+		var smooth_sum = 0;
 
-        for (j = start_at; j < end_at; j++) {
-            smooth_sum += data[j].contextCount;
-        }
+		for (j = start_at; j < end_at; j++) {
+			smooth_sum += data[j].contextCount;
+		}
 
-        smooth_sum /= end_at - start_at;
+		smooth_sum /= end_at - start_at;
 
-        sample = data[i];
-        sample.contextCount = smooth_sum;
+		sample = data[i];
+		sample.contextCount = smooth_sum;
 
-        samples.push(sample);
-    }
+		samples.push(sample);
+	}
 
-    return samples;
+	return samples;
 }
 
 /*
@@ -86,13 +86,13 @@ function smoothData(data, k) {
  */
 function drawCounts(data, box, draw, scales, classStr, clipId, showInitial) {
 
-    if (showInitial) {
-        var initialArea = d3.svg.area()
-            .interpolate('basis')
-            .x(function(s) { return scales.x(s.date); })
-            .y0(box.height)
-            .y1(function(s) { return scales.y(s.initialCount); });
-    }
+	if (showInitial) {
+		var initialArea = d3.svg.area()
+			.interpolate('basis')
+			.x(function(s) { return scales.x(s.date); })
+			.y0(box.height)
+			.y1(function(s) { return scales.y(s.initialCount); });
+	}
 
 	var contextArea = d3.svg.area()
 		.interpolate('basis')
@@ -100,25 +100,25 @@ function drawCounts(data, box, draw, scales, classStr, clipId, showInitial) {
 		.y0(box.height)
 		.y1(function(s) { return scales.y(s.contextCount); });
 
-    if (showInitial) {
-        var initialPath = draw.append('path')
-        .datum(data)
-        .attr('class', "bar " + classStr + " initial");
-    }
+	if (showInitial) {
+		var initialPath = draw.append('path')
+			.datum(data)
+			.attr('class', "bar " + classStr + " initial");
+	}
 
 	var contextPath = draw.append('path')
 		.datum(data)
 		.attr('class', "bar " + classStr + " context");
 	if (clipId != null) {
-        if (showInitial)
-            initialPath.attr('clip-path', "url(#" + clipId + ")");
+		if (showInitial)
+			initialPath.attr('clip-path', "url(#" + clipId + ")");
 
 		contextPath.attr('clip-path', "url(#" + clipId + ")");
 	}
 
 	function update () {
-        if (showInitial)
-            initialPath.attr('d', initialArea);
+		if (showInitial)
+			initialPath.attr('d', initialArea);
 		contextPath.attr('d', contextArea);
 	}
 	update();
@@ -283,17 +283,17 @@ function setupTimeline(container, initialQuery, globalQuery) {
 	var outerElt = $('<div class="timeline"></div>').appendTo(container);
 	var topBoxElt = $('<div class="topbox"></div>').appendTo(outerElt);
 	var clearElt = $('<button type="button" class="btn btn-block btn-mini btn-warning" title="Clear the timeline selection.">Clear selection</button></ul>').appendTo(topBoxElt);
-    var smoothSelectElt = $('<select id="smoothSel">                    \
-                            <option value="0">0</option>                \
-                            <option value="1">1</option>                \
-                            <option value="5">5</option>                \
-                            <option value="10">10</option>              \
-                            <option value="50">50</option>              \
-                            <option value="100">100</option>            \
-                            <option value="200">200</option>            \
-                            <option value="500">500</option>            \
-                            </select>').val("5").appendTo(topBoxElt);
-    var smoothElt = $('<button type="button" class="btn btn-mini btn-warning" title="Select smoothing">Smooth</button>').appendTo(topBoxElt);
+	var smoothSelectElt = $('<select id="smoothSel">                    \
+							<option value="0">0</option>                \
+							<option value="1">1</option>                \
+							<option value="5">5</option>                \
+							<option value="10">10</option>              \
+							<option value="50">50</option>              \
+							<option value="100">100</option>            \
+							<option value="200">200</option>            \
+							<option value="500">500</option>            \
+							</select>').val("5").appendTo(topBoxElt);
+	var smoothElt = $('<button type="button" class="btn btn-mini btn-warning" title="Select smoothing">Smooth</button>').appendTo(topBoxElt);
 	var loadingIndicator = new LoadingIndicator(outerElt);
 	var outerSvgElt = $('<svg class="outersvg"></svg>').appendTo(outerElt);
 	var svgElt = $('<svg class="innersvg" viewBox="' + viewBox.x + " " + viewBox.y + " " + viewBox.width + " " + viewBox.height + '" preserveAspectRatio="none"></svg>').appendTo(outerSvgElt);
@@ -302,10 +302,10 @@ function setupTimeline(container, initialQuery, globalQuery) {
 	setupPanelled(outerElt, topBoxElt, outerSvgElt, 'vertical', 0, false);
 	var scaleSvg = dontScaleSvgParts(outerSvgElt, 'text,.tick');
 
-	var width = viewBox.width - margins.left - margins.right,
-	    height = viewBox.height - margins.top - margins.bottom - margins.between;
-	var detailBox = { x: viewBox.x + margins.left, y: viewBox.y + margins.top, width: width, height: height * split },
-	    selectBox = { x: viewBox.x + margins.left, y: viewBox.y + margins.top + detailBox.height + margins.between, width: width, height: height * (1.0 - split) };
+	var width = viewBox.width - margins.left - margins.right;
+	var height = viewBox.height - margins.top - margins.bottom - margins.between;
+	var detailBox = { x: viewBox.x + margins.left, y: viewBox.y + margins.top, width: width, height: height * split };
+	var selectBox = { x: viewBox.x + margins.left, y: viewBox.y + margins.top + detailBox.height + margins.between, width: width, height: height * (1.0 - split) };
 
 	function setLoadingIndicator(enabled) {
 		svgElt.css('display', !enabled ? '' : 'none');
@@ -356,8 +356,8 @@ function setupTimeline(container, initialQuery, globalQuery) {
 				if (updateTimer != null)
 					clearTimeout(updateTimer);
 				updateTimer = setTimeout(function () {
-					var low = getYear(selection[0]),
-					    high = getYear(selection[1]);
+					var low = getYear(selection[0]);
+					var high = getYear(selection[1]);
 					constraint.name("Timeline: " + formatYear(low) + " - " + formatYear(high));
 					constraint.set({
 						type: 'timerange',
@@ -388,18 +388,18 @@ function setupTimeline(container, initialQuery, globalQuery) {
 		constraint.clear();
 		globalQuery.update();
 	});
-    smoothElt.click(function() {
-        var k = $('#smoothSel').val();
-        smooth_k = parseInt(k);
-        draw();
-    });
+	smoothElt.click(function() {
+		var k = $('#smoothSel').val();
+		smooth_k = parseInt(k);
+		draw();
+	});
 	constraint.onChange(function (changeType, query) {
 		if (changeType == 'removed' && query == ownCnstrQuery && clearBrush != null)
 			clearBrush();
 	});
 
-	var initialData = null,
-	    contextData = null;
+	var initialData = null;
+	var contextData = null;
 	function draw() {
 		if (initialData != null && contextData != null) {
 			svgElt.children().remove();
