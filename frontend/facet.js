@@ -16,21 +16,21 @@ function setupFacet(container, globalQuery, name, field, isConjunctive) {
 		return isConjunctive == null ? facetDefaultIsConjunctive : isConjunctive;
 	}
 
-	var facetElt = $("<div class=\"facet\"></div>").appendTo(container);
+	var facetElt = $('<div class="facet"></div>').appendTo(container);
 
-	var topBoxElt = $("<div class=\"topbox\"></div>").appendTo(facetElt);
+	var topBoxElt = $('<div class="topbox"></div>').appendTo(facetElt);
 	$("<h1>" + name + "</h1>").appendTo(topBoxElt);
-	var clearElt = $("<button type=\"button\" class=\"btn btn-block btn-mini btn-warning\" title=\"Clear the facet selection.\">Clear selection</button></ul>").appendTo(topBoxElt);
-	var searchBoxElt = $("<form class=\"searchbox\"></form>").appendTo(topBoxElt);
-	var searchBtnElt = $("<button type=\"submit\" class=\"btn btn-primary btn-link\" title=\"Search.\"></button>").appendTo(searchBoxElt);
-	var searchInputElt = $("<input type=\"text\" autocomplete=\"off\" data-provide=\"typeahead\" title=\"Enter search term here.\"></input>").appendTo($("<div class=\"inputbox\"></div>").appendTo(searchBoxElt));
+	var clearElt = $('<button type="button" class="btn btn-block btn-mini btn-warning" title="Clear the facet selection.">Clear selection</button></ul>').appendTo(topBoxElt);
+	var searchBoxElt = $('<form class="searchbox"></form>').appendTo(topBoxElt);
+	var searchBtnElt = $('<button type="submit" class="btn btn-primary btn-link" title="Search."></button>').appendTo(searchBoxElt);
+	var searchInputElt = $('<input type="text" autocomplete="off" data-provide="typeahead" title="Enter search term here."></input>').appendTo($('<div class="inputbox"></div>').appendTo(searchBoxElt));
 	var search = searchInputElt.typeahead();
 
-	var listBoxElt = $("<div class=\"listbox\"></div>").appendTo(facetElt);
+	var listBoxElt = $('<div class="listbox"></div>').appendTo(facetElt);
 	var loadingIndicator = new LoadingIndicator(listBoxElt);
 	var listElt = $("<ul></ul>").appendTo(listBoxElt);
-	var moreBoxElt = $("<div class=\"buttonbox\"></div>").appendTo(listBoxElt);
-	var moreElt = $("<button type=\"button\" class=\"btn\" disabled=\"true\">More</button>").appendTo(moreBoxElt);
+	var moreBoxElt = $('<div class="buttonbox"></div>').appendTo(listBoxElt);
+	var moreElt = $('<button type="button" class="btn" disabled="true">More</button>').appendTo(moreBoxElt);
 
 	fillElement(container, facetElt, 'vertical');
 	setupPanelled(facetElt, topBoxElt, listBoxElt, 'vertical', 0, false);
@@ -170,10 +170,10 @@ function setupFacet(container, globalQuery, name, field, isConjunctive) {
 			return list;
 		}
 		function addValue(value, count) {
-			var classStr = constraints.hasOwnProperty(value) ? " class=\"selected\"" : "";
+			var classStr = constraints.hasOwnProperty(value) ? ' class="selected"' : "";
 			var bracketedCountStr =  count == null ? "" : " [" + count + "]";
 			var countStr =  count == null ? "no" : count;
-			var itemElt = $("<li" + classStr + " title=\"Value '" + value + "' is in " + countStr + " events under current constraints. Click to select it.\">" + value + bracketedCountStr + "</li>").appendTo(listElt);
+			var itemElt = $("<li" + classStr + ' title="Value \'' + value + "' is in " + countStr + ' events under current constraints. Click to select it.">' + value + bracketedCountStr + "</li>").appendTo(listElt);
 			itemElt.click(function() {
 				select(value);
 				globalQuery.update();
