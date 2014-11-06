@@ -205,7 +205,7 @@ function _resultsForResultWatchers(resultWatchers, backendResponse, expectAll, o
 				var globalViewId = viewUniqueValues[watcher._value[localViewId]].id;
 				if (!backendResponse.hasOwnProperty(globalViewId)) {
 					if (!expectAll)
-						console.log("warning: didn't get anything for view \"" + localViewId + "\"");
+						console.log("warning: didn't get anything for view '" + localViewId + "'");
 					ok = false;
 					break;
 				}
@@ -288,7 +288,7 @@ Constraint.prototype.addChangeWatcher = function(watcher) {
 	if (!this._changeWatchers.hasOwnProperty(watcher._id)) {
 		this._changeWatchers[watcher._id] = watcher;
 	} else
-		console.log("warning: change watcher \"" + watacher._id + "\" already on query, can't add");
+		console.log("warning: change watcher '" + watacher._id + "' already on query, can't add");
 }
 
 /*
@@ -298,7 +298,7 @@ Constraint.prototype.removeChangeWatcher = function(watcher) {
 	if (this._changeWatchers.hasOwnProperty(watcher._id)) {
 		delete this._changeWatchers[watcher._id];
 	} else
-		console.log("warning: change watcher \"" + watacher._id + "\" not on constraint, can't remove");
+		console.log("warning: change watcher '" + watacher._id + "' not on constraint, can't remove");
 }
 
 /*
@@ -366,7 +366,7 @@ Continuer.prototype.fetchNext = function(callback) {
 		view.page = (view.page || 0) + contr._pageOffset;
 		return JSON.stringify(view);
 	});
-	var queryJson = "{\"constraints\":" + cnstrsJson + ",\"views\":" + viewsJson + "}";
+	var queryJson = '{"constraints":' + cnstrsJson + ',"views":' + viewsJson + '}';
 
 	$.post(this._query._backendUrl, queryJson, 'json').done(function(response) {
 		contr._haveMore = false;
@@ -412,7 +412,7 @@ function Query(backendUrl, type, arg1, arg2) {
 	else if (type == 'setminus')
 		this._setupSetminus(arg1, arg2);
 	else
-		console.log("error: unknown query type \"" + type + "\"");
+		console.log("error: unknown query type '" + type + "'");
 }
 
 /*
@@ -548,7 +548,7 @@ Query.prototype.addConstraint = function(constraint) {
 	if (!this._constraints.hasOwnProperty(constraint._id)) {
 		this._addConstraint(constraint);
 	} else
-		console.log("warning: constraint \"" + constraint._id + "\" already in query, can't add");
+		console.log("warning: constraint '" + constraint._id + "' already in query, can't add");
 }
 
 /*
@@ -562,7 +562,7 @@ Query.prototype.removeConstraint = function(constraint) {
 	if (this._constraints.hasOwnProperty(constraint._id)) {
 		this._removeConstraint(constraint);
 	} else
-		console.log("warning: constraint \"" + constraint._id + "\" not in query, can't remove");
+		console.log("warning: constraint '" + constraint._id + "' not in query, can't remove");
 }
 
 /*
@@ -578,7 +578,7 @@ Query.prototype.addChangeWatcher = function(watcher) {
 					watcher._callback('current', cnstr);
 			});
 	} else
-		console.log("warning: change watcher \"" + watacher._id + "\" already on query, can't add");
+		console.log("warning: change watcher '" + watacher._id + "' already on query, can't add");
 }
 
 /*
@@ -588,7 +588,7 @@ Query.prototype.removeChangeWatcher = function(watcher) {
 	if (this._changeWatchers.hasOwnProperty(watcher._id)) {
 		delete this._changeWatchers[watcher._id];
 	} else
-		console.log("warning: change watcher \"" + watacher._id + "\" not on query, can't remove");
+		console.log("warning: change watcher '" + watacher._id + "' not on query, can't remove");
 }
 
 /*
@@ -600,7 +600,7 @@ Query.prototype.addResultWatcher = function(watcher) {
 		this._resultWatchers[watcher._id] = watcher;
 		watcher._queriesIn[this._id] = this;
 	} else
-		console.log("warning: result watcher \"" + watacher._id + "\" already on query, can't add");
+		console.log("warning: result watcher '" + watacher._id + "' already on query, can't add");
 }
 
 /*
@@ -611,7 +611,7 @@ Query.prototype.removeResultWatcher = function(watcher) {
 		delete this._resultWatchers[watcher._id];
 		delete watcher._queriesIn[this._id];
 	} else
-		console.log("warning: result watcher \"" + watacher._id + "\" not on query, can't remove");
+		console.log("warning: result watcher '" + watacher._id + "' not on query, can't remove");
 }
 
 /*
@@ -726,7 +726,7 @@ Query.prototype._getConstraintsJSON = function() {
 				first = false;
 			else
 				jsonStr += ",";
-			jsonStr += "\"" + cnstrId + "\":";
+			jsonStr += '"' + cnstrId + '":';
 			jsonStr += cnstr._value;
 		}
 	}
@@ -755,7 +755,7 @@ Query.prototype._getViewsJSON = function(resultWatchers, viewRewriter) {
 					first = false;
 				else
 					jsonStr += ",";
-				jsonStr += "\"" + globalViewId + "\":";
+				jsonStr += '"' + globalViewId + '":';
 				jsonStr += view;
 				seenGlobalIds[view] = true;
 			}
@@ -794,7 +794,7 @@ Query.prototype.update = function(postponeFinish) {
 		query._updateErrorResolvedWatchers(currentResultWatchersWithErrors);
 
 		if (!$.isEmptyObject(resultWatchersToUpdate)) {
-			var queryJson = "{\"constraints\":" + query._getConstraintsJSON() + ",\"views\":" + query._getViewsJSON(resultWatchersToUpdate) + "}";
+			var queryJson = '{"constraints":' + query._getConstraintsJSON() + ',"views":' + query._getViewsJSON(resultWatchersToUpdate) + '}';
 			if (typeof verbose_log != 'undefined' && verbose_log.hasOwnProperty('outgoing_query') && verbose_log.outgoing_query)
 				console.log("outgoing query", query._id, queryJson);
 			var sendTime = (new Date()).getTime();

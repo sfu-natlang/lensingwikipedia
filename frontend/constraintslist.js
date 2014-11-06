@@ -8,13 +8,13 @@
  * globalQuery: the global query
  */
 function setupConstraintList(container, globalQuery) {
-	var outerElt = $("<div class=\"constraintslist\">").appendTo(container);
+	var outerElt = $('<div class="constraintslist">').appendTo(container);
 
     var saveElt = $('<button type="button" class="btn btn-block btn-mini btn-warning" title="Save query">Save query</button>').appendTo(outerElt);
     var loadElt = $('<button type="button" class="btn btn-block btn-mini btn-warning" title="Load query">Load query</button>').appendTo(outerElt);
-	var clearAllElt = $("<button type=\"button\" class=\"btn btn-block btn-mini btn-warning\" title=\"Remove all current constraints.\">Clear all constraints</button></ul>").appendTo(outerElt);
-	var listElt = $("<ul></ul>").appendTo(outerElt);
-	var errorBox = $("<div class=\"alert alert-error\" style=\"display: none\"></div>").appendTo(outerElt);
+	var clearAllElt = $('<button type="button" class="btn btn-block btn-mini btn-warning" title="Remove all current constraints.">Clear all constraints</button></ul>').appendTo(outerElt);
+	var listElt = $('<ul></ul>').appendTo(outerElt);
+	var errorBox = $('<div class="alert alert-error" style="display: none"></div>').appendTo(outerElt);
 
     // check if there are any saved queries
     if (window.savedQueries === undefined) {
@@ -36,9 +36,9 @@ function setupConstraintList(container, globalQuery) {
 	};
 
 	function addConstraintElement(cnstr) {
-		var itemElt = $("<li></li>").appendTo(listElt);
-		var cnstrElt = $("<div class=\"alert alert-constraint\" title=\"Click to remove this constraint.\"></div>").appendTo(itemElt);
-		$("<button type=\"button\" class=\"close\">&times;</button>").appendTo(cnstrElt);
+		var itemElt = $('<li></li>').appendTo(listElt);
+		var cnstrElt = $('<div class="alert alert-constraint" title="Click to remove this constraint."></div>').appendTo(itemElt);
+		$('<button type="button" class="close">&times;</button>').appendTo(cnstrElt);
 		var cnstrTextElt = $("<span></span>").appendTo(cnstrElt);
 		cnstrTextElt.append(cnstr.name());
 		container.trigger('changedSize');

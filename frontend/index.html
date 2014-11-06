@@ -18,26 +18,26 @@
 		{JS}
 
 		<script>
-			$("<div class=\"contentarea\"> \
-				<div class=\"sidebar\"> \
-					<div class=\"constraintslistbox\"></div> \
-					<div class=\"eventdescriptionslistbox\"></div> \
+			$('<div class="contentarea"> \
+				<div class="sidebar"> \
+					<div class="constraintslistbox"></div> \
+					<div class="eventdescriptionslistbox"></div> \
 				</div> \
-				<div class=\"selectorsarea\"> \
-					<ul class=\"nav nav-pills\" id=\"tabbar\"> \
-						<li class=\"active\"><a href=\"#facetstab\" data-toggle=\"tab\" title=\"Facets view\">Facets</a></li> \
-						<li><a href=\"#timelinetab\" data-toggle=\"tab\" title=\"Timeline view\">Timeline</a></li> \
-						<li><a href=\"#maptab\" data-toggle=\"tab\" title=\"Map view\">Map</a></li> \
-						<li><a href=\"#textsearchtab\" data-toggle=\"tab\" title=\"Text search\">Text search</a></li> \
+				<div class="selectorsarea"> \
+					<ul class="nav nav-pills" id="tabbar"> \
+						<li class="active"><a href="#facetstab" data-toggle="tab" title="Facets view">Facets</a></li> \
+						<li><a href="#timelinetab" data-toggle="tab" title="Timeline view">Timeline</a></li> \
+						<li><a href="#maptab" data-toggle="tab" title="Map view">Map</a></li> \
+						<li><a href="#textsearchtab" data-toggle="tab" title="Text search">Text search</a></li> \
 					</ul> \
-					<div class=\"tab-content\" id=\"tabcontents\"> \
-						<div class=\"tab-pane active\" id=\"facetstab\"></div> \
-						<div class=\"tab-pane\" id=\"timelinetab\"></div> \
-						<div class=\"tab-pane\" id=\"maptab\"></div> \
-						<div class=\"tab-pane\" id=\"textsearchtab\"></div> \
+					<div class="tab-content" id="tabcontents"> \
+						<div class="tab-pane active" id="facetstab"></div> \
+						<div class="tab-pane" id="timelinetab"></div> \
+						<div class="tab-pane" id="maptab"></div> \
+						<div class="tab-pane" id="textsearchtab"></div> \
 					</div> \
 				</div> \
-			</div>").appendTo($('body'));
+			</div>').appendTo($('body'));
 
 			setupPanelled($('body'), $('.header'), $('.contentarea'), 'vertical', 4);
 			setupPanelled($('.selectorsarea'), $('#tabbar'), $('.tab-content'), 'vertical');
