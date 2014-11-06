@@ -84,32 +84,41 @@ function smoothData(data, k) {
 /*
  * Draw histogram of counts by year.
  */
-function drawCounts(data, box, draw, scales, classStr, clipId) {
-	var initialArea = d3.svg.area()
-		.interpolate('basis')
-		.x(function(s) { return scales.x(s.date); })
-		.y0(box.height)
-		.y1(function(s) { return scales.y(s.initialCount); });
+function drawCounts(data, box, draw, scales, classStr, clipId, showInitial) {
+
+    if (showInitial) {
+        var initialArea = d3.svg.area()
+            .interpolate('basis')
+            .x(function(s) { return scales.x(s.date); })
+            .y0(box.height)
+            .y1(function(s) { return scales.y(s.initialCount); });
+    }
+
 	var contextArea = d3.svg.area()
 		.interpolate('basis')
 		.x(function(s) { return scales.x(s.date); })
 		.y0(box.height)
 		.y1(function(s) { return scales.y(s.contextCount); });
 
-	var initialPath = draw.append('path')
-		.datum(data)
-		.attr('class', "bar " + classStr + " initial");
+    if (showInitial) {
+        var initialPath = draw.append('path')
+        .datum(data)
+        .attr('class', "bar " + classStr + " initial");
+    }
 
 	var contextPath = draw.append('path')
 		.datum(data)
 		.attr('class', "bar " + classStr + " context");
 	if (clipId != null) {
-		initialPath.attr('clip-path', "url(#" + clipId + ")");
+        if (showInitial)
+            initialPath.attr('clip-path', "url(#" + clipId + ")");
+
 		contextPath.attr('clip-path', "url(#" + clipId + ")");
 	}
 
 	function update () {
-		initialPath.attr('d', initialArea);
+        if (showInitial)
+            initialPath.attr('d', initialArea);
 		contextPath.attr('d', contextArea);
 	}
 	update();
@@ -120,7 +129,7 @@ function drawCounts(data, box, draw, scales, classStr, clipId) {
 /*
  * Draw a single complete plot, including axes.
  */
-function drawPlot(svg, box, data, classStr, matchScales, fitY, logY, clipId) {
+function drawPlot(svg, box, data, classStr, matchScales, fitY, logY, clipId, showInitial) {
 	var draw = svg.append('g')
 		.attr('transform', "translate(" + box.x + "," + box.y + ")");
 	var scales = {
@@ -184,7 +193,7 @@ function drawPlot(svg, box, data, classStr, matchScales, fitY, logY, clipId) {
 		}
 	}
 	fitYScale();
-	var updatePlot = drawCounts(data, box, draw, scales, classStr, clipId);
+	var updatePlot = drawCounts(data, box, draw, scales, classStr, clipId, showInitial);
 	draw.append('g')
 		.attr('class', "x axis " + classStr)
 		.attr('transform', "translate(0," + box.height + ")")
@@ -217,8 +226,8 @@ function drawTimeline(svg, detailBox, selectBox, data, initialBrushExtent, brush
 		.append('rect')
 		.attr('width', detailBox.width)
 		.attr('height', detailBox.height);
-	var detailPlot = drawPlot(svg, detailBox, data, 'detail', null, true, false, clipId);
-	var selectPlot = drawPlot(svg, selectBox, data, 'selection', detailPlot.scales, false, false);
+	var detailPlot = drawPlot(svg, detailBox, data, 'detail', null, true, false, clipId, false);
+	var selectPlot = drawPlot(svg, selectBox, data, 'selection', detailPlot.scales, false, false, null, true);
 	var brush = null;
 	function updateBrush() {
 		detailPlot.updateX(brush.empty() ? selectPlot.scales.x.domain() : brush.extent());
