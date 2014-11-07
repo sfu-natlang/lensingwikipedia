@@ -498,72 +498,51 @@ function storylineLayout(resultData, importantEntities) {
 	}
 }
 
-function layoutLabels(entityLines, yearExtent, numSlots, iters) {
-	var nodes = [],
-	    labelNodes = [];
-	    links = [];
-	$.each(entityLines, function (entityLineI, entityLine) {
-		var firstPoint = entityLine.points[0];
-		    pointNode = {
-					fixed: true,
-					x: firstPoint.node.year,
-					y: firstPoint.slot.index
-				},
-		    labelNode = {
-					fixed: false,
-					entityLine: entityLine,
-					x: firstPoint.node.year,
-					y: firstPoint.slot.index
-				},
-		    link = {
-					source: pointNode,
-					target: labelNode
-				};
-		nodes.push(pointNode);
-		nodes.push(labelNode);
-		labelNodes.push(labelNode);
-		links.push(link);
-	});
-
-	$.each(labelNodes, function (labelNodeI1, labelNode1) {
-		$.each(labelNodes, function (labelNodeI2, labelNode2) {
-			if (labelNodeI1 != labelNodeI2) {
-				links.push({
-					source: labelNode1,
-					target: labelNode2
-				});
+function layoutLabels(labels, numSlots, xScale, xExtent, slotY, yLineOffset) {
+	function findClosestFreeSlot(slotIndex, startX, lastUsed) {
+		if (!lastUsed.hasOwnProperty(slotIndex) || lastUsed[slotIndex] < startX)
+			return slotIndex;
+		var bestSlotIndex = null,
+		    upBestDist = Number.MAX_VALUE;
+		for (var i = slotIndex - 1; i > 0; i--) {
+			if (!lastUsed.hasOwnProperty(i) || lastUsed[i] < startX) {
+				bestSlotIndex = i;
+				upBestDist = slotIndex - i;
+				break;
 			}
-		});
+		}
+		for (var i = slotIndex + 1; i < numSlots; i++) {
+			if (!lastUsed.hasOwnProperty(i) || lastUsed[i] < startX) {
+				var dist = i - slotIndex;
+				if (dist < upBestDist)
+					bestSlotIndex = i;
+				break;
+			}
+		}
+		return bestSlotIndex;
+	}
+
+	var scaledXExtent = [xScale(xExtent[0]), xScale(xExtent[1])];
+
+	var lastUsed = {};
+	labels.sort(function (l1, l2) { return l1.date - l2.date });
+	$.each(labels, function (labelI, label) {
+		var startX = Math.max(scaledXExtent[0], xScale(label.date) - label.width / 2),
+		    endX = startX + label.width;
+		if (endX >= scaledXExtent[1]) {
+			endX = scaledXExtent[1];
+			startX = endX - label.width;
+		}
+		var toIndex = findClosestFreeSlot(label.slotIndex, startX, lastUsed);
+		if (toIndex != null) {
+			lastUsed[toIndex] = endX;
+			label.slotIndex = toIndex;
+		} else {
+			console.log("warning: can't choose good slot for entity line label");
+		}
+		label.x = startX + label.width / 2;
+		label.y = slotY(label.slotIndex) + yLineOffset;
 	});
-
-	var force = d3.layout.force()
-		.gravity(0)
-		.nodes(nodes)
-		.links(links)
-		.on('tick', function () {
-			console.log("tick");
-			$.each(labelNodes, function (ni, n) {
-				console.log(" n", n.x, n.y);
-			});
-			$.each(labelNodes, function (ni, n) {
-				n.x = Math.max(yearExtent[0], Math.min(yearExtent[1], n.x));
-				n.y = Math.max(0, Math.min(numSlots, n.y));
-			});
-			$.each(labelNodes, function (ni, n) {
-				console.log(" n'", n.x, n.y);
-			});
-		});
-
-			console.log("start", yearExtent, numSlots);
-			$.each(labelNodes, function (ni, n) {
-				console.log(" n", n.x, n.y);
-			});
-	force.start();
-	for (var i = 0; i < iters; i++)
-		force.tick();
-	force.stop();
-
-	return labelNodes;
 }
 
 function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, ySlotOffset, ySpacePerSlot, nodeWidth, lineWidth, drawLabels, doMouseovers, useFieldPrefixes, importantEntities, onSelectNode) {
@@ -746,28 +725,38 @@ function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, ySlo
 		node.on("click", onSelectNode);
 
 	var updateLabelGroups = null;
+	function makeLabels(entityLines) {
+		return $.map(entityLines, function (entityLine) {
+			return {
+				entityLine: entityLine
+			};
+		});
+	}
 	if (drawLabels) {
-		var yearExtent = [xExtent[0].getFullYear(), xExtent[1].getFullYear()];
-		var labelLayout = layoutLabels(layout.entityLines, yearExtent, layout.numSlots, 4);
+		var labels = makeLabels(layout.entityLines);
 		labelGroups = draw.append("g")
 			.selectAll(".linelabel")
-			.data(labelLayout)
+			.data(labels)
 			.enter()
 			.append("g")
 			.attr('class', function (l) { return "linelabel" + classForLine(l.entityLine); })
 			.style('stroke', function(l, i) { return linesColor(l.entityLine.entityId); })
 			.attr('text-anchor', 'middle');
-		labelGroups
+		var labelText = labelGroups
 			.append("text")
 			.text(function (l, i) { var e = layout.entities[l.entityLine.entityId]; return "" + (useFieldPrefixes ? e.field + ":" : "") + e.value; })
 			.attr("dy", ".35em")
 			.style('pointer-events', 'none');
 		updateLabelGroups = function () {
+			labelText.each(function (label) {
+				label.date = label.entityLine.points[0].node.date;
+				label.slotIndex = label.entityLine.points[0].slot.index;
+				label.width = this.getBBox().width;
+			});
+			layoutLabels(labels, layout.numSlots, xScale, xExtent, slotY, yLineOffset);
 			labelGroups
 				.attr('transform', function(l) {
-					var x = xScale(jsDateOfYear(l.x)),
-					    y = slotY(l.y) + yLineOffset;
-					return "translate(" + x + "," + y + ")";
+					return "translate(" + l.x + "," + l.y + ")";
 				});
 		}
 	}
@@ -836,6 +825,10 @@ function drawStoryline(svg, detailBox, selectBox, data, useFieldPrefixes, import
 		.selectAll('rect')
 		.attr('y', -2)
 		.attr('height', selectBox.height + 6);
+
+	update = onBrush;
+
+	return update;
 }
 
 /*
@@ -979,7 +972,8 @@ function setupStoryline(container, globalQuery, facets) {
 	clearSelElt.attr('disabled', 'disabled');
 	clearSelElt.bind('click', onClearSelection);
 
-	var data = null;
+	var data = null,
+	    updateVis = null;
 	function draw() {
 		if (data != null) {
 			svgElt.children().remove();
@@ -987,7 +981,7 @@ function setupStoryline(container, globalQuery, facets) {
 			setLoadingIndicator(false);
 			outerSvgElt.show();
 			helpElt.hide();
-			drawStoryline(svg, detailBox, selectBox, data, drawEntityTitlePrefixes, drawImportantEntities, onSelectNode);
+			updateVis = drawStoryline(svg, detailBox, selectBox, data, drawEntityTitlePrefixes, drawImportantEntities, onSelectNode);
 			scaleSvg();
 		} else {
 			setLoadingIndicator(false);
@@ -1092,4 +1086,9 @@ function setupStoryline(container, globalQuery, facets) {
 		modeElt.val(defaultFacetI);
 	modeElt.change();
 	updateQuery(resultWatcher, null);
+
+	$('a[data-toggle="tab"]').on('shown', function (e) {
+		if ($(e.target.getAttribute('href'))[0] === container[0] && updateVis != null)
+			updateVis();
+	});
 }
