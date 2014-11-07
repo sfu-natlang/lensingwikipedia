@@ -498,6 +498,74 @@ function storylineLayout(resultData, importantEntities) {
 	}
 }
 
+function layoutLabels(entityLines, yearExtent, numSlots, iters) {
+	var nodes = [],
+	    labelNodes = [];
+	    links = [];
+	$.each(entityLines, function (entityLineI, entityLine) {
+		var firstPoint = entityLine.points[0];
+		    pointNode = {
+					fixed: true,
+					x: firstPoint.node.year,
+					y: firstPoint.slot.index
+				},
+		    labelNode = {
+					fixed: false,
+					entityLine: entityLine,
+					x: firstPoint.node.year,
+					y: firstPoint.slot.index
+				},
+		    link = {
+					source: pointNode,
+					target: labelNode
+				};
+		nodes.push(pointNode);
+		nodes.push(labelNode);
+		labelNodes.push(labelNode);
+		links.push(link);
+	});
+
+	$.each(labelNodes, function (labelNodeI1, labelNode1) {
+		$.each(labelNodes, function (labelNodeI2, labelNode2) {
+			if (labelNodeI1 != labelNodeI2) {
+				links.push({
+					source: labelNode1,
+					target: labelNode2
+				});
+			}
+		});
+	});
+
+	var force = d3.layout.force()
+		.gravity(0)
+		.nodes(nodes)
+		.links(links)
+		.on('tick', function () {
+			console.log("tick");
+			$.each(labelNodes, function (ni, n) {
+				console.log(" n", n.x, n.y);
+			});
+			$.each(labelNodes, function (ni, n) {
+				n.x = Math.max(yearExtent[0], Math.min(yearExtent[1], n.x));
+				n.y = Math.max(0, Math.min(numSlots, n.y));
+			});
+			$.each(labelNodes, function (ni, n) {
+				console.log(" n'", n.x, n.y);
+			});
+		});
+
+			console.log("start", yearExtent, numSlots);
+			$.each(labelNodes, function (ni, n) {
+				console.log(" n", n.x, n.y);
+			});
+	force.start();
+	for (var i = 0; i < iters; i++)
+		force.tick();
+	force.stop();
+
+	return labelNodes;
+}
+
 function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, ySlotOffset, ySpacePerSlot, nodeWidth, lineWidth, drawLabels, doMouseovers, useFieldPrefixes, importantEntities, onSelectNode) {
 	var scale = box.height / layoutHeight;
 
@@ -535,8 +603,8 @@ function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, ySlo
 		.attr('clip-path', "url(#" + clipId + ")")
 		.call(xAxis);
 
-	function slotY(slot) {
-		return (ySlotOffset + slot.index) * ySpacePerSlot * scale;
+	function slotY(slotIndex) {
+		return (ySlotOffset + slotIndex) * ySpacePerSlot * scale;
 	}
 	function slotsDY(numSlots) {
 		return numSlots * ySpacePerSlot * scale;
@@ -613,7 +681,7 @@ function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, ySlo
 				xOffset = nodeWidth / 2;
 			return {
 				y: xScale(l.source.node.date) + xOffset,
-				x: slotY(l.source.slot) + yLineOffset
+				x: slotY(l.source.slot.index) + yLineOffset
 			};
 		})
 		.target(function (l) {
@@ -624,7 +692,7 @@ function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, ySlo
 				xOffset = -nodeWidth / 2;
 			return {
 				y: xScale(l.target.node.date) + xOffset,
-				x: slotY(l.target.slot) + yLineOffset
+				x: slotY(l.target.slot.index) + yLineOffset
 			};
 		})
 		.projection(function (xy) {
@@ -677,20 +745,31 @@ function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, ySlo
 	if (onSelectNode != null)
 		node.on("click", onSelectNode);
 
-	var labelGroups = null;
+	var updateLabelGroups = null;
 	if (drawLabels) {
+		var yearExtent = [xExtent[0].getFullYear(), xExtent[1].getFullYear()];
+		var labelLayout = layoutLabels(layout.entityLines, yearExtent, layout.numSlots, 4);
 		labelGroups = draw.append("g")
 			.selectAll(".linelabel")
-			.data(layout.entityLines)
+			.data(labelLayout)
 			.enter()
 			.append("g")
-			.attr('class', function (l) { return "linelabel" + classForLine(l); })
-			.style("stroke", function(l, i) { return linesColor(l.entityId); });
+			.attr('class', function (l) { return "linelabel" + classForLine(l.entityLine); })
+			.style('stroke', function(l, i) { return linesColor(l.entityLine.entityId); })
+			.attr('text-anchor', 'middle');
 		labelGroups
 			.append("text")
-			.text(function (l, i) { var e = layout.entities[l.entityId]; return "" + (useFieldPrefixes ? e.field + ":" : "") + e.value; })
+			.text(function (l, i) { var e = layout.entities[l.entityLine.entityId]; return "" + (useFieldPrefixes ? e.field + ":" : "") + e.value; })
 			.attr("dy", ".35em")
 			.style('pointer-events', 'none');
+		updateLabelGroups = function () {
+			labelGroups
+				.attr('transform', function(l) {
+					var x = xScale(jsDateOfYear(l.x)),
+					    y = slotY(l.y) + yLineOffset;
+					return "translate(" + x + "," + y + ")";
+				});
+		}
 	}
 
 	function update() {
@@ -698,31 +777,11 @@ function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, ySlo
 			.attr("d", linesLine);
 		node
 			.attr("x", function (vc) { return xScale(vc.date) - nodeWidth / 2; })
-			.attr("y", function (vc) { return slotY(vc.startSlot) + yNodeOffset; })
+			.attr("y", function (vc) { return slotY(vc.startSlot.index) + yNodeOffset; })
 			.attr("height", function(vc) { return slotsDY(vc.entityIds.length) - yNodeOffset * 2; })
 			.attr("width", nodeWidth);
-		if (labelGroups != null)
-			labelGroups
-				.attr('visibility', function (l) {
-					if (xScale(l.points[l.points.length - 1].date) < 0)
-						return 'hidden';
-					else if (xScale(l.points[0].node.date) > box.width)
-						return 'hidden';
-					else
-						return 'visible';
-				})
-				.attr('text-anchor', function (l) {
-					var x = xScale(l.points[0].node.date);
-					if (x <= 0)
-						return 'left';
-					else
-						return 'middle';
-				})
-				.attr('transform', function(l) {
-					var x = Math.min(box.width, Math.max(0, xScale(l.points[0].node.date))),
-					    y = slotY(l.points[0].slot) + yLineOffset;
-					return "translate(" + x + "," + (y - lineWidth / 2) + ")";
-				});
+		if (updateLabelGroups != null)
+			updateLabelGroups();
 	}
 	update();
 
