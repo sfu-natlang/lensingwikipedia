@@ -16,7 +16,7 @@ function setupTextSearch(container, globalQuery) {
 	var clearElt = $("<button type=\"button\" class=\"btn btn-warning\" title=\"Clear the text search constraint.\">Clear</button>").appendTo(btnBoxElt);
 	var searchElt = $("<button type=\"submit\" class=\"btn btn-primary\" title=\"Add text search constraint.\">Search</button>").appendTo(btnBoxElt);
 
-	outerElt.append(" \
+	var helpTextElt = outerElt.append(" \
 		<div class=\"alert alert-warning alert-dismissable\"> \
 			<button type=\"button\" class=\"close\" data-dismiss=\"alert\" aria-hidden=\"true\">&times;</button> \
 			<strong>Some examples:</strong> \
@@ -27,22 +27,18 @@ function setupTextSearch(container, globalQuery) {
 				<li>Boolean combinations, e.g. inside AND outside, inside OR outside, inside NOT outside</li> \
 				<li>Field searches: you can use a field type as a constraint on the search, e.g. location:germany, roleA0:decider, year:[1991 TO 2000]</li> \
 				<li>List of fields:  \
-					<ul> \
-					<li>year</li> \
-					<li>predicate</li> \
-					<li>location</li> \
-					<li>currentcountry</li> \
-					<li>person</li> \
-					<li>description</li> \
-					<li>category</li> \
-					<li>role</li> \
-					<li>roleA0, roleA1, etc.</li> \
+					<ul class=\"fieldexamples\"> \
 					</ul> \
 				</li> \
 			</ul> \
 			See the <a href=\"http://pythonhosted.org/Whoosh/querylang.html\" target=\"_blank\">Whoosh documentation</a> for syntax details. \
 		</div> \
 	");
+
+	var fieldExElt = helpTextElt.find('.fieldexamples');
+	$.each(helpFieldsList, function (fieldI, field) {
+		$("<li>" + field + "</li>").appendTo(fieldExElt);
+	});
 
 	fillElement(container, outerElt, 'vertical');
 

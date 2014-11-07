@@ -416,6 +416,7 @@ function Query(backendUrl, type, arg1, arg2) {
 	this._resultWatchersWithErrors = {};
 	this._errorWatchers = [];
 	this._errorResolvedWatchers = {};
+	this._childrenToUpdate = {};
 
 	if (type == 'base')
 		this._setupBase();
@@ -461,12 +462,8 @@ Query.prototype._setupSetminus = function (query1, query2) {
 				query._addConstraint(cnstr);
 		}
 	}, true);
-	query1.onResult({}, function () {
-		query.update();
-	});
-	query2.onResult({}, function () {
-		query.update();
-	});
+	query1._childrenToUpdate[query._id] = query;
+	query2._childrenToUpdate[query._id] = query;
 }
 
 /*
@@ -777,7 +774,6 @@ Query.prototype.update = function(postponeFinish) {
 			var watcher = query._resultWatchers[watcherId];
 			if (query._someConstraintChangedSinceUpdate || query._resultWatchersChangedSinceUpdate[watcher._id])
 				(watcher._value != null ? resultWatchersToUpdate : toForceResolve)[watcher._id] = watcher;
-					
 		}
 
 		// We resolve any errors on watchers that are no longer active, because otherwise they are stuck in an error state
@@ -821,6 +817,10 @@ Query.prototype.update = function(postponeFinish) {
 	}
 	if (finish == null)
 		finish = function () {};
+
+	$.each(this._childrenToUpdate, function (childId, child) {
+		child.update();
+	});
 
 	if (postponeFinish)
 		return finish;

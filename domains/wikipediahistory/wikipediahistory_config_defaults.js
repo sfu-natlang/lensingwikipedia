@@ -14,6 +14,8 @@ facets = {
 	"category": "Category",
 	"location": "Location"
 };
+// Field to use to define clusters in the storyline
+storylineClusterField = "referencePoints";
 // Default facet to use for the storyline view
 defaultStorylineFacet = "person";
 // Verbose log settings that can be set in the browser console

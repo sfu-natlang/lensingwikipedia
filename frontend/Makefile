@@ -38,7 +38,7 @@ OWNCSS=$(addprefix $(SRC)/, loadingindicator.css constraintslist.css eventdescri
 # Library JS file to add to the build; each should include appropriate credits and licence information.
 LIBJS=$(addprefix $(SRC)/, lib/jquery.min.js lib/jquery.cookie.min.js lib/d3/d3.v3.min.js lib/d3/topojson.v1.min.js lib/d3/d3.geo.projection.v0.min.js lib/d3/d3.geo.polyhedron.v0.min.js lib/d3/d3.sankey.min.js lib/bootstrap/js/bootstrap.min.js)
 # Project Javascript files to add to the build.
-OWNJS=$(addprefix $(SRC)/, utils.js layoututils.js d3utils.js timeaxisutils.js loadingindicator.js queries.js constraintslist.js eventdescriptionslist.js facet.js timeline.js map.js textsearch.js storyline.js descriptions.js)
+OWNJS=$(addprefix $(SRC)/, utils.js layoututils.js d3utils.js timeaxisutils.js loadingindicator.js queries.js constraintslist.js eventdescriptionslist.js facet.js timeline.js map.js textsearch.js storylinelayout.js storyline.js descriptions.js)
 # HTML fragment to use in the HTML head section (adding to any fixed lines).
 HEADFILE=
 # HTML fragment file to use as the header in the page layout.

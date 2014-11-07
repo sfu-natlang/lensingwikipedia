@@ -51,6 +51,9 @@
 .storyline .node.highlight {
 	fill-opacity: 0.4;
 }
+.storyline .node.selected {
+	fill-opacity: 0.8;
+}
 .storyline .line {
 	fill: none;
 	stroke: black;
