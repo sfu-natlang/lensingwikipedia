@@ -56,9 +56,18 @@
 			}
 			setupSidebar($(".sidebar"), globalQuery);
 
+			// TODO there will be a merge conflict with the xkcd branch
+			var facetsInfo = [];
 			var facetMakers = $.map(facets, function (title, field) {
 				return function (container) {
-					setupFacet(container, globalQuery, title, field);
+					var constraintsQuery = setupFacet(container, globalQuery,
+							title, field);
+
+					facetsInfo.push({
+					    title: title,
+					    field: field,
+					    constraintsQuery: constraintsQuery
+					});
 				}
 			});
 			setupSplitMakeElements($('#facetstab'), 'horizontal', facetMakers);
