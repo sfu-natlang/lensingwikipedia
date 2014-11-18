@@ -18,6 +18,23 @@
 		{JS}
 
 		<script>
+			function makeTabs(tabBar, tabContents, tabs, defaultTabId) {
+				var foundDefault = false;
+				$.each(tabs, function (tabI, tab) {
+					var barElt = $('<li><a href="#' + tab.id + '" data-toggle="tab" title="' + tab.longname + '">' + tab.name + '</a></li>').appendTo(tabBar);
+					var container = $('<div class="tab-pane" id="' + tab.id + '"></div>').appendTo(tabContents);
+					fillElement($('.tab-content'), container, 'vertical');
+					tab.make(container);
+					if (tab.id == defaultTabId) {
+						barElt.addClass('active');
+						container.addClass('active');
+						foundDefault = true;
+					}
+				});
+				if (!foundDefault)
+					console.log("warning: unknown default tab");
+			}
+
 			$('<div class="contentarea"> \
 				<div class="sidebar"> \
 					<div class="constraintslistbox"></div> \
@@ -25,18 +42,8 @@
 				</div> \
 				<div class="selectorsarea"> \
 					<ul class="nav nav-pills" id="tabbar"> \
-						<li class="active"><a href="#facetstab" data-toggle="tab" title="Facets view">Facets</a></li> \
-						<li><a href="#timelinetab" data-toggle="tab" title="Timeline view">Timeline</a></li> \
-						<li><a href="#maptab" data-toggle="tab" title="Map view">Map</a></li> \
-						<li><a href="#textsearchtab" data-toggle="tab" title="Text search">Text search</a></li> \
-						<li><a href="#comparetab" data-toggle="tab" title="comparison view">Comparison</a></li> \
 					</ul> \
 					<div class="tab-content" id="tabcontents"> \
-						<div class="tab-pane active" id="facetstab"></div> \
-						<div class="tab-pane" id="timelinetab"></div> \
-						<div class="tab-pane" id="maptab"></div> \
-						<div class="tab-pane" id="textsearchtab"></div> \
-						<div class="tab-page" id="comparetab"></div> \
 					</div> \
 				</div> \
 			</div>').appendTo($('body'));
@@ -72,18 +79,14 @@
 					});
 				}
 			});
-			setupSplitMakeElements($('#facetstab'), 'horizontal', facetMakers);
-			setupTimeline($('#timelinetab'), initialQuery, globalQuery);
-			setupMap($('#maptab'), initialQuery, globalQuery, mapDataUrl, minMapZoom, maxMapZoom);
-			setupTextSearch($('#textsearchtab'), globalQuery);
-			setupCompare($('#comparetab'), globalQuery, facetsInfo);
 
-			fillElement($('.tab-content'), $('#facetstab'), 'vertical');
-			fillElement($('.tab-content'), $('#timelinetab'), 'vertical');
-			fillElement($('.tab-content'), $('#maptab'), 'vertical');
-			fillElement($('.tab-content'), $('#textsearchtab'), 'vertical');
-			fillElement($('.tab-content'), $('#abouttab'), 'vertical');
-			fillElement($('.tab-content'), $('#comparetab'), 'vertical');
+			makeTabs($('#tabbar'), $('#tabcontents'), [
+				{ id: "facetstab", name: "Facets", longname: "Facets view", make: function(elt) { setupSplitMakeElements(elt, 'horizontal', facetMakers) } },
+				{ id: "timelinetab", name: "Timeline", longname: "Timeline view", make: function(elt) { setupTimeline(elt, initialQuery, globalQuery) } },
+				{ id: "comparetab", name: "Comparison", longname: "Comparison view", make: function(elt) { setupCompare(elt, globalQuery, facetsInfo) } },
+				{ id: "maptab", name: "Map", longname: "Map view", make: function(elt) { setupMap(elt, initialQuery, globalQuery, mapDataUrl, minMapZoom, maxMapZoom) } },
+				{ id: "textsearchtab", name: "Text Search", longname: "Text Search", make: function(elt) { setupTextSearch(elt, globalQuery) } }
+			], 'facetstab');
 
 			// Update the queries only after setting up all the controls
 			initialQuery.update();
