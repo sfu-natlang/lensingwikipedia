@@ -34,8 +34,21 @@ function setupCompare(container, globalQuery, facets) {
 
 	updateElt.click(function(event) {
 		setLoadingIndicator(true);
-		currentFacet = facets[Number(modeElt.value())];
-		// TODO get all the values from the facet somehow
+		currentFacet = facets[Number(modeElt[0].value)];
+		var rw = null;
+		rw = new ResultWatcher(function(a) {
+			console.log(a);
+
+			// we're done loading here.
+			currentFacet.constraintsQuery.removeResultWatcher(rw);
+			setLoadingIndicator(false);
+		});
+
+		// the idea here is that the change watcher will receive the new info
+		// when the query gets updated. The watcher will remove itself from the
+		// query so we can create a new one next time
+		currentFacet.constraintsQuery.addResultWatcher(rw);
+		currentFacet.constraintsQuery.update();
 	});
 
 	// disable form because we don't want to refresh the page
