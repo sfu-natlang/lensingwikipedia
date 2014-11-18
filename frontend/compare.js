@@ -5,6 +5,6 @@
  * globalQuery: the global query
  */
 function setupCompare(container, globalQuery, facets) {
-	var outerElt = $('<div class="compare"></div>').appendTo(container);
+	var outerElt = $('<div class="compare">Text here</div>').appendTo(container);
 	fillElement(container, outerElt, 'vertical');
 }
