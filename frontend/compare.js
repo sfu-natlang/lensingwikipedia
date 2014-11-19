@@ -63,6 +63,10 @@ function setupCompare(container, globalQuery, facets) {
 
 			$.each(top5names, function(idx, name) {
 				$('<p>' + name + '</p>').appendTo(contentElt);
+				getYearlyCountsForName(currentFacet.field, name, function(res) {
+					// TODO do something wih the yearly counts we get here.
+					console.log(res);
+				});
 			});
 
 			setLoadingIndicator(false);
@@ -82,6 +86,27 @@ function setupCompare(container, globalQuery, facets) {
 }
 
 /****************** HELPERS *****************************************/
+function getYearlyCountsForName(field, name, callback) {
+	var query = new Query(globalQuery.backendUrl());
+	var nameConstraint = new Constraint();
+
+	query.addConstraint(nameConstraint);
+
+	nameConstraint.set({
+		type: 'fieldvalue',
+		field: field,
+		value: name
+	});
+
+	query.onResult({
+		counts: {
+			type: 'countbyyear'
+		}
+	}, callback);
+
+	query.update();
+}
+
 function clearElement(element) {
 	element.html("");
 }
