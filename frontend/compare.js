@@ -22,7 +22,7 @@ function setupCompare(container, globalQuery, facets) {
 		loadingIndicator.enabled(enabled);
 	}
 
-	$.each(facets, function (idx, facet) {
+	$.each(facets, function(idx, facet) {
 		$('<option value="' + idx + '">' + facet.title + ' facet</option>').appendTo(modeElt);
 	});
 
@@ -35,19 +35,26 @@ function setupCompare(container, globalQuery, facets) {
 	updateElt.click(function(event) {
 		setLoadingIndicator(true);
 		currentFacet = facets[Number(modeElt[0].value)];
-		var rw = null;
-		rw = new ResultWatcher(function(a) {
-			console.log(a);
 
-			// we're done loading here.
-			currentFacet.constraintsQuery.removeResultWatcher(rw);
-			setLoadingIndicator(false);
+		currentFacet.constraintsQuery.onResult({
+			counts: {
+				type: 'countbyfieldvalue',
+				field: currentFacet.field
+			}
+		}, function(result) {
+			// TODO: This function will be called once for each constraints.
+			//		 It might be a good idea to check if it was already
+			//		 executed so we don't reload too many times.
+			var top5names = [];
+
+			$.each(result.counts.counts, function(idx, count) {
+				if (idx < 5)
+					top5names.push(count[0]);
+			});
+
+			console.log(top5names);
 		});
 
-		// the idea here is that the change watcher will receive the new info
-		// when the query gets updated. The watcher will remove itself from the
-		// query so we can create a new one next time
-		currentFacet.constraintsQuery.addResultWatcher(rw);
 		currentFacet.constraintsQuery.update();
 	});
 
