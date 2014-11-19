@@ -65,7 +65,7 @@ function setupCompare(container, globalQuery, facets) {
 				$('<p>' + name + '</p>').appendTo(contentElt);
 				getYearlyCountsForName(currentFacet.field, name, function(res) {
 					// TODO do something wih the yearly counts we get here.
-					console.log(res);
+					var pairs = buildYearCountObjects(res.counts.counts);
 				});
 			});
 
@@ -105,6 +105,22 @@ function getYearlyCountsForName(field, name, callback) {
 	}, callback);
 
 	query.update();
+}
+
+function buildYearCountObjects(data) {
+	// data is assumed to be the result.counts.counts array returned by the
+	// backend which objects with year == obj[0] and count == obj[1]
+
+	objs = new Array();
+
+	$.each(data, function(idx, obj) {
+		objs.push({
+			year: obj[0],
+			count: obj[1]
+		});
+	});
+
+	return objs;
 }
 
 function clearElement(element) {
