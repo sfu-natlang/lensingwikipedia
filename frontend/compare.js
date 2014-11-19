@@ -7,13 +7,16 @@ var currentFacet;
  * globalQuery: the global query
  */
 function setupCompare(container, globalQuery, facets) {
-	/*  BEGIN BUILD UI */
+    /************************* BEGIN BUILD UI *************************/
 
 	var outerElt = $('<div class="compare"></div>').appendTo(container);
+
 	var formElt = $("<form></form>").appendTo(outerElt);
 	var clearSelElt = $('<button type="button" class="btn btn-mini btn-warning clear mapclear" title="Clear">Clear selection</button>').appendTo(formElt);
 	var modeElt = $('<select class="btn btn-mini"></select>').appendTo(formElt);
 	var updateElt = $('<button type="submit" class="btn btn-warning" title="Update the visualization">Update</button></ul>').appendTo(formElt);
+
+	var contentElt = $('<div id="compare-content"></div>').appendTo(outerElt);
 
 	var loadingIndicator = new LoadingIndicator(outerElt);
 
@@ -28,12 +31,18 @@ function setupCompare(container, globalQuery, facets) {
 
 	fillElement(container, outerElt, 'vertical');
 
-	/* END BUILD UI */
+	/************************* END BUILD UI **************************/
 
-	/* BEGIN CALLBACKS */
+	/********************** BEGIN CALLBACKS **************************/
+
+	clearSelElt.click(function(event) {
+		clearElement(contentElt);
+	});
 
 	updateElt.click(function(event) {
+		clearElement(contentElt);
 		setLoadingIndicator(true);
+
 		currentFacet = facets[Number(modeElt[0].value)];
 
 		currentFacet.constraintsQuery.onResult({
@@ -52,6 +61,12 @@ function setupCompare(container, globalQuery, facets) {
 					top5names.push(count[0]);
 			});
 
+			$.each(top5names, function(idx, name) {
+				$('<p>' + name + '</p>').appendTo(contentElt);
+			});
+
+			setLoadingIndicator(false);
+
 			console.log(top5names);
 		});
 
@@ -63,5 +78,10 @@ function setupCompare(container, globalQuery, facets) {
 		return false;
 	});
 
-	/* END CALLBACKS */
+	/********************* END CALLBACKS ****************************/
+}
+
+/****************** HELPERS *****************************************/
+function clearElement(element) {
+	element.html("");
 }
