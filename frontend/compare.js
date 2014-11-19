@@ -66,6 +66,7 @@ function setupCompare(container, globalQuery, facets) {
 				getYearlyCountsForName(currentFacet.field, name, function(res) {
 					// TODO do something wih the yearly counts we get here.
 					var pairs = buildYearCountObjects(res.counts.counts);
+					var smoothed = smoothData(pairs, "count", 5);
 				});
 			});
 
@@ -125,4 +126,33 @@ function buildYearCountObjects(data) {
 
 function clearElement(element) {
 	element.html("");
+}
+
+
+function smoothData(data, attribute, k) {
+	if (k == 0) {
+		return data;
+	}
+
+	var samples = [];
+
+	for (i = 0; i < data.length; i++) {
+		var start_at = (i-k) < 0 ? 0 : i - k;
+		var end_at = (i+k) >= data.length ? data.length : i + k;
+
+		var smooth_sum = 0;
+
+		for (j = start_at; j < end_at; j++) {
+			smooth_sum += data[j][attribute];
+		}
+
+		smooth_sum /= end_at - start_at;
+
+		sample = data[i];
+		sample[attribute] = smooth_sum;
+
+		samples.push(sample);
+	}
+
+	return samples;
 }
