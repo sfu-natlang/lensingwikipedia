@@ -28,9 +28,9 @@ instead, and adjust local paths and URLs as needed.
 
 ## Set up easy_install, pip and whoosh
 
-    wget https://pypi.python.org/packages/source/d/distribute/distribute-0.7.3.tar.gz
-    tar xf distribute-0.7.3.tar.gz
-    cd distribute-0.7.3
+    wget https://pypi.python.org/packages/source/d/distribute/distribute-0.6.49.tar.gz
+    tar xf distribute-0.6.49.tar.gz
+    cd distribute-0.6.49
     sudo /usr/local/bin/python2.7 setup.py install
     sudo /usr/local/bin/easy_install-2.7 pip
     sudo /usr/local/bin/pip-2.7 install whoosh
