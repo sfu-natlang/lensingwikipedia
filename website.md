@@ -20,17 +20,17 @@ instead, and adjust local paths and URLs as needed.
 ## Set up Python 2.7
 
     cd /tmp
-    wget http://python.org/ftp/python/2.7.5/Python-2.7.5.tar.bz2
-    tar xf Python-2.7.5.tar.bz2
-    cd Python-2.7.5
+    wget http://python.org/ftp/python/2.7.8/Python-2.7.8.tgz
+    tar xf Python-2.7.8.tgz
+    cd Python-2.7.8
     ./configure --prefix=/usr/local
     make && sudo make altinstall
 
 ## Set up easy_install, pip and whoosh
 
-    wget https://pypi.python.org/packages/source/d/distribute/distribute-0.6.49.tar.gz
-    tar xf distribute-0.6.49.tar.gz
-    cd distribute-0.6.49
+    wget https://pypi.python.org/packages/source/d/distribute/distribute-0.7.3.tar.gz
+    tar xf distribute-0.7.3.tar.gz
+    cd distribute-0.7.3
     sudo /usr/local/bin/python2.7 setup.py install
     sudo /usr/local/bin/easy_install-2.7 pip
     sudo /usr/local/bin/pip-2.7 install whoosh
