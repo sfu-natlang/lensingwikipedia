@@ -61,14 +61,19 @@ function setupCompare(container, globalQuery, facets) {
 					top5names.push(count[0]);
 			});
 
+			var allPairs = [];
 			$.each(top5names, function(idx, name) {
 				$('<p>' + name + '</p>').appendTo(contentElt);
 				getYearlyCountsForName(currentFacet.field, name, function(res) {
 					// TODO do something wih the yearly counts we get here.
 					var pairs = buildYearCountObjects(res.counts.counts);
 					var smoothed = smoothData(pairs, "count", 5);
+
+					allPairs.push({name: name, counts: pairs});
 				});
 			});
+
+			combineCounts(allPairs);
 
 			setLoadingIndicator(false);
 
@@ -155,4 +160,39 @@ function smoothData(data, attribute, k) {
 	}
 
 	return samples;
+}
+
+function combineCounts(data) {
+	// This function expects data as an array.
+	// Each element is an object {name: "Augustus", counts: Array()}.
+	// Counts is the array returned by buildYearCountObjects.
+	// It will return a single array of each of these arrays merged together,
+	// [{year: X, "Augustus": C1, "Name2": C2},...]
+
+	// perYearCounts will contains {2001: {"Augustus": 0, "Name2": 3}, 2002: ...}
+	var perYearCounts = {};
+
+	$.each(data, function(i, d) {
+		$.each(d.counts, function(j, count) {
+			if (!(count.year in perYearCounts)) {
+				perYearCounts[count.year] = {};
+			}
+
+			perYearCounts[count.year][d.name] = count.count;
+		});
+	});
+
+	var ret = new Array();
+
+	for (var year in perYearCounts) {
+		var flat_year = {year: year};
+
+		for (var name in perYearCounts[year]) {
+			flat_year[name] = perYearCounts[year][name];
+		}
+
+		ret.push(flat_year);
+	}
+
+	return ret;
 }
