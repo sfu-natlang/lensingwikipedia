@@ -3,12 +3,31 @@
 	margin: 0;
 	padding: 0;
 }
+
 .timeline .topbox {
 	margin: 0;
 	padding: 0 10px 0 10px;
 }
+
 .timeline svg {
 	width: 100%;
 	margin: 0;
 	padding: 0;
+}
+
+.axis path,
+.axis line {
+	fill: none;
+	stroke: #000;
+	shape-rendering: crispEdges;
+}
+
+.x.axis path {
+	display: none;
+}
+
+.line {
+	fill: none;
+	stroke: steelblue;
+	stroke-width: 1.5px;
 }
