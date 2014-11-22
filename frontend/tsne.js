@@ -28,56 +28,72 @@ function setupTSNE(container, initialQuery, globalQuery, minZoom, maxZoom) {
     initialQuery.onResult({
         coordinates: { type: 'tsnecoordinates' }
     }, function (result) {
-        if (result.counts.hasOwnProperty('error') || result.links.hasOwnProperty('error')) {
+        if (result.coordinates.coordinates.length == 0) {
             loadingIndicator.error('coordinates', true);
             setLoadingIndicator(true);
         } else {
             loadingIndicator.error('coordinates', false);
-            initialCounts = pairListToDict(result.counts.counts);
-            refPointLinkLookup = makeRefPointLinkLookup(result.links);
-            for (var pointStr in initialCounts)
-                allPointStrs[pointStr] = true;
-            update();
+            var data = getDataFromResult(result.coordinates.coordinates);
+            if (renderData(data)) {
+                setLoadingIndicator(false);
+            } else {
+                loadingIndicator.error('error rendering', true);
+            }
         }
     });
 
-    var randomX = d3.random.normal(width / 2, 80),
-        randomY = d3.random.normal(height / 2, 80);
-     
-    var data = d3.range(2000).map(function() {
-      return [
-        randomX(),
-        randomY()
-      ];
-    });
+    function getDataFromResult(objectArray) {
+        var result = []
+        $.each(objectArray, function(index, value) {
+            result.push([parseFloat(value.coordinates.x, 10), parseFloat(value.coordinates.y, 10), value.id]);
+        });
+        return result;
+    }
 
-    var x = d3.scale.linear()
+    function logResult(element, index, array) {
+        console.log(element.coordinates.x)
+    }
+
+    var x;
+    var y;
+    var circle;
+
+    function renderData(data) {
+        x = d3.scale.linear()
         .domain([0, width])
         .range([0, width]);
 
-    var y = d3.scale.linear()
-        .domain([0, height])
-        .range([height, 0]);
+        y = d3.scale.linear()
+            .domain([0, height])
+            .range([height, 0]);
 
-    svg.call(d3.behavior.zoom().x(x).y(y).scaleExtent([1, 8]).on("zoom", zoom));
+        svg.call(d3.behavior.zoom().x(x).y(y).scaleExtent([1, 9007199254740992]).on("zoom", zoom));
 
 
-    svg.append("rect")
-        .attr("class", "overlay")
-        .attr("width", width)
-        .attr("height", height);
+        svg.append("rect")
+            .attr("class", "overlay")
+            .attr("width", width)
+            .attr("height", height);
 
-    var circle = svg.selectAll("circle")
-        .data(data)
-      .enter().append("circle")
-        .attr("r", 2.5)
-        .attr("transform", transform);
+        circle = svg.selectAll("circle")
+            .data(data)
+            .enter().append("circle")
+            .attr("r", 2.5)
+            .attr("transform", transform)
+            .on("click", renderTooltip);
+
+        return true;
+    }
 
     function zoom() {
       circle.attr("transform", transform);
     }
 
     function transform(d) {
-      return "translate(" + x(d[0]) + "," + y(d[1]) + ")";
+        return "translate(" + x(d[0]) + "," + y(d[1]) + ")";
+    }
+
+    function renderTooltip(d) {
+        
     }
 }
