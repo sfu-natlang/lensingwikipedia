@@ -2,6 +2,13 @@ var currentFacet;
 var topCount = 5;
 var smooth_k = 5;
 
+// contains {name, counts} objects
+var data_allPairs = [];
+
+// contains same thing as data_allPairs but smoothed
+var data_allSmoothed = [];
+var data_allNames = [];
+
 /*
  * Setup the control in some container element.
  * container: container element as a jquery selection
@@ -35,10 +42,22 @@ function setupCompare(container, globalQuery, facets) {
 
 	var outerElt = $('<div class="compare"></div>').appendTo(container);
 
-	var formElt = $("<form></form>").appendTo(outerElt);
-	var clearSelElt = $('<button type="button" class="btn btn-mini btn-warning clear mapclear" title="Clear">Clear selection</button>').appendTo(formElt);
-	var modeElt = $('<select class="btn btn-mini"></select>').appendTo(formElt);
-	var updateElt = $('<button type="submit" class="btn btn-warning" title="Update the visualization">Update</button></ul>').appendTo(formElt);
+	var controlsElt = $('<div class="controls"></div>').appendTo(outerElt);
+	var clearSelElt = $('<button type="button" class="btn btn-mini btn-warning clear mapclear" title="Clear">Clear selection</button>').appendTo(controlsElt);
+	var modeElt = $('<select class="btn btn-mini"></select>').appendTo(controlsElt);
+	var updateBtn = $('<button type="submit" class="btn btn-warning" title="Update the visualization">Update</button></ul>').appendTo(controlsElt);
+
+	var smoothSel = $('<select class="btn btn-mini"> \
+						  <option value="0">0</option> \
+						  <option value="1">1</option> \
+						  <option value="5" selected>5</option> \
+						  <option value="10">10</option> \
+						  <option value="20">20</option> \
+						  <option value="50">50</option> \
+						  <option value="100">100</option> \
+					  </select>'
+					 ).appendTo(controlsElt);
+	var smoothBtn = $('<button class="btn btn-warning" title="Update smoothing">Smooth</button></ul>').appendTo(controlsElt);
 
 	var svgElt = $('<svg id="comparesvg"</svg>').appendTo(outerElt);
 	//var contentElt = $('<div id="compare-content"></div>').appendTo(outerElt);
@@ -64,7 +83,23 @@ function setupCompare(container, globalQuery, facets) {
 		//clearElement(contentElt);
 	});
 
-	updateElt.click(function(event) {
+	smoothBtn.click(function(event) {
+		setLoadingIndicator(true);
+		smooth_k = Number(smoothSel[0].value);
+		data_allSmoothed = [];
+		$.each(data_allPairs, function(idx, pair) {
+			data_allSmoothed.push({
+				name: pair.name,
+				counts: smoothData(pair.counts, "count", smooth_k)
+			});
+		});
+
+		drawCompare(width, height, margins, data_allNames,
+					combineCounts(data_allSmoothed));
+		setLoadingIndicator(false);
+	});
+
+	updateBtn.click(function(event) {
 		//clearElement(contentElt);
 		setLoadingIndicator(true);
 
@@ -86,38 +121,35 @@ function setupCompare(container, globalQuery, facets) {
 					topNames.push(count[0]);
 			});
 
-			var allPairs = [];
-			var allNames = [];
+			data_allPairs = [];
+			data_allNames = [];
+			data_allSmoothed = [];
 			$.each(topNames, function(idx, name) {
 				//$('<p>' + name + '</p>').appendTo(contentElt);
 				console.log("Got new name: " + name);
-				allNames.push(name);
+				data_allNames.push(name);
 				getYearlyCountsForName(currentFacet.field, name, function(res) {
 					// TODO do something wih the yearly counts we get here.
-					var pairs = buildYearCountObjects(res.counts.counts);
-					var smoothed = smoothData(pairs, "count", smooth_k);
+					var data_pairs = buildYearCountObjects(res.counts.counts);
+					var data_smoothed = smoothData(data_pairs, "count", smooth_k);
 
 					console.log("Got counts!");
 
-					allPairs.push({name: name, counts: pairs});
+					data_allPairs.push({name: name, counts: data_pairs});
+					data_allSmoothed.push({name: name, counts: data_smoothed});
 
 					// check if we've gotten counts for all top X names
 					// This is a callback, so this is the only way we can do
 					// this
-					if (allPairs.length == topCount) {
+					if (data_allPairs.length == topCount) {
 						drawCompare(width, height, margins,
-									allNames, combineCounts(allPairs));
+									data_allNames, combineCounts(data_allSmoothed));
 						setLoadingIndicator(false);
 					}
 				});
 			});
 		});
 		currentFacet.constraintsQuery.update();
-	});
-
-	// disable form because we don't want to refresh the page
-	formElt.submit(function() {
-		return false;
 	});
 
 	/********************* END CALLBACKS ****************************/
@@ -165,7 +197,9 @@ function clearElement(element) {
 	element.html("");
 }
 
-
+// FIXME this function relies on there being counts for every single year, so
+// it'll smooth year x with x - 50, even if k = 1, if the only year with data
+// before x is x-50
 function smoothData(data, attribute, k) {
 	if (k == 0) {
 		return data;
@@ -272,7 +306,8 @@ function drawCompare(width, height, margins, names, data) {
 	});
 
 	var line = d3.svg.line()
-		.interpolate("basis")
+		.interpolate("bundle")
+		.tension(0.85)
 		.x(function(d) { return x(d.date); })
 		.y(function(d) { return y(d.count); });
 
