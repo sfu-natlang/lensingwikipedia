@@ -95,7 +95,7 @@ function setupCompare(container, globalQuery, facets) {
 		});
 
 		drawCompare(width, height, margins, data_allNames,
-					combineCounts(data_allSmoothed));
+					combineCounts(data_allSmoothed), container);
 		setLoadingIndicator(false);
 	});
 
@@ -143,7 +143,7 @@ function setupCompare(container, globalQuery, facets) {
 					// this
 					if (data_allPairs.length == topCount) {
 						drawCompare(width, height, margins,
-									data_allNames, combineCounts(data_allSmoothed));
+									data_allNames, combineCounts(data_allSmoothed), container);
 						setLoadingIndicator(false);
 					}
 				});
@@ -282,7 +282,7 @@ function combineCounts(data) {
 	return ret;
 }
 
-function drawCompare(width, height, margins, names, data) {
+function drawCompare(width, height, margins, names, data, container) {
 	// data is allPairs
 
 	var parseDate = d3.time.format("%Y").parse;
@@ -310,6 +310,20 @@ function drawCompare(width, height, margins, names, data) {
 		.scale(y)
 		.orient("left");
 
+
+	hoverLineXOffset = margins.left+$(container).offset().left;
+	hoverLineYOffset = margins.top+$(container).offset().top;
+	hoverLineGroup = svg.append("svg:g")
+		.attr("class", "hover-line");
+		// add the line to the group
+		hoverLine = hoverLineGroup
+			.append("svg:line")
+				.attr("x1", 10).attr("x2", 10) // vertical line so same value on each
+				.attr("y1", 0).attr("y2", plotHeight); // top to bottom
+
+		// hide it by default
+		hoverLine.classed("hide", true);
+
   data.forEach(function(d) {
 		var jsYear = +d.year;
 		// The input data represents n BCE as -n whereas Javascript uses 1-n
@@ -325,7 +339,7 @@ function drawCompare(width, height, margins, names, data) {
 	});
 
 	var line = d3.svg.line()
-		.interpolate("basis")
+		.interpolate("basis-open")
 		.tension(0.85)
 		.x(function(d) { return x(d.date); })
 		.y(function(d) { return y(d.count); });
@@ -381,8 +395,49 @@ function drawCompare(width, height, margins, names, data) {
 	  .attr("transform", function(d, i) { return "translate(" + (i*(width / 5)) + "," + (plotHeight + 50)  + ")"; })
 	  .attr("x", 3)
 	  .attr("dy", ".35em")
+	  .attr("class", "legend")
 	  .style("fill", function(d) {
 		  return color(d.name);
 	  })
 	  .text(function(d) { return d.name; });
+
+  var formatTime = d3.time.format("%e %B");
+
+	var handleMouseOverLine = function(lineData, index) {
+	}
+
+
+	var handleMouseOverGraph = function(event) {
+		var mouseX = event.pageX-hoverLineXOffset;
+		var mouseY = event.pageY-hoverLineYOffset;
+
+		if(mouseX >= 0 && mouseX <= width && mouseY >= 0 && mouseY <= height) {
+			// show the hover line
+			hoverLine.classed("hide", false);
+
+			// set position of hoverLine
+			hoverLine.attr("x1", mouseX).attr("x2", mouseX)
+
+			currentUserPositionX = mouseX;
+		} else {
+			// proactively act as if we've left the area since we're out of the bounds we want
+			handleMouseOutGraph(event)
+		}
+	}
+
+
+	var handleMouseOutGraph = function(event) {
+		// hide the hover-line
+		hoverLine.classed("hide", true);
+
+		currentUserPositionX = -1;
+	}
+
+	$(container).mouseleave(function(event) {
+		handleMouseOutGraph(event);
+	});
+
+	$(container).mousemove(function(event) {
+		handleMouseOverGraph(event);
+	});
 }

@@ -31,3 +31,11 @@
 	stroke: steelblue;
 	stroke-width: 1.5px;
 }
+
+.hover-line {
+	stroke: #6E7B8B;
+}
+
+.hide {
+	opacity: 0;
+}
