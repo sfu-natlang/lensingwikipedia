@@ -186,8 +186,8 @@ function buildYearCountObjects(data) {
 
 	$.each(data, function(idx, obj) {
 		objs.push({
-			year: obj[0],
-			count: obj[1]
+			year: Number(obj[0]),
+			count: Number(obj[1])
 		});
 
 		years.push(obj[0])
@@ -205,6 +205,12 @@ function buildYearCountObjects(data) {
 			});
 		}
 	}
+
+	// since we added the zeros after the real data, we have to sort it (so
+	// smoothing will work properly later)
+	objs.sort(function(a, b) {
+		return a.year - b.year;
+	});
 
 	return objs;
 }
