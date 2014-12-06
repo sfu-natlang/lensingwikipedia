@@ -181,14 +181,30 @@ function buildYearCountObjects(data) {
 	// data is assumed to be the result.counts.counts array returned by the
 	// backend which objects with year == obj[0] and count == obj[1]
 
-	objs = new Array();
+	var objs = new Array();
+	var years = new Array();
 
 	$.each(data, function(idx, obj) {
 		objs.push({
 			year: obj[0],
 			count: obj[1]
 		});
+
+		years.push(obj[0])
 	});
+
+	// add zero counts for years that don't have counts in the data
+    var first = d3.min(years);
+    var last = d3.max(years);
+
+	for (var i = first; i <= last; i++) {
+		if ($.inArray(i, years) != -1) {
+			objs.push({
+				year: i,
+				count: 0
+			});
+		}
+	}
 
 	return objs;
 }
@@ -197,9 +213,6 @@ function clearElement(element) {
 	element.html("");
 }
 
-// FIXME this function relies on there being counts for every single year, so
-// it'll smooth year x with x - 50, even if k = 1, if the only year with data
-// before x is x-50
 function smoothData(data, attribute, k) {
 	if (k == 0) {
 		return data;
@@ -219,7 +232,7 @@ function smoothData(data, attribute, k) {
 
 		smooth_sum /= end_at - start_at;
 
-		sample = data[i];
+		sample = $.extend({}, data[i]);
 		sample[attribute] = smooth_sum;
 
 		samples.push(sample);
