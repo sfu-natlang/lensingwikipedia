@@ -190,7 +190,7 @@ function buildYearCountObjects(data) {
 			count: Number(obj[1])
 		});
 
-		years.push(obj[0])
+		years.push(Number(obj[0]));
 	});
 
 	// add zero counts for years that don't have counts in the data
@@ -198,7 +198,7 @@ function buildYearCountObjects(data) {
     var last = d3.max(years);
 
 	for (var i = first; i <= last; i++) {
-		if ($.inArray(i, years) != -1) {
+		if ($.inArray(i, years) == -1) {
 			objs.push({
 				year: i,
 				count: 0
@@ -221,7 +221,7 @@ function clearElement(element) {
 
 function smoothData(data, attribute, k) {
 	if (k == 0) {
-		return data;
+		return $.extend({}, data);
 	}
 
 	var samples = [];
