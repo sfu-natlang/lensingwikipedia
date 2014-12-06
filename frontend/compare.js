@@ -378,8 +378,11 @@ function drawCompare(width, height, margins, names, data) {
 
   person.append("text")
 	  .datum(function(d) { return {name: d.name, value: d.values[d.values.length - 1]}; })
-	  .attr("transform", function(d) { return "translate(" + x(d.value.date) + "," + y(d.value.count) + ")"; })
+	  .attr("transform", function(d, i) { return "translate(" + (i*(width / 5)) + "," + (plotHeight + 50)  + ")"; })
 	  .attr("x", 3)
 	  .attr("dy", ".35em")
+	  .style("fill", function(d) {
+		  return color(d.name);
+	  })
 	  .text(function(d) { return d.name; });
 }
