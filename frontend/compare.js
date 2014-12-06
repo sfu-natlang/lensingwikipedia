@@ -31,14 +31,14 @@ function setupCompare(container, globalQuery, facets) {
 		width: width,
 		height: height * split
 	};
-    var selectBox = {
+	var selectBox = {
 		x: viewBox.x + margins.left,
 		y: viewBox.y + margins.top + detailBox.height + margins.between,
 		width: width,
 		height: height * (1.0 - split)
 	};
 
-    /************************* BEGIN BUILD UI *************************/
+	/************************* BEGIN BUILD UI *************************/
 
 	var outerElt = $('<div class="compare"></div>').appendTo(container);
 
@@ -48,15 +48,15 @@ function setupCompare(container, globalQuery, facets) {
 	var updateBtn = $('<button type="submit" class="btn btn-warning" title="Update the visualization">Update</button></ul>').appendTo(controlsElt);
 
 	var smoothSel = $('<select class="btn btn-mini"> \
-						  <option value="0">0</option> \
-						  <option value="1">1</option> \
-						  <option value="5" selected>5</option> \
-						  <option value="10">10</option> \
-						  <option value="20">20</option> \
-						  <option value="50">50</option> \
-						  <option value="100">100</option> \
-					  </select>'
-					 ).appendTo(controlsElt);
+												<option value="0">0</option> \
+												<option value="1">1</option> \
+												<option value="5" selected>5</option> \
+												<option value="10">10</option> \
+												<option value="20">20</option> \
+												<option value="50">50</option> \
+												<option value="100">100</option> \
+										</select>'
+									 ).appendTo(controlsElt);
 	var smoothBtn = $('<button class="btn btn-warning" title="Update smoothing">Smooth</button></ul>').appendTo(controlsElt);
 
 	var svgElt = $('<svg id="comparesvg"</svg>').appendTo(outerElt);
@@ -194,8 +194,8 @@ function buildYearCountObjects(data) {
 	});
 
 	// add zero counts for years that don't have counts in the data
-    var first = d3.min(years);
-    var last = d3.max(years);
+		var first = d3.min(years);
+		var last = d3.max(years);
 
 	for (var i = first; i <= last; i++) {
 		if ($.inArray(i, years) == -1) {
@@ -324,15 +324,15 @@ function drawCompare(width, height, margins, names, data, container) {
 		// hide it by default
 		hoverLine.classed("hide", true);
 
-  data.forEach(function(d) {
+	data.forEach(function(d) {
 		var jsYear = +d.year;
 		// The input data represents n BCE as -n whereas Javascript uses 1-n
 		if (jsYear < 0)
 			jsYear += 1;
 		var date = new Date(0, 0, 1);
 		date.setFullYear(jsYear);
-    d.date = date;
-  });
+		d.date = date;
+	});
 
 	data.sort(function(a, b) {
 		return a.date - b.date;
@@ -344,68 +344,65 @@ function drawCompare(width, height, margins, names, data, container) {
 		.x(function(d) { return x(d.date); })
 		.y(function(d) { return y(d.count); });
 
-  color.domain(names);
+	color.domain(names);
 
-  var persons = names.map(function(name) {
-    return {
-      name: name,
-      values: data.map(function(d) {
-		  var c = +d[name];
-		  if (isNaN(c))
-			  c = 0.0;
-		  return {date: d.date, count: c};
-      })
-    };
-  });
+	var persons = names.map(function(name) {
+		return {
+			name: name,
+			values: data.map(function(d) {
+			var c = +d[name];
+			if (isNaN(c))
+				c = 0.0;
+			return {date: d.date, count: c};
+			})
+		};
+	});
 
-  x.domain(d3.extent(data, function(d) { return d.date; }));
+	x.domain(d3.extent(data, function(d) { return d.date; }));
 
-  y.domain([
-    d3.min(persons, function(c) { return d3.min(c.values, function(v) { return v.count; }); }),
-    d3.max(persons, function(c) { return d3.max(c.values, function(v) { return v.count; }); })
-  ]);
+	y.domain([
+		d3.min(persons, function(c) { return d3.min(c.values, function(v) { return v.count; }); }),
+		d3.max(persons, function(c) { return d3.max(c.values, function(v) { return v.count; }); })
+	]);
 
-  svg.append("g")
-      .attr("class", "x axis")
-      .attr("transform", "translate(0," + plotHeight + ")")
-      .call(xAxis);
+	svg.append("g")
+			.attr("class", "x axis")
+			.attr("transform", "translate(0," + plotHeight + ")")
+			.call(xAxis);
 
-  svg.append("g")
-      .attr("class", "y axis")
-      .call(yAxis)
-    .append("text")
-      .attr("transform", "rotate(-90)")
-      .attr("y", 6)
-      .attr("dy", ".71em")
-      .style("text-anchor", "end")
-      .text("Count");
+	svg.append("g")
+			.attr("class", "y axis")
+			.call(yAxis)
+		.append("text")
+			.attr("transform", "rotate(-90)")
+			.attr("y", 6)
+			.attr("dy", ".71em")
+			.style("text-anchor", "end")
+			.text("Count");
 
-  var person = svg.selectAll(".person")
-      .data(persons)
-    .enter().append("g")
-      .attr("class", "person");
+	var person = svg.selectAll(".person")
+			.data(persons)
+		.enter().append("g")
+			.attr("class", "person");
 
-  person.append("path")
-      .attr("class", "line")
-      .attr("d", function(d) { return line(d.values); })
-      .style("stroke", function(d) { return color(d.name); });
+	person.append("path")
+			.attr("class", "line")
+			.attr("d", function(d) { return line(d.values); })
+			.style("stroke", function(d) { return color(d.name); });
 
-  person.append("text")
-	  .datum(function(d) { return {name: d.name, value: d.values[d.values.length - 1]}; })
-	  .attr("transform", function(d, i) { return "translate(" + (i*(width / 5)) + "," + (plotHeight + 50)  + ")"; })
-	  .attr("x", 3)
-	  .attr("dy", ".35em")
-	  .attr("class", "legend")
-	  .style("fill", function(d) {
-		  return color(d.name);
-	  })
-	  .text(function(d) { return d.name; });
-
-  var formatTime = d3.time.format("%e %B");
+	person.append("text")
+		.datum(function(d) { return {name: d.name, value: d.values[d.values.length - 1]}; })
+		.attr("transform", function(d, i) { return "translate(" + (i*(width / 5)) + "," + (plotHeight + 50)  + ")"; })
+		.attr("x", 3)
+		.attr("dy", ".35em")
+		.attr("class", "legend")
+		.style("fill", function(d) {
+			return color(d.name);
+		})
+		.text(function(d) { return d.name; });
 
 	var handleMouseOverLine = function(lineData, index) {
 	}
-
 
 	var handleMouseOverGraph = function(event) {
 		var mouseX = event.pageX-hoverLineXOffset;
@@ -424,7 +421,6 @@ function drawCompare(width, height, margins, names, data, container) {
 			handleMouseOutGraph(event)
 		}
 	}
-
 
 	var handleMouseOutGraph = function(event) {
 		// hide the hover-line
