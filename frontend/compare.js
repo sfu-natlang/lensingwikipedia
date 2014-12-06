@@ -325,7 +325,7 @@ function drawCompare(width, height, margins, names, data) {
 	});
 
 	var line = d3.svg.line()
-		.interpolate("bundle")
+		.interpolate("basis")
 		.tension(0.85)
 		.x(function(d) { return x(d.date); })
 		.y(function(d) { return y(d.count); });
@@ -336,10 +336,10 @@ function drawCompare(width, height, margins, names, data) {
     return {
       name: name,
       values: data.map(function(d) {
-				var c = +d[name];
-				if (isNaN(c))
-					c = 0.0;
-        return {date: d.date, count: c};
+		  var c = +d[name];
+		  if (isNaN(c))
+			  c = 0.0;
+		  return {date: d.date, count: c};
       })
     };
   });
