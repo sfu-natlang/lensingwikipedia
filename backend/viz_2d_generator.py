@@ -31,32 +31,45 @@ import whoosh, whoosh.index
 import viz_feature_extractor
 import whooshutils
 import bhtsne.bhtsne as tsne
-
+from collections import defaultdict
 
 def iter_events_from_index(index):
     log('Reading data from index')
+    sentence_feature_str = defaultdict(list)
+    temp_metadata = {}
+    features_strings = []
+    metadata = []
     with index.searcher() as searcher:
         for i, hit in enumerate(searcher.search(whoosh.query.Every(), limit=None)):
+            text = hit['sentence']
             feature_string = hit['role']
             if feature_string:
-                yield i, hit['id'], feature_string
+                if text in sentence_feature_str:
+                    sentence_feature_str[text].append(feature_string)
+                else:
+                    sentence_feature_str[text].append(feature_string)
+                    temp_metadata[text] = (i, hit['id]'])
+
+    for key, value in sentence_feature_str.iteritems():
+        feature_strings.append(', '.join(value))
+        metadata.append(temp_metadata[key])
+    sentence_feature_str = None
+    temp_metadata = None
+    return feature_strings, metadata
 
 
-def extract_features(data):
-    feature_strings = []
-    metadata = []
-    for (i, id, feature_string) in data:
-        feature_strings.append(feature_string)
-        metadata.append((i, id))
+
+
+def extract_features(feature_strings):
     features = viz_feature_extractor.extract_features(feature_strings)
-    feature_strings = []
+    feature_strings = None
     return metadata, features
 
 
 def run(input_index, perplexity, theta, pca_dimensions, verbose, output_index, doc_buffer_size, do_dummy):
     lookup = {}
-    data = iter_events_from_index(input_index)
-    metadata, features = extract_features(data)
+    feature_string, metadata = iter_events_from_index(input_index)
+    features = extract_features(feature_string)
     log('Features extracted: ' + str(features.shape))
     log('Metadata length: ' + str(len(metadata)))
     
