@@ -194,8 +194,8 @@ function buildYearCountObjects(data) {
 	});
 
 	// add zero counts for years that don't have counts in the data
-		var first = d3.min(years);
-		var last = d3.max(years);
+	var first = d3.min(years);
+	var last = d3.max(years);
 
 	for (var i = first; i <= last; i++) {
 		if ($.inArray(i, years) == -1) {
@@ -344,6 +344,10 @@ function drawCompare(width, height, margins, names, data, container) {
 		.x(function(d) { return x(d.date); })
 		.y(function(d) { return y(d.count); });
 
+	if (smooth_k == 0) {
+		line = line.interpolate('step-after');
+	}
+
 	color.domain(names);
 
 	var persons = names.map(function(name) {
@@ -404,6 +408,8 @@ function drawCompare(width, height, margins, names, data, container) {
 	var handleMouseOverLine = function(lineData, index) {
 	}
 
+	var currentUserPositionX = 0;
+
 	var handleMouseOverGraph = function(event) {
 		var mouseX = event.pageX-hoverLineXOffset;
 		var mouseY = event.pageY-hoverLineYOffset;
@@ -416,6 +422,9 @@ function drawCompare(width, height, margins, names, data, container) {
 			hoverLine.attr("x1", mouseX).attr("x2", mouseX)
 
 			currentUserPositionX = mouseX;
+
+			var year = x.invert(mouseX).getFullYear();
+			updateLegendValues(year);
 		} else {
 			// proactively act as if we've left the area since we're out of the bounds we want
 			handleMouseOutGraph(event)
@@ -436,4 +445,40 @@ function drawCompare(width, height, margins, names, data, container) {
 	$(container).mousemove(function(event) {
 		handleMouseOverGraph(event);
 	});
+
+	var updateLegendValues = function(year) {
+		// find element with the right year.
+		// TODO: Binary search
+		/* TODO consider using smoothed data
+		var smoothed;
+		for (i in data) {
+			if (data[i]["year"] == year) {
+				smoothed = data[i];
+				break;
+			}
+		}
+
+		if (typeof smoothed != "undefined") {
+			for (i in names) {
+				//console.log(names[i] + smoothed[names[i]]);
+			}
+		}
+	 */
+
+		var raw = {};
+		for (name_idx in data_allPairs) {
+			for (year_i in data_allPairs[name_idx].counts) {
+				if (data_allPairs[name_idx].counts[year_i].year == year) {
+					found_name = data_allPairs[name_idx].name;
+					found_count = data_allPairs[name_idx].counts[year_i].count;
+					raw[found_name] = found_count;
+
+				}
+			}
+		}
+		d3.selectAll("text.legend")
+			.text(function(d, i) {
+				return d.name  + " - " + raw[d.name];
+			});
+	};
 }
