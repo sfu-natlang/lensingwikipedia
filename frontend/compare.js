@@ -467,18 +467,60 @@ function drawCompare(width, height, margins, names, data, container) {
 
 		var raw = {};
 		for (name_idx in data_allPairs) {
-			for (year_i in data_allPairs[name_idx].counts) {
-				if (data_allPairs[name_idx].counts[year_i].year == year) {
-					found_name = data_allPairs[name_idx].name;
-					found_count = data_allPairs[name_idx].counts[year_i].count;
-					raw[found_name] = found_count;
+			// counts is array of {year: X, count: Y}
+			var counts = data_allPairs[name_idx].counts;
+			var name = data_allPairs[name_idx].name;
 
-				}
+			var idx = binaryIndexOf(counts, year, "year");
+			if (idx < 0) {
+				raw[name] = 0;
+			} else {
+				raw[name] = counts[idx];
 			}
 		}
 		d3.selectAll("text.legend")
 			.text(function(d, i) {
-				return d.name  + " - " + raw[d.name];
+				var n = raw[d.name];
+				if (typeof n == "undefined")
+					c = 0;
+				else
+					c = raw[d.name].count;
+
+				if (typeof c == "undefined")
+					c = 0;
+
+				return d.name  + " - " + c;
 			});
+
+		function binaryIndexOf(array, elem, key) {
+			'use strict';
+
+			var minIndex = 0;
+			var maxIndex = array.length - 1;
+			var currentIndex;
+			var currentElement;
+			var resultIndex;
+
+			while (minIndex <= maxIndex) {
+				resultIndex = currentIndex = (minIndex + maxIndex) / 2 | 0;
+				currentElement = Number(array[currentIndex][key]);
+
+				if (currentElement < elem) {
+					minIndex = currentIndex + 1;
+				}
+				else if (currentElement > elem) {
+					maxIndex = currentIndex - 1;
+				}
+				else {
+					return currentIndex;
+				}
+			}
+
+			// TODO get rid of this hack and see why above doesn't always work
+			if (currentElement == elem)
+				return ~maxIndex;
+			else
+				return -1;
+		}
 	};
 }
