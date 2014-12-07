@@ -43,7 +43,8 @@ function setupTSNE(container, initialQuery, globalQuery, minZoom, maxZoom) {
     });
 
     function getDataFromResult(objectArray) {
-        var result = []
+        console.log(objectArray);
+        var result = [];
         $.each(objectArray, function(index, value) {
             result.push([parseFloat(value.coordinates.x, 10), parseFloat(value.coordinates.y, 10), value.id]);
         });
