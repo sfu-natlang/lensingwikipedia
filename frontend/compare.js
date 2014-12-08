@@ -366,10 +366,6 @@ function drawCompare(width, height, margins, names, data, smooth_k, container) {
 		.x(function(d) { return x(d.date); })
 		.y(function(d) { return y(d.count); });
 
-	if (smooth_k == 0) {
-		line = line.interpolate('step-after');
-	}
-
 	color.domain(names);
 
 	var persons = names.map(function(name) {
