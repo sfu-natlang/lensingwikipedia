@@ -86,16 +86,8 @@ function setupCompare(container, globalQuery, facets) {
 	smoothBtn.click(function(event) {
 		setLoadingIndicator(true);
 		smooth_k = Number(smoothSel[0].value);
-		data_allSmoothed = [];
-		$.each(data_allPairs, function(idx, pair) {
-			data_allSmoothed.push({
-				name: pair.name,
-				counts: smoothData(pair.counts, "count", smooth_k)
-			});
-		});
-
 		drawCompare(width, height, margins, data_allNames,
-					combineCounts(data_allSmoothed), container);
+					data_allPairs, smooth_k, container);
 		setLoadingIndicator(false);
 	});
 
@@ -123,7 +115,6 @@ function setupCompare(container, globalQuery, facets) {
 
 			data_allPairs = [];
 			data_allNames = [];
-			data_allSmoothed = [];
 			$.each(topNames, function(idx, name) {
 				//$('<p>' + name + '</p>').appendTo(contentElt);
 				console.log("Got new name: " + name);
@@ -131,19 +122,16 @@ function setupCompare(container, globalQuery, facets) {
 				getYearlyCountsForName(currentFacet.field, name, function(res) {
 					// TODO do something wih the yearly counts we get here.
 					var data_pairs = buildYearCountObjects(res.counts.counts);
-					var data_smoothed = smoothData(data_pairs, "count", smooth_k);
-
 					console.log("Got counts!");
 
 					data_allPairs.push({name: name, counts: data_pairs});
-					data_allSmoothed.push({name: name, counts: data_smoothed});
 
 					// check if we've gotten counts for all top X names
 					// This is a callback, so this is the only way we can do
 					// this
 					if (data_allPairs.length == topCount) {
 						drawCompare(width, height, margins,
-									data_allNames, combineCounts(data_allSmoothed), container);
+									data_allNames, data_allPairs, smooth_k, container);
 						setLoadingIndicator(false);
 					}
 				});
@@ -194,6 +182,7 @@ function buildYearCountObjects(data) {
 	});
 
 	// add zero counts for years that don't have counts in the data
+	// NOTE: this will only add zeroes between first and last encountered years
 	var first = d3.min(years);
 	var last = d3.max(years);
 
@@ -282,8 +271,41 @@ function combineCounts(data) {
 	return ret;
 }
 
-function drawCompare(width, height, margins, names, data, container) {
+function add_zeroes(data, first_year, last_year) {
+	// We expect zeroes to be already added in between real data for each facet,
+	// so we only need to add between first_year and first piece of data in each
+	// facet
+	//
+	// MODIFIES INPLACE
+
+	for (name_idx in data) {
+		var first_year_data = data[name_idx].counts[0].year;
+		for (var i = 0; i < first_year_data - first_year; i++) {
+			data[name_idx].counts.splice(0, 0, {count: 0, year: (first_year_data - (i+1))});
+		}
+
+		var last_year_data = data[name_idx].counts.slice(-1)[0].year;
+		for (var i = last_year_data; i <= last_year; i++) {
+			data[name_idx].counts.push({count: 0, year: (i+1)});
+		}
+	}
+}
+
+function drawCompare(width, height, margins, names, data, smooth_k, container) {
 	// data is allPairs
+	var first_year = d3.min(data, function(c) { return d3.min(c.counts, function(v) { return v.year; }); });
+	var last_year = d3.max(data, function(c) { return d3.max(c.counts, function(v) { return v.year; }); });
+
+	add_zeroes(data, first_year, last_year);
+
+	var smoothed_data = [];
+	for (name_idx in data) {
+		smoothed_data.push({
+			name: data[name_idx].name,
+			counts: smoothData(data[name_idx].counts, "count", smooth_k)
+		});
+	}
+	var updated_data = combineCounts(smoothed_data);
 
 	var parseDate = d3.time.format("%Y").parse;
 
@@ -324,7 +346,7 @@ function drawCompare(width, height, margins, names, data, container) {
 		// hide it by default
 		hoverLine.classed("hide", true);
 
-	data.forEach(function(d) {
+	updated_data.forEach(function(d) {
 		var jsYear = +d.year;
 		// The input data represents n BCE as -n whereas Javascript uses 1-n
 		if (jsYear < 0)
@@ -334,12 +356,12 @@ function drawCompare(width, height, margins, names, data, container) {
 		d.date = date;
 	});
 
-	data.sort(function(a, b) {
+	updated_data.sort(function(a, b) {
 		return a.date - b.date;
 	});
 
 	var line = d3.svg.line()
-		.interpolate("basis-open")
+		.interpolate("basis")
 		.tension(0.85)
 		.x(function(d) { return x(d.date); })
 		.y(function(d) { return y(d.count); });
@@ -353,7 +375,7 @@ function drawCompare(width, height, margins, names, data, container) {
 	var persons = names.map(function(name) {
 		return {
 			name: name,
-			values: data.map(function(d) {
+			values: updated_data.map(function(d) {
 			var c = +d[name];
 			if (isNaN(c))
 				c = 0.0;
@@ -362,7 +384,7 @@ function drawCompare(width, height, margins, names, data, container) {
 		};
 	});
 
-	x.domain(d3.extent(data, function(d) { return d.date; }));
+	x.domain(d3.extent(updated_data, function(d) { return d.date; }));
 
 	y.domain([
 		d3.min(persons, function(c) { return d3.min(c.values, function(v) { return v.count; }); }),
