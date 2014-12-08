@@ -191,12 +191,13 @@ class Querier:
       hits = searcher.search(whoosh_query, limit=None)
       print >> sys.stderr, "whoosh search results: %s" % (repr(hits))
       for hit in hits:
-        refpoints = whooshutils.split_keywords(hit['2DtSNECoordinates'])
-        id = hit['id']
-        for refpoint in refpoints:
-          if refpoint:
-            coordinate_splits = whooshutils.split_keywords(refpoint)
-            coordinates[id] = {'x': coordinate_splits[0], 'y': coordinate_splits[1]}
+        if '2DtSNECoordinates' in hit:
+          refpoints = whooshutils.split_keywords(hit['2DtSNECoordinates'])
+          id = hit['id']
+          for refpoint in refpoints:
+            if refpoint:
+              coordinate_splits = whooshutils.split_keywords(refpoint)
+              coordinates[id] = {'x': coordinate_splits[0], 'y': coordinate_splits[1]}
     return {
       'coordinates': [{ 'id': i, 'coordinates': p } for i, p in coordinates.iteritems()]
     }
