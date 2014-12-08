@@ -194,12 +194,13 @@ class Querier:
         if '2DtSNECoordinates' in hit:
           refpoints = whooshutils.split_keywords(hit['2DtSNECoordinates'])
           id = hit['id']
+          sentence = hit['sentence']
           for refpoint in refpoints:
             if refpoint:
               coordinate_splits = whooshutils.split_keywords(refpoint)
-              coordinates[id] = {'x': coordinate_splits[0], 'y': coordinate_splits[1]}
+              coordinates[id] = {'x': coordinate_splits[0], 'y': coordinate_splits[1], 'text': sentence}
     return {
-      'coordinates': [{ 'id': i, 'coordinates': p } for i, p in coordinates.iteritems()]
+      'coordinates': [{ 'id': i, 'coordinates': {'x': p['x'], 'y': p['y']}, 'text': p['text'] } for i, p in coordinates.iteritems()]
     }
 
 
