@@ -37,7 +37,7 @@ def iter_events_from_index(index):
     log('Reading data from index')
     sentence_feature_str = defaultdict(list)
     temp_metadata = {}
-    features_strings = []
+    feature_strings = []
     metadata = []
     with index.searcher() as searcher:
         for i, hit in enumerate(searcher.search(whoosh.query.Every(), limit=None)):
@@ -48,7 +48,7 @@ def iter_events_from_index(index):
                     sentence_feature_str[text].append(feature_string)
                 else:
                     sentence_feature_str[text].append(feature_string)
-                    temp_metadata[text] = (i, hit['id]'])
+                    temp_metadata[text] = (i, hit['id'])
 
     for key, value in sentence_feature_str.iteritems():
         feature_strings.append(', '.join(value))
@@ -63,7 +63,7 @@ def iter_events_from_index(index):
 def extract_features(feature_strings):
     features = viz_feature_extractor.extract_features(feature_strings)
     feature_strings = None
-    return metadata, features
+    return features
 
 
 def run(input_index, perplexity, theta, pca_dimensions, verbose, output_index, doc_buffer_size, do_dummy):
@@ -101,8 +101,9 @@ def run(input_index, perplexity, theta, pca_dimensions, verbose, output_index, d
                 coordinate = lookup[event['id']]
                 coordinate = ['%f,%f' % (coordinate[0], coordinate[1])]
             else:
-                coordinate = []
-            event['2DtSNECoordinates'] = unicode(whooshutils.join_keywords(coordinate))
+                coordinate = None
+            if coordinate:
+                event['2DtSNECoordinates'] = unicode(whooshutils.join_keywords(coordinate))
 
         if doc_buffer_size is not None:
             whooshutils.update_all_in_place(input_index, writer, modify, 'id', buffer_size=doc_buffer_size)
