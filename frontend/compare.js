@@ -432,7 +432,7 @@ function drawCompare(width, height, margins, names, data, smooth_k, container) {
 		var mouseX = event.pageX-hoverLineXOffset;
 		var mouseY = event.pageY-hoverLineYOffset;
 
-		if(mouseX >= 0 && mouseX <= width && mouseY >= 0 && mouseY <= height) {
+		if(mouseX >= 0 && mouseX <= plotWidth && mouseY >= 0 && mouseY <= height) {
 			// show the hover line
 			hoverLine.classed("hide", false);
 
