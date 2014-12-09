@@ -42,10 +42,28 @@ function setupTSNE(container, initialQuery, globalQuery, minZoom, maxZoom) {
         }
     });
 
+    var minX = 99999, minY = 9999;
+    var maxX = -9999, maxY = -9999;
+    
     function getDataFromResult(objectArray) {
         var result = [];
         $.each(objectArray, function(index, value) {
-            result.push([parseFloat(value.coordinates.x, 10), parseFloat(value.coordinates.y, 10), value.id, value.text]);
+            var xCoordinate = parseFloat(value.coordinates.x, 10);
+            var yCoordinate = parseFloat(value.coordinates.y, 10);
+            if (xCoordinate < minX) {
+                minX = xCoordinate;
+            }
+            if (yCoordinate < minY) {
+                minY = yCoordinate;
+            }
+            if (xCoordinate > maxX) {
+                maxX = xCoordinate;
+            }
+            if (yCoordinate > maxY) {
+                maxY = yCoordinate;
+            }
+
+            result.push([xCoordinate, yCoordinate, value.id, value.text]);
         });
         return result;
     }
@@ -60,14 +78,14 @@ function setupTSNE(container, initialQuery, globalQuery, minZoom, maxZoom) {
 
     function renderData(data) {
         x = d3.scale.linear()
-        .domain([0, width])
+        .domain([minX, maxX])
         .range([0, width]);
 
         y = d3.scale.linear()
-            .domain([0, height])
-            .range([height, 0]);
+            .domain([minY, maxY])
+            .range([0, height]);
 
-        svg.call(d3.behavior.zoom().x(x).y(y).scaleExtent([1, 9007199254740992]).on("zoom", zoom));
+        svg.call(d3.behavior.zoom().x(x).y(y).scaleExtent([Number.MIN_VALUE, Number.MAX_VALUE]).on("zoom", zoom));
 
 
         svg.append("rect")
@@ -78,10 +96,10 @@ function setupTSNE(container, initialQuery, globalQuery, minZoom, maxZoom) {
         circle = svg.selectAll("circle")
             .data(data)
             .enter().append("circle")
-            .attr("r", 2.5)
+            .attr("r", 1.5)
             .attr("transform", transform)
             .on("mouseover", renderTooltip)
-            .on("mouseout", renderTooltip)
+            .on("mouseout", renderTooltip);
 
         return true;
     }
