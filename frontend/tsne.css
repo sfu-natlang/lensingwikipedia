@@ -23,5 +23,5 @@ div.tooltip {
   background: white;
   border: 0px;
   pointer-events: none;
-  box-shadow: 0px 0px 30px black;
+  box-shadow: 0px 0px 10px black;
 }
