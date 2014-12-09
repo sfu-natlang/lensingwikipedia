@@ -43,21 +43,20 @@ function setupTSNE(container, initialQuery, globalQuery, minZoom, maxZoom) {
     });
 
     function getDataFromResult(objectArray) {
-        console.log(objectArray);
         var result = [];
         $.each(objectArray, function(index, value) {
-            result.push([parseFloat(value.coordinates.x, 10), parseFloat(value.coordinates.y, 10), value.id, value.sentence]);
+            result.push([parseFloat(value.coordinates.x, 10), parseFloat(value.coordinates.y, 10), value.id, value.text]);
         });
         return result;
-    }
-
-    function logResult(element, index, array) {
-        console.log(element.coordinates.x)
     }
 
     var x;
     var y;
     var circle;
+    var tooltip = d3.select("body").append("div")   
+    .attr("class", "tooltip")               
+    .style("opacity", 0);
+    var tooltipRendered = false;
 
     function renderData(data) {
         x = d3.scale.linear()
@@ -81,7 +80,8 @@ function setupTSNE(container, initialQuery, globalQuery, minZoom, maxZoom) {
             .enter().append("circle")
             .attr("r", 2.5)
             .attr("transform", transform)
-            .on("click", renderTooltip);
+            .on("mouseover", renderTooltip)
+            .on("mouseout", renderTooltip)
 
         return true;
     }
@@ -94,7 +94,18 @@ function setupTSNE(container, initialQuery, globalQuery, minZoom, maxZoom) {
         return "translate(" + x(d[0]) + "," + y(d[1]) + ")";
     }
 
+    
     function renderTooltip(d) {
-        console.log(d[2]);
+        if (tooltipRendered == false) {
+            tooltipRendered = true;
+            tooltip.transition().duration(200).style("opacity", 1);      
+            tooltip.html(d[3])
+            .style("left", (d3.event.pageX) + "px")
+            .style("top", (d3.event.pageY - 28) + "px");   
+        } else {
+            tooltipRendered = false;
+            tooltip.transition().duration(500).style("opacity", 0)
+        }
+        
     }
 }
