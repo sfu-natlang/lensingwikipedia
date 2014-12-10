@@ -293,8 +293,8 @@ function add_zeroes(data, first_year, last_year) {
 
 function drawCompare(width, height, margins, names, data, smooth_k, container) {
 	// data is allPairs
-	var first_year = d3.min(data, function(c) { return d3.min(c.counts, function(v) { return v.year; }); });
-	var last_year = d3.max(data, function(c) { return d3.max(c.counts, function(v) { return v.year; }); });
+	var first_year = d3.min(data, function(c) { return d3.min(c.counts, function(v) { return v.year; }); }) - 100;
+	var last_year = d3.max(data, function(c) { return d3.max(c.counts, function(v) { return v.year; }); }) + 100;
 
 	add_zeroes(data, first_year, last_year);
 
