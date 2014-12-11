@@ -65,41 +65,55 @@ function setupTSNE(container, initialQuery, globalQuery, minZoom, maxZoom) {
 
             result.push([xCoordinate, yCoordinate, value.id, value.text]);
         });
+        console.log(result.length);
         return result;
     }
 
     var x;
     var y;
     var circle;
+    var brush;
+    var quadtree;
+
+    //Initialize Tooltip
     var tooltip = d3.select("body").append("div")   
     .attr("class", "tooltip")               
     .style("opacity", 0);
     var tooltipRendered = false;
 
+
     function renderData(data) {
         x = d3.scale.linear()
         .domain([minX, maxX])
-        .range([0, width]);
+        .range([10, width]);
 
         y = d3.scale.linear()
             .domain([minY, maxY])
-            .range([0, height]);
+            .range([10, height]);
+
+        quadtree = d3.geom.quadtree()(data);
+
+        brush = d3.svg.brush().x(x).y(y).on("brush", brushed);
 
         svg.call(d3.behavior.zoom().x(x).y(y).scaleExtent([Number.MIN_VALUE, Number.MAX_VALUE]).on("zoom", zoom));
+        svg.on('mousedown.zoom',null);
 
-
-        svg.append("rect")
-            .attr("class", "overlay")
-            .attr("width", width)
+        svg.attr("width", width)
             .attr("height", height);
 
-        circle = svg.selectAll("circle")
+        circle = svg.selectAll(".point")
             .data(data)
             .enter().append("circle")
-            .attr("r", 1.5)
+            .attr("class", "point")
+            .attr("r", 2.5)
             .attr("transform", transform)
             .on("mouseover", renderTooltip)
             .on("mouseout", renderTooltip);
+
+        svg.append("g")
+            .attr("class", "brush")
+            .call(brush)
+            .call(brush.event);
 
         return true;
     }
@@ -110,6 +124,29 @@ function setupTSNE(container, initialQuery, globalQuery, minZoom, maxZoom) {
 
     function transform(d) {
         return "translate(" + x(d[0]) + "," + y(d[1]) + ")";
+    }
+
+    function brushed() {
+      var extent = brush.extent();
+      circle.each(function(d) { d.selected = false; });
+      search(quadtree, extent[0][0], extent[0][1], extent[1][0], extent[1][1]);
+      circle.classed("selected", function(d) { return d.selected; });
+    }
+
+    function brushended() {
+      if (!d3.event.sourceEvent) return; // only transition after input
+      d3.select(this).transition()
+          .duration(brush.empty() ? 0 : 750)
+          .call(brush.event);
+    }
+
+    // Find the nodes within the specified rectangle.
+    function search(quadtree, x0, y0, x3, y3) {
+      quadtree.visit(function(node, x1, y1, x2, y2) {
+        var p = node.point;
+        if (p) p.selected = (p[0] >= x0) && (p[0] < x3) && (p[1] >= y0) && (p[1] < y3);
+        return x1 >= x3 || y1 >= y3 || x2 < x0 || y2 < y0;
+      });
     }
 
     

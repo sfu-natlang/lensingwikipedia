@@ -25,3 +25,20 @@ div.tooltip {
   pointer-events: none;
   box-shadow: 0px 0px 10px black;
 }
+
+.point {
+  fill: #999;
+  stroke: #fff;
+}
+
+.point.selected {
+  fill: red;
+  fill-opacity: 1;
+  stroke: brown;
+}
+
+.brush .extent {
+  stroke: #fff;
+  fill-opacity: .125;
+  shape-rendering: crispEdges;
+}
