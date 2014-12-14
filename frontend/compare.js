@@ -53,7 +53,7 @@ function setupCompare(container, globalQuery, facets) {
 												<option value="50">50</option> \
 												<option value="100">100</option> \
 										</select>'
-									 ).appendTo(controlsElt);
+										).appendTo(controlsElt);
 	var smoothBtn = $('<button class="btn btn-warning" title="Update smoothing">Smooth</button></ul>').appendTo(controlsElt);
 
 	var svgElt = $('<svg id="comparesvg"</svg>').appendTo(outerElt);
