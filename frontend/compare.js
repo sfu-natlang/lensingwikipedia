@@ -432,6 +432,13 @@ function drawCompare(width, height, margins, names, data, smooth_k, container) {
 		})
 		.text(function(d) { return d.name; });
 
+	svg.append("text")
+		.attr("transform", function(d, i) { return "translate(" + (plotWidth / 2) + "," + (plotHeight + 80)  + ")"; })
+		.attr("x", 3)
+		.attr("dy", ".35em")
+		.attr("id", "legend-year")
+		.style("fill", "black")
+
 	var handleMouseOverLine = function(lineData, index) {
 	}
 
@@ -480,35 +487,6 @@ function drawCompare(width, height, margins, names, data, smooth_k, container) {
 				return d.name  + " - " + yearly_data[year][d.name];
 			});
 
-		function binaryIndexOf(array, elem, key) {
-			'use strict';
-
-			var minIndex = 0;
-			var maxIndex = array.length - 1;
-			var currentIndex;
-			var currentElement;
-			var resultIndex;
-
-			while (minIndex <= maxIndex) {
-				resultIndex = currentIndex = (minIndex + maxIndex) / 2 | 0;
-				currentElement = Number(array[currentIndex][key]);
-
-				if (currentElement < elem) {
-					minIndex = currentIndex + 1;
-				}
-				else if (currentElement > elem) {
-					maxIndex = currentIndex - 1;
-				}
-				else {
-					return currentIndex;
-				}
-			}
-
-			// TODO get rid of this hack and see why above doesn't always work
-			if (currentElement == elem)
-				return ~maxIndex;
-			else
-				return -1;
-		}
+		d3.select("#legend-year").text(year);
 	};
 }
