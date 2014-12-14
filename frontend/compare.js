@@ -470,6 +470,7 @@ function drawCompare(width, height, margins, names, data, smooth_k, container) {
 		hoverLine.classed("hide", true);
 
 		currentUserPositionX = -1;
+		d3.select("#legend-year").text("");
 	}
 
 	$(container).mouseleave(function(event) {
