@@ -4,9 +4,6 @@ var smooth_k = 5;
 
 // contains {name, counts} objects
 var data_allPairs = [];
-
-// contains same thing as data_allPairs but smoothed
-var data_allSmoothed = [];
 var data_allNames = [];
 
 /*
@@ -236,7 +233,7 @@ function smoothData(data, attribute, k) {
 	return samples;
 }
 
-function combineCounts(data) {
+function mergeCounts(data) {
 	// This function expects data as an array.
 	// Each element is an object {name: "Augustus", counts: Array()}.
 	// Counts is the array returned by buildYearCountObjects.
@@ -291,6 +288,17 @@ function add_zeroes(data, first_year, last_year) {
 	}
 }
 
+function createYearlyCounts(data, names) {
+	// stores data in {year: {name1: count1, name2: count2...}...}
+	var yearly_data = {};
+
+	for (idx in data) {
+		yearly_data[data[idx].year] = data[idx];
+	}
+
+	return yearly_data;
+}
+
 function drawCompare(width, height, margins, names, data, smooth_k, container) {
 	// data is allPairs
 	var first_year = d3.min(data, function(c) { return d3.min(c.counts, function(v) { return v.year; }); }) - 100;
@@ -305,7 +313,8 @@ function drawCompare(width, height, margins, names, data, smooth_k, container) {
 			counts: smoothData(data[name_idx].counts, "count", smooth_k)
 		});
 	}
-	var updated_data = combineCounts(smoothed_data);
+	var updated_data = mergeCounts(smoothed_data);
+	var yearly_data = createYearlyCounts(updated_data);
 
 	var parseDate = d3.time.format("%Y").parse;
 
@@ -466,48 +475,9 @@ function drawCompare(width, height, margins, names, data, smooth_k, container) {
 
 	var updateLegendValues = function(year) {
 		// find element with the right year.
-		// TODO: Binary search
-		/* TODO consider using smoothed data
-		var smoothed;
-		for (i in data) {
-			if (data[i]["year"] == year) {
-				smoothed = data[i];
-				break;
-			}
-		}
-
-		if (typeof smoothed != "undefined") {
-			for (i in names) {
-				//console.log(names[i] + smoothed[names[i]]);
-			}
-		}
-	 */
-
-		var raw = {};
-		for (name_idx in data_allPairs) {
-			// counts is array of {year: X, count: Y}
-			var counts = data_allPairs[name_idx].counts;
-			var name = data_allPairs[name_idx].name;
-
-			var idx = binaryIndexOf(counts, year, "year");
-			if (idx < 0) {
-				raw[name] = 0;
-			} else {
-				raw[name] = counts[idx];
-			}
-		}
 		d3.selectAll("text.legend")
 			.text(function(d, i) {
-				var n = raw[d.name];
-				if (typeof n == "undefined")
-					c = 0;
-				else
-					c = raw[d.name].count;
-
-				if (typeof c == "undefined")
-					c = 0;
-
-				return d.name  + " - " + c;
+				return d.name  + " - " + yearly_data[year][d.name];
 			});
 
 		function binaryIndexOf(array, elem, key) {
