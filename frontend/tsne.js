@@ -72,7 +72,6 @@ function setupTSNE(container, initialQuery, globalQuery, minZoom, maxZoom) {
 
             result.push([xCoordinate, yCoordinate, value.id, value.text]);
         });
-        console.log(result.length);
         return result;
     }
 
@@ -146,14 +145,10 @@ function setupTSNE(container, initialQuery, globalQuery, minZoom, maxZoom) {
     }
 
     function brushended() {
-        console.log('Brushend');
         if (constraintsChanged) {
             updateTextConstraints();
             constraintsChanged = false;
         }
-
-        //Disable/Enable clear selection
-
     }
 
     // Find the nodes within the specified rectangle.
@@ -193,6 +188,8 @@ function setupTSNE(container, initialQuery, globalQuery, minZoom, maxZoom) {
 
     topBoxElt.find(".selbox .clear").bind('click', function () {
         constraintIds = {}
+        d3.selectAll(".brush").call(brush.clear());
+        brushed();
     });
 
     function updateTextConstraints() {
@@ -200,15 +197,13 @@ function setupTSNE(container, initialQuery, globalQuery, minZoom, maxZoom) {
         for (var key in constraintIds) {
             selectedPoints.push(key);
         }
-        
-        console.log(selectedPoints.length, selectedPoints);
 
         constraint.name("Cluster: " + selectedPoints.length + (selectedPoints.length == 1 ? " point" : " points"));
         constraint.set( {
             type: 'tsneCoordinates',
             points: selectedPoints
         });
-        console.log(constraint);
+        
         globalQuery.update();
     }
 }
