@@ -110,6 +110,8 @@ class Querier:
       return whoosh.query.NumericRange('year', low, high)
     elif type == 'referencepoints':
       return whoosh.query.Or([whoosh.query.Term('referencePoints', whooshutils.escape_keyword(p)) for p in cnstr['points']])
+    elif type == 'tsneCoordinates':
+      return whoosh.query.Or([whoosh.query.Term('id', int(p)) for p in cnstr['points']])
     else:
       raise ValueError("unknown constraint type \"%s\"" % (type))
 

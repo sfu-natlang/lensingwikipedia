@@ -1,5 +1,10 @@
+var constraintIds = {};
+var constraintsChanged = false;
 
 function setupTSNE(container, initialQuery, globalQuery, minZoom, maxZoom) {
+    var constraint = new Constraint();
+    globalQuery.addConstraint(constraint);
+
     var width = 1024,
     height = 768;
     // The view space for SVG; this doesn't have to correspond to screen units.
@@ -10,6 +15,8 @@ function setupTSNE(container, initialQuery, globalQuery, minZoom, maxZoom) {
     var outerElt = $("<div class=\"tsne\"></div>").appendTo(container);
     var topBoxElt = $("<div class=\"topbox\"></div>").appendTo(outerElt);
     var svgElt = $("<svg viewBox=\"" + viewBox.x + " " + viewBox.y + " " + viewBox.width + " " + viewBox.height + "\" preserveAspectRatio=\"xMidYMid meet\"></svg>").appendTo(outerElt);
+
+    makeControls(topBoxElt);
 
     var loadingIndicator = new LoadingIndicator(outerElt);
 
@@ -93,7 +100,7 @@ function setupTSNE(container, initialQuery, globalQuery, minZoom, maxZoom) {
 
         quadtree = d3.geom.quadtree()(data);
 
-        brush = d3.svg.brush().x(x).y(y).on("brush", brushed);
+        brush = d3.svg.brush().x(x).y(y).on("brush", brushed).on("brushend", brushended);
 
         svg.call(d3.behavior.zoom().x(x).y(y).scaleExtent([Number.MIN_VALUE, Number.MAX_VALUE]).on("zoom", zoom));
         svg.on('mousedown.zoom',null);
@@ -119,7 +126,12 @@ function setupTSNE(container, initialQuery, globalQuery, minZoom, maxZoom) {
     }
 
     function zoom() {
-      circle.attr("transform", transform);
+        var extent = brush.extent();
+        var extentCoordinates = [[extent[0][0], extent[0][1]],[extent[1][0], extent[1][1]]];
+        circle.attr("transform", transform);
+        d3.select(this).transition()
+          .duration(brush.empty() ? 0 : 750)
+          .call(brush.extent(extentCoordinates));
     }
 
     function transform(d) {
@@ -134,21 +146,36 @@ function setupTSNE(container, initialQuery, globalQuery, minZoom, maxZoom) {
     }
 
     function brushended() {
-      if (!d3.event.sourceEvent) return; // only transition after input
-      d3.select(this).transition()
-          .duration(brush.empty() ? 0 : 750)
-          .call(brush.event);
+        console.log('Brushend');
+        if (constraintsChanged) {
+            updateTextConstraints();
+            constraintsChanged = false;
+        }
+
+        //Disable/Enable clear selection
+
     }
 
     // Find the nodes within the specified rectangle.
     function search(quadtree, x0, y0, x3, y3) {
       quadtree.visit(function(node, x1, y1, x2, y2) {
         var p = node.point;
-        if (p) p.selected = (p[0] >= x0) && (p[0] < x3) && (p[1] >= y0) && (p[1] < y3);
+        if (p) {
+            p.selected = (p[0] >= x0) && (p[0] < x3) && (p[1] >= y0) && (p[1] < y3);
+            if (p.selected) {
+                constraintSelection(p);
+            }
+        }
         return x1 >= x3 || y1 >= y3 || x2 < x0 || y2 < y0;
       });
     }
 
+    function constraintSelection(d) {
+        if (!(d[2] in constraintIds)) {
+            constraintIds[d[2]] = true;
+            constraintsChanged = true;
+        }
+    }
     
     function renderTooltip(d) {
         if (tooltipRendered == false) {
@@ -163,4 +190,35 @@ function setupTSNE(container, initialQuery, globalQuery, minZoom, maxZoom) {
         }
         
     }
+
+    topBoxElt.find(".selbox .clear").bind('click', function () {
+        constraintIds = {}
+    });
+
+    function updateTextConstraints() {
+        var selectedPoints = [];
+        for (var key in constraintIds) {
+            selectedPoints.push(key);
+        }
+        
+        console.log(selectedPoints.length, selectedPoints);
+
+        constraint.name("Cluster: " + selectedPoints.length + (selectedPoints.length == 1 ? " point" : " points"));
+        constraint.set( {
+            type: 'tsneCoordinates',
+            points: selectedPoints
+        });
+        console.log(constraint);
+        globalQuery.update();
+    }
+}
+
+
+function makeControls(container) {
+    container.append(" \
+        <div class=\"selbox\"> \
+            <button type=\"button\" class=\"btn btn-mini btn-warning clear mapclear\" title=\"Clear the selection.\">Clear selection</button> \
+            <div class=\"btn-group mode\" data-toggle=\"buttons-radio\"></div> \
+        </div> \
+    ");
 }
