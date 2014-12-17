@@ -42,3 +42,7 @@ div.tooltip {
   fill-opacity: .125;
   shape-rendering: crispEdges;
 }
+
+.clusterclear {
+  visibility: hidden;
+}

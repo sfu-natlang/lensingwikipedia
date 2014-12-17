@@ -217,7 +217,7 @@ function setupTSNE(container, initialQuery, globalQuery, minZoom, maxZoom) {
 function makeControls(container) {
     container.append(" \
         <div class=\"selbox\"> \
-            <button type=\"button\" class=\"btn btn-mini btn-warning clear mapclear\" title=\"Clear the selection.\">Clear selection</button> \
+            <button type=\"button\" class=\"btn btn-mini btn-warning clear clusterclear\" title=\"Clear the selection.\">Clear selection</button> \
             <div class=\"btn-group mode\" data-toggle=\"buttons-radio\"></div> \
         </div> \
     ");
