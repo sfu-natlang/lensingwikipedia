@@ -451,7 +451,7 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 
 	person.append("text")
 		.datum(function(d) { return {name: d.name, value: d.values[d.values.length - 1]}; })
-		.attr("transform", function(d, i) { return "translate(" + (i*(detailBox.width / 5)) + "," + (detailBox.height + 50)  + ")"; })
+		.attr("transform", function(d, i) { return "translate(" + (i*(detailBox.width / 5)) + "," + (detailBox.height + 40)  + ")"; })
 		.attr("x", 3)
 		.attr("dy", ".35em")
 		.attr("class", "legend")
@@ -461,7 +461,7 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 		.text(function(d) { return d.name; });
 
 	svg.append("text")
-		.attr("transform", function(d, i) { return "translate(" + (detailBox.width / 2) + "," + (detailBox.height + 80)  + ")"; })
+		.attr("transform", function(d, i) { return "translate(" + (detailBox.width / 2) + "," + (detailBox.height + 60)  + ")"; })
 		.attr("x", 3)
 		.attr("dy", ".35em")
 		.attr("id", "legend-year")
