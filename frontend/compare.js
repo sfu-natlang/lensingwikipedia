@@ -18,7 +18,7 @@ function setupCompare(container, globalQuery, facets) {
 	var viewBox = { x: 0, y : 0, width: 1024, height: 768 };
 	// Margins for the main graphs (but not for the axes and axes labels, which go in the margin space).
 	var margins = { left: 50, right: 30, top: 40, bottom: 35, between: 40 };
-	var split = 0.6;
+	var split = 0.8;
 
 	var width = viewBox.width - margins.left - margins.right;
 	var height = viewBox.height - margins.top - margins.bottom - margins.between;
@@ -83,7 +83,7 @@ function setupCompare(container, globalQuery, facets) {
 	smoothBtn.click(function(event) {
 		setLoadingIndicator(true);
 		smooth_k = Number(smoothSel[0].value);
-		drawCompare(width, height, margins, data_allNames,
+		drawCompare(viewBox, detailBox, selectBox, margins, data_allNames,
 					data_allPairs, smooth_k, container);
 		setLoadingIndicator(false);
 	});
@@ -127,7 +127,7 @@ function setupCompare(container, globalQuery, facets) {
 					// This is a callback, so this is the only way we can do
 					// this
 					if (data_allPairs.length == topCount) {
-						drawCompare(width, height, margins,
+						drawCompare(viewBox, detailBox, selectBox, margins,
 									data_allNames, data_allPairs, smooth_k, container);
 						setLoadingIndicator(false);
 					}
@@ -299,7 +299,7 @@ function createYearlyCounts(data, names) {
 	return yearly_data;
 }
 
-function drawCompare(width, height, margins, names, data, smooth_k, container) {
+function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth_k, container) {
 	// data is allPairs
 	var first_year = d3.min(data, function(c) { return d3.min(c.counts, function(v) { return v.year; }); }) - 100;
 	var last_year = d3.max(data, function(c) { return d3.max(c.counts, function(v) { return v.year; }); }) + 100;
@@ -321,20 +321,24 @@ function drawCompare(width, height, margins, names, data, smooth_k, container) {
 	d3.select("#comparesvg").selectAll("*").remove();
 
 	var svg = d3.select("#comparesvg")
-			.attr("width", width)
-			.attr("height", height)
+			.attr("width", viewBox.width)
+			.attr("height", viewBox.height)
 		.append("g")
 			.attr("transform", "translate(" + margins.left + "," + 0 + ")");
 
-	var plotWidth = width - margins.left - margins.right;
-	var plotHeight = height - margins.top - margins.bottom - margins.between;
+	var x = d3.time.scale().range([0, detailBox.width]);
+	var x2 = d3.time.scale().range([0, selectBox.width]);
+	var y = d3.scale.linear().range([detailBox.height, 0]);
+	var y2 = d3.scale.linear().range([selectBox.y + selectBox.height, selectBox.y]);
 
-	var x = d3.time.scale().range([0, plotWidth]);
-	var y = d3.scale.linear().range([plotHeight, 0]);
 	var color = d3.scale.category10();
 
 	var xAxis = d3.svg.axis()
 		.scale(x)
+		.orient("bottom");
+
+	var xAxis2 = d3.svg.axis()
+		.scale(x2)
 		.orient("bottom");
 
 	var yAxis = d3.svg.axis()
@@ -350,7 +354,7 @@ function drawCompare(width, height, margins, names, data, smooth_k, container) {
 		hoverLine = hoverLineGroup
 			.append("svg:line")
 				.attr("x1", 10).attr("x2", 10) // vertical line so same value on each
-				.attr("y1", 0).attr("y2", plotHeight); // top to bottom
+				.attr("y1", 0).attr("y2", detailBox.height); // top to bottom
 
 		// hide it by default
 		hoverLine.classed("hide", true);
@@ -375,6 +379,12 @@ function drawCompare(width, height, margins, names, data, smooth_k, container) {
 		.x(function(d) { return x(d.date); })
 		.y(function(d) { return y(d.count); });
 
+	var line2 = d3.svg.line()
+		.interpolate("basis")
+		.tension(0.85)
+		.x(function(d) { return x2(d.date); })
+		.y(function(d) { return y2(d.count); });
+
 	color.domain(names);
 
 	var persons = names.map(function(name) {
@@ -396,10 +406,18 @@ function drawCompare(width, height, margins, names, data, smooth_k, container) {
 		d3.max(persons, function(c) { return d3.max(c.values, function(v) { return v.count; }); })
 	]);
 
+	x2.domain(x.domain());
+	y2.domain(y.domain());
+
 	svg.append("g")
 			.attr("class", "x axis")
-			.attr("transform", "translate(0," + plotHeight + ")")
+			.attr("transform", "translate(0," + detailBox.height + ")")
 			.call(xAxis);
+
+	svg.append("g")
+			.attr("class", "x axis")
+			.attr("transform", "translate(0," + (selectBox.y + selectBox.height) + ")")
+			.call(xAxis2);
 
 	svg.append("g")
 			.attr("class", "y axis")
@@ -421,9 +439,19 @@ function drawCompare(width, height, margins, names, data, smooth_k, container) {
 			.attr("d", function(d) { return line(d.values); })
 			.style("stroke", function(d) { return color(d.name); });
 
+	var person2 = svg.selectAll(".person2")
+			.data(persons)
+		.enter().append("g")
+			.attr("class", "person2");
+
+	person2.append("path")
+			.attr("class", "line")
+			.attr("d", function(d) { return line2(d.values); })
+			.style("stroke", function(d) { return color(d.name); });
+
 	person.append("text")
 		.datum(function(d) { return {name: d.name, value: d.values[d.values.length - 1]}; })
-		.attr("transform", function(d, i) { return "translate(" + (i*(width / 5)) + "," + (plotHeight + 50)  + ")"; })
+		.attr("transform", function(d, i) { return "translate(" + (i*(detailBox.width / 5)) + "," + (detailBox.height + 50)  + ")"; })
 		.attr("x", 3)
 		.attr("dy", ".35em")
 		.attr("class", "legend")
@@ -433,11 +461,33 @@ function drawCompare(width, height, margins, names, data, smooth_k, container) {
 		.text(function(d) { return d.name; });
 
 	svg.append("text")
-		.attr("transform", function(d, i) { return "translate(" + (plotWidth / 2) + "," + (plotHeight + 80)  + ")"; })
+		.attr("transform", function(d, i) { return "translate(" + (detailBox.width / 2) + "," + (detailBox.height + 80)  + ")"; })
 		.attr("x", 3)
 		.attr("dy", ".35em")
 		.attr("id", "legend-year")
 		.style("fill", "black")
+
+	// add a g so we have somewhere to brush
+	var context = svg.append("g")
+		.attr("class", "context")
+		.attr("transform", "translate(" + 0 + "," + selectBox.y + ")");
+
+	var brush = d3.svg.brush()
+		.x(x2)
+		.on("brush", brushed);
+
+	context.append("g")
+		.attr("class", "x brush")
+			.call(brush)
+		.selectAll("rect")
+			.attr("y", -6)
+			.attr("height", selectBox.height + 7);
+
+	function brushed() {
+		x.domain(brush.empty() ? x2.domain() : brush.extent());
+		person.select(".line").attr("d", function(d) { return line(d.values); });
+		svg.select(".x.axis").call(xAxis);
+	}
 
 	var handleMouseOverLine = function(lineData, index) {
 	}
@@ -448,7 +498,7 @@ function drawCompare(width, height, margins, names, data, smooth_k, container) {
 		var mouseX = event.pageX-hoverLineXOffset;
 		var mouseY = event.pageY-hoverLineYOffset;
 
-		if(mouseX >= 0 && mouseX <= plotWidth && mouseY >= 0 && mouseY <= height) {
+		if(mouseX >= 0 && mouseX <= detailBox.width && mouseY >= 0 && mouseY <= detailBox.height) {
 			// show the hover line
 			hoverLine.classed("hide", false);
 

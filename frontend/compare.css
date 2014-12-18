@@ -39,3 +39,9 @@
 .hide {
 	opacity: 0;
 }
+
+.brush .extent {
+	stroke: #fff;
+	fill-opacity: .125;
+	shape-rendering: crispEdges;
+}
