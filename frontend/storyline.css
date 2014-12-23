@@ -64,6 +64,12 @@
 	stroke-opacity: .6;
 }
 .storyline .line.highlight {
+	stroke-opacity: 8.0;
+}
+.storyline .line.selected {
+	stroke-opacity: 5.0;
+}
+.storyline .line.highlight.selected {
 	stroke-opacity: 1.0;
 }
 .storyline .linelabelline {

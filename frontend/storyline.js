@@ -222,7 +222,7 @@ function makeLayout(data, importantEntities, layoutHeight, layoutMarginSlots) {
 	return layout;
 }
 
-function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, nodeWidth, lineWidth, drawLabels, doMouseovers, useFieldPrefixes, importantEntities, onChooseNode) {
+function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, nodeWidth, lineWidth, drawLabels, doMouseovers, useFieldPrefixes, importantEntities, onChooseNode, onChooseEntityLine) {
 	var yScale = box.height / layoutHeight;
 
 	var draw = svg.append('g')
@@ -237,9 +237,9 @@ function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, node
 		.tickFormat(timeAxisTickFormater)
 		.tickValues(timeAxisTickValues(xScale));
 
-	function classEnitityLines(entityIds, value) {
+	function classEnitityLines(entityIds, value, classname) {
 		draw.selectAll(entityIds.map(function (eid) { return ".line" + eid; }).join(', '))
-			.classed('highlight', value);
+			.classed(classname, value);
 	}
 	function classForEntityLine(line) {
 		var e = layout.entities[line.entityId];
@@ -297,10 +297,10 @@ function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, node
 	if (doMouseovers)
 		lines
 			.on("mouseover", function (l) {
-				classEnitityLines([l.entityLine.entityId], true);
+				classEnitityLines([l.entityLine.entityId], true, 'highlight');
 			})
 			.on("mouseout", function (l) {
-				classEnitityLines([l.entityLine.entityId], false);
+				classEnitityLines([l.entityLine.entityId], false, 'highlight');
 			})
 			.append("title")
 			.text(function (l) { var e = layout.entities[l.entityLine.entityId]; return "" + (useFieldPrefixes ? e.field + ":" : "") + e.value; });
@@ -315,11 +315,11 @@ function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, node
 		node
 			.on("mouseover", function (vn) {
 				d3.select(this).classed('highlight', true);
-				classEnitityLines(vn.node.entityIds, true);
+				classEnitityLines(vn.node.entityIds, true, 'highlight');
 			})
 			.on("mouseout", function (vn) {
 				d3.select(this).classed('highlight', false);
-				classEnitityLines(vn.node.entityIds, false);
+				classEnitityLines(vn.node.entityIds, false, 'highlight');
 			})
 			.append("title")
 			.text(function(vn) {
@@ -330,9 +330,16 @@ function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, node
 
 	if (onChooseNode != null)
 		node.on("click", function (n) { return onChooseNode(n.node); });
+	if (onChooseEntityLine != null)
+		lines.on("click", function (el) { return onChooseEntityLine(el.entityLine); });
 	function selectNodes(nodeKeys, areSelected) {
 		if (nodeKeys.length > 0)
 			draw.selectAll(nodeKeys.map(function (nk) { return ".node" + nk; }).join(', '))
+				.classed('selected', areSelected);
+	}
+	function selectEntities(entityIds, areSelected) {
+		if (entityIds.length > 0)
+			draw.selectAll(entityIds.map(function (eid) { return ".line" + eid; }).join(', '))
 				.classed('selected', areSelected);
 	}
 
@@ -414,14 +421,15 @@ function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, node
 		draw: draw,
 		scales: { x: xScale },
 		updateX: updateX,
-		selectNodes: selectNodes
+		selectNodes: selectNodes,
+		selectEntities: selectEntities
 	};
 }
 
 /*
  * Draw the whole visualization.
  */
-function drawStoryline(svg, detailBox, selectBox, data, useFieldPrefixes, importantEntities, onSelectNode) {
+function drawStoryline(svg, detailBox, selectBox, data, useFieldPrefixes, importantEntities, onSelectNode, onSelectEntityLine) {
 	var nodeWidth = detailBox.width * 0.01,
 	    layoutHeight = detailBox.height,
 			layoutMarginSlots = 4,
@@ -460,10 +468,20 @@ function drawStoryline(svg, detailBox, selectBox, data, useFieldPrefixes, import
 		});
 		return knownKeys;
 	}
-	var knownVisClusterKeys = keyVisClusters(layout.visClusters);
+	function findKnownEntities(entities) {
+		var knownEntities = {};
+		$.each(entities, function (entityI, entity) {
+			if (!knownEntities.hasOwnProperty(entity.field))
+				knownEntities[entity.field] = {};
+			knownEntities[entity.field][entity.value] = true;
+		});
+		return knownEntities;
+	}
+	var knownVisClusterKeys = keyVisClusters(layout.visClusters),
+			knownEntities = findKnownEntities(layout.entities);
 
-	var detailPlot = drawStorylineDiagram(svg, detailBox, clipId, data, layout, layoutHeight, nodeWidth, lineWidth, true, true, useFieldPrefixes, importantEntities, onSelectNode);
-	var selectPlot = drawStorylineDiagram(svg, selectBox, clipId, data, layout, layoutHeight, nodeWidth, lineWidth, false, false, useFieldPrefixes, importantEntities, null);
+	var detailPlot = drawStorylineDiagram(svg, detailBox, clipId, data, layout, layoutHeight, nodeWidth, lineWidth, true, true, useFieldPrefixes, importantEntities, onSelectNode, onSelectEntityLine);
+	var selectPlot = drawStorylineDiagram(svg, selectBox, clipId, data, layout, layoutHeight, nodeWidth, lineWidth, false, false, useFieldPrefixes, importantEntities, null, null);
 
 	var brush = null;
 	function onBrush() {
@@ -482,7 +500,10 @@ function drawStoryline(svg, detailBox, selectBox, data, useFieldPrefixes, import
 	return {
 		update: onBrush,
 		selectNodes: detailPlot.selectNodes,
-		checkVisClusterKey: function (k) { return knownVisClusterKeys.hasOwnProperty(k); }
+		selectEntities: detailPlot.selectEntities,
+		checkVisClusterKey: function (k) { return knownVisClusterKeys.hasOwnProperty(k); },
+		checkEntity: function (n, v) { return knownEntities.hasOwnProperty(n) && knownEntities[n].hasOwnProperty(v); },
+		lookupEntity: function(eid) { return layout.entities[eid]; }
 	};
 }
 
@@ -549,9 +570,10 @@ function setupStoryline(container, globalQuery, facets) {
 	    selectBox = { x: viewBox.x + margins.left, y: viewBox.y + margins.top + detailBox.height + margins.between, width: width, height: height * (1.0 - split) };
 
 	var ownCnstrQuery = new Query(globalQuery.backendUrl());
-	var constraint = new Constraint();
-	globalQuery.addConstraint(constraint);
-	ownCnstrQuery.addConstraint(constraint);
+	var nodesConstraint = new Constraint(),
+	    entityConstraints = {};
+	globalQuery.addConstraint(nodesConstraint);
+	ownCnstrQuery.addConstraint(nodesConstraint);
 	var contextQuery = new Query(globalQuery.backendUrl(), 'setminus', globalQuery, ownCnstrQuery);
 
 	var resultWatcher = new ResultWatcher(function () {});
@@ -620,28 +642,47 @@ function setupStoryline(container, globalQuery, facets) {
 		}
 	}
 
-	var selection = {};
+	var nodeSelection = {};
 	function cleanSelectionToMatchData() {
 		var changed = false;
 		if (vis != null) {
-			$.each(selection, function (nodeKey, node) {
+			$.each(nodeSelection, function (nodeKey, node) {
 				if (!vis.checkVisClusterKey(nodeKey)) {
-					delete selection[nodeKey];
+					delete nodeSelection[nodeKey];
 					changed = true;
 				}
+			});
+			$.each(entityConstraints, function (field, valueTable) {
+				$.each(valueTable, function (value) {
+					if (!vis.checkEntity(field, value)) {
+						var constraint = entityConstraints[field][value].constraint;
+						globalQuery.removeConstraint(constraint);
+						ownCnstrQuery.removeConstraint(constraint);
+						delete entityConstraints[field][value];
+						changed = true;
+					}
+				});
 			});
 		}
 		return changed;
 	}
-	function constrainToSelection() {
-		if ($.isEmptyObject(selection)) {
-			clearSelElt.attr('disabled', 'disabled');
-			constraint.clear();
+	function constrainToNodeSelection() {
+		if ($.isEmptyObject(nodeSelection)) {
+			var haveEntityConstraints = true;
+			$.each(entityConstraints, function (field, valueTable) {
+				if (!$.isEmptyObject(valueTable)) {
+					haveEntityConstraints = false;
+					return false;
+				}
+			});
+			if (haveEntityConstraints)
+				clearSelElt.attr('disabled', 'disabled');
+			nodesConstraint.clear();
 		} else {
 			var nodeCount = 0,
 			    seen = {},
 			    selPointStrs = [];
-			$.each(selection, function (nodeKey, node) {
+			$.each(nodeSelection, function (nodeKey, node) {
 				nodeCount += 1;
 				$.each(node.clusters, function (cluster, mem) {
 					if (!seen.hasOwnProperty(cluster)) {
@@ -650,8 +691,8 @@ function setupStoryline(container, globalQuery, facets) {
 					}
 				});
 			});
-			constraint.name("Storyline: " + nodeCount + (nodeCount == 1 ? " node" : " nodes"));
-			constraint.set({
+			nodesConstraint.name("Storyline: " + nodeCount + (nodeCount == 1 ? " node" : " nodes"));
+			nodesConstraint.set({
 				type: 'referencepoints',
 				points: selPointStrs
 			});
@@ -659,30 +700,83 @@ function setupStoryline(container, globalQuery, facets) {
 		}
 		globalQuery.update();
 	}
+	function constrainEntity(entityId, entity, set) {
+		if (!set) {
+			var constraint = entityConstraints[entity.field][entity.value].constraint;
+			globalQuery.removeConstraint(constraint);
+			ownCnstrQuery.removeConstraint(constraint);
+			delete entityConstraints[entity.field][entity.value];
+			vis.selectEntities([entityId], false);
+			if ($.isEmptyObject(nodeSelection))
+				clearSelElt.attr('disabled', 'disabled');
+		} else {
+			var constraint = new Constraint();
+			constraint.name("Storyline: " + entity.field + " = " + entity.value);
+			constraint.set({
+				type: 'fieldvalue',
+				field: entity.field,
+				value: entity.value
+			});
+			constraint.onChange(function (type, query) {
+				if (type == 'removed' && query == globalQuery)
+					constrainEntity(entityId, entity, false);
+			});
+			globalQuery.addConstraint(constraint);
+			ownCnstrQuery.addConstraint(constraint);
+			if (!entityConstraints.hasOwnProperty(entity.field))
+				entityConstraints[entity.field] = {};
+			entityConstraints[entity.field][entity.value] = {
+				entityId: entityId,
+				constraint: constraint
+			};
+			vis.selectEntities([entityId], true);
+			clearSelElt.removeAttr('disabled');
+		}
+		globalQuery.update();
+	}
 	function onSelectNode(node) {
 		var nowSelected = null;
-		if (!selection.hasOwnProperty(node.key)) {
-			selection[node.key] = node;
+		if (!nodeSelection.hasOwnProperty(node.key)) {
+			nodeSelection[node.key] = node;
 			nowSelected = true;
 		} else {
-			delete selection[node.key];
+			delete nodeSelection[node.key];
 			nowSelected = false;
 		}
 		vis.selectNodes([node.key], nowSelected);
-		constrainToSelection();
+		constrainToNodeSelection();
+	}
+	function onSelectEntityLine(entityLine) {
+		var entity = vis.lookupEntity(entityLine.entityId);
+		var toSet = !(entityConstraints.hasOwnProperty(entity.field) && entityConstraints[entity.field].hasOwnProperty(entity.value));
+		constrainEntity(entityLine.entityId, entity, toSet);
 	}
 	clearSelElt.attr('disabled', 'disabled');
 	clearSelElt.bind('click', function () {
-		if (vis != null)
-			vis.selectNodes(Object.keys(selection), false);
-		selection = {};
-		constrainToSelection();
+		{
+			if (vis != null)
+				vis.selectNodes(Object.keys(nodeSelection), false);
+			nodeSelection = {};
+			constrainToNodeSelection();
+		}
+		{
+			var removingEntityIds = [];
+			$.each(entityConstraints, function (field, valueTable) {
+				$.each(valueTable, function (value, info) {
+					removingEntityIds.push(info.entityId);
+					globalQuery.removeConstraint(info.constraint);
+					ownCnstrQuery.removeConstraint(info.constraint);
+				});
+			});
+			vis.selectEntities(removingEntityIds, false);
+			entityConstraints = {};
+		}
 	});
-	constraint.onChange(function (type, query) {
+	nodesConstraint.onChange(function (type, query) {
 		if (type == 'removed' && query == globalQuery) {
 			if (vis != null)
-				vis.selectNodes(Object.keys(selection), false);
-			selection = {};
+				vis.selectNodes(Object.keys(nodeSelection), false);
+			nodeSelection = {};
 		}
 	});
 
@@ -694,10 +788,11 @@ function setupStoryline(container, globalQuery, facets) {
 			var svg = jqueryToD3(svgElt);
 			setLoadingIndicator(false);
 			outerSvgElt.show();
-			vis = drawStoryline(svg, detailBox, selectBox, data, drawEntityTitlePrefixes, drawImportantEntities, onSelectNode);
+			vis = drawStoryline(svg, detailBox, selectBox, data, drawEntityTitlePrefixes, drawImportantEntities, onSelectNode, onSelectEntityLine);
 			if (cleanSelectionToMatchData())
-				constrainToSelection();
-			vis.selectNodes(Object.keys(selection), true);
+				constrainToNodeSelection();
+			vis.selectNodes(Object.keys(nodeSelection), true);
+			vis.selectEntities($.map(entityConstraints, function (r) { return $.map(r, function (ec) { return ec.entityId; }); }), true);
 			scaleSvg();
 		} else {
 			setLoadingIndicator(false);
