@@ -1,0 +1,20 @@
+{
+	"constraints": {
+	},
+	"views": {
+		"0": {
+			"type": "plottimeline",
+			"clusterField": "referencePoints",
+			"entities": {
+				"person": [
+					"Hannibal",
+					"Ptolemy"
+				],
+				"organization": [
+					"Philips",
+					"Mazda"
+				]
+			}
+		}
+	}
+}
