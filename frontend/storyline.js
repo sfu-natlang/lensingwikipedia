@@ -429,7 +429,7 @@ function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, node
 /*
  * Draw the whole visualization.
  */
-function drawStoryline(svg, detailBox, selectBox, data, useFieldPrefixes, importantEntities, onSelectNode, onSelectEntityLine) {
+function drawStoryline(svg, detailBox, selectBox, data, initialBrushExtent, useFieldPrefixes, importantEntities, onSelectNode, onSelectEntityLine, brushCallback) {
 	var nodeWidth = detailBox.width * 0.01,
 	    layoutHeight = detailBox.height,
 			layoutMarginSlots = 4,
@@ -484,12 +484,20 @@ function drawStoryline(svg, detailBox, selectBox, data, useFieldPrefixes, import
 	var selectPlot = drawStorylineDiagram(svg, selectBox, clipId, data, layout, layoutHeight, nodeWidth, lineWidth, false, false, useFieldPrefixes, importantEntities, null, null);
 
 	var brush = null;
-	function onBrush() {
+	function updateBrush() {
 		detailPlot.updateX(brush.empty() ? selectPlot.scales.x.domain() : brush.extent());
+	}
+	function onBrush() {
+		updateBrush();
+		brushCallback(brush.empty() ? null : brush.extent());
 	}
 	brush = d3.svg.brush()
 		.x(selectPlot.scales.x)
 		.on('brush', onBrush);
+	if (initialBrushExtent != null) {
+		brush.extent(initialBrushExtent);
+		updateBrush();
+	}
 	selectPlot.draw.append('g')
 		.attr('class', 'x brush')
 		.call(brush)
@@ -781,14 +789,18 @@ function setupStoryline(container, globalQuery, facets) {
 	});
 
 	var data = null,
-	    vis = null;
+	    vis = null,
+	    lastBrushSelection = null;
 	function draw() {
 		if (data != null) {
 			svgElt.children().remove();
 			var svg = jqueryToD3(svgElt);
 			setLoadingIndicator(false);
 			outerSvgElt.show();
-			vis = drawStoryline(svg, detailBox, selectBox, data, drawEntityTitlePrefixes, drawImportantEntities, onSelectNode, onSelectEntityLine);
+			function onBrush(selection) {
+				lastBrushSelection = selection;
+			}
+			vis = drawStoryline(svg, detailBox, selectBox, data, lastBrushSelection, drawEntityTitlePrefixes, drawImportantEntities, onSelectNode, onSelectEntityLine, onBrush);
 			if (cleanSelectionToMatchData())
 				constrainToNodeSelection();
 			vis.selectNodes(Object.keys(nodeSelection), true);
