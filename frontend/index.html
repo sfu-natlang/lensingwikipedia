@@ -29,12 +29,14 @@
 						<li><a href="#timelinetab" data-toggle="tab" title="Timeline view">Timeline</a></li> \
 						<li><a href="#maptab" data-toggle="tab" title="Map view">Map</a></li> \
 						<li><a href="#textsearchtab" data-toggle="tab" title="Text search">Text search</a></li> \
+						<li><a href="#storyline" data-toggle="tab" title="Storyline">Storyline</a></li> \
 					</ul> \
 					<div class="tab-content" id="tabcontents"> \
 						<div class="tab-pane active" id="facetstab"></div> \
 						<div class="tab-pane" id="timelinetab"></div> \
 						<div class="tab-pane" id="maptab"></div> \
 						<div class="tab-pane" id="textsearchtab"></div> \
+						<div class="tab-pane" id="storyline"></div> \
 					</div> \
 				</div> \
 			</div>').appendTo($('body'));
@@ -56,20 +58,28 @@
 			}
 			setupSidebar($(".sidebar"), globalQuery);
 
+			var facetsInfo = [];
 			var facetMakers = $.map(facets, function (title, field) {
 				return function (container) {
-					setupFacet(container, globalQuery, title, field);
+					var constraintsQuery = setupFacet(container, globalQuery, title, field);
+					facetsInfo.push({
+						title: title,
+						field: field,
+						constraintsQuery: constraintsQuery
+					});
 				}
 			});
 			setupSplitMakeElements($('#facetstab'), 'horizontal', facetMakers);
 			setupTimeline($('#timelinetab'), initialQuery, globalQuery);
 			setupMap($('#maptab'), initialQuery, globalQuery, mapDataUrl, minMapZoom, maxMapZoom);
 			setupTextSearch($('#textsearchtab'), globalQuery);
+			setupStoryline($('#storyline'), globalQuery, facetsInfo);
 
 			fillElement($('.tab-content'), $('#facetstab'), 'vertical');
 			fillElement($('.tab-content'), $('#timelinetab'), 'vertical');
 			fillElement($('.tab-content'), $('#maptab'), 'vertical');
 			fillElement($('.tab-content'), $('#textsearchtab'), 'vertical');
+			fillElement($('.tab-content'), $('#storyline'), 'vertical');
 			fillElement($('.tab-content'), $('#abouttab'), 'vertical');
 
 			// Update the queries only after setting up all the controls

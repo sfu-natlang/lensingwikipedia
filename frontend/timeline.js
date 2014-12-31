@@ -30,15 +30,9 @@ function resultToPlotData(initialCounts, contextCounts) {
 
 	var samples = [];
 	for (year in allYears) {
-		var jsYear = +year;
-		// The input data represents n BCE as -n whereas Javascript uses 1-n
-		if (jsYear < 0)
-			jsYear += 1;
-		var date = new Date(0, 0, 1);
-		date.setFullYear(jsYear);
 		sample = {
-			year: jsYear,
-			date: date,
+			year: +year,
+			date: jsDateOfYear(year),
 			// TODO smooth data here. It's too slow to loop over the entire
 			// array afterwards
 			initialCount: +initialCounts[year] || 0,
@@ -140,35 +134,13 @@ function drawPlot(svg, box, data, classStr, matchScales, fitY, logY, clipId, sho
 		scales.x.domain(matchScales.x.domain());
 	else
 		scales.x.domain(d3.extent(data, function (s) { return s.date; }));
-	function xTickFormater(date) {
-		var year = date.getFullYear();
-		return year <= 0 ?  1 - year + "BCE" : year + "CE";
-	}
 	function yTickFormater(count) {
 		return "" + count;
 	}
 	var zeroDate = new Date(0, 0, 1);
 	zeroDate.setFullYear(1);
-	function xTickValues() {
-		// For any BCE tick that is aligned to a round five years and is at least five years from the next tick, we bump it up one year to produce ticks at rounder-looking dates. This is a bit of a hack but seems to work ok.
-		var ticks = scales.x.ticks();
-		var n = ticks.length - 1;
-		for (var i = 0; i < n; i++) {
-			var fullYear = ticks[i].getFullYear();
-			if (fullYear > 0)
-				break;
-			if (-fullYear % 5 != 0)
-				continue;
-			var rounded = new Date(0, 0, 1), minNext = new Date(0, 0, 1);
-			rounded.setFullYear(ticks[i].getFullYear());
-			minNext.setFullYear(ticks[i].getFullYear() + 5);
-			if (rounded.getTime() == ticks[i].getTime() && minNext.getTime() <= ticks[i + 1].getTime())
-				ticks[i].setFullYear(ticks[i].getFullYear() + 1);
-		}
-		return ticks;
-	}
 	var axes = {
-		x: d3.svg.axis().scale(scales.x).orient('bottom').tickFormat(xTickFormater).tickValues(xTickValues),
+		x: d3.svg.axis().scale(scales.x).orient('bottom').tickFormat(timeAxisTickFormater).tickValues(timeAxisTickValues(scales.x)),
 		y: d3.svg.axis().scale(scales.y).orient('left').tickFormat(yTickFormater)
 	};
 	function fitYScale() {
