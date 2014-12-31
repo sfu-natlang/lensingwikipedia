@@ -214,6 +214,7 @@ function setupFacet(container, globalQuery, name, field, isConjunctive) {
 		}
 	};
 	clearElt.click(function () {
+		setClearEnabled(false);
 		clearConstraints();
 		globalQuery.update();
 	});
@@ -283,4 +284,6 @@ function setupFacet(container, globalQuery, name, field, isConjunctive) {
 				addData(result.counts.counts);
 			});
 	});
+
+	return ownCnstrQuery;
 }

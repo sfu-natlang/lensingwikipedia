@@ -92,6 +92,7 @@ function ChangeWatcher(callback, getCurrent) {
 	nextChangeWatcherId++;
 	this._callback = callback;
 	this._getCurrent = (getCurrent == true);
+	this._active = true;
 }
 
 /*
@@ -99,6 +100,13 @@ function ChangeWatcher(callback, getCurrent) {
  */
 ChangeWatcher.prototype.setCallback = function(callback) {
 	this._callback = callback;
+}
+
+ChangeWatcher.prototype.active = function(state) {
+	if (state == null)
+		return this._active;
+	else
+		this._active = state;
 }
 
 /*
@@ -111,7 +119,7 @@ function ResultWatcher(callback) {
 	this._value = null;
 	this._queriesIn = {};
 
-	this._enabled = true;
+	this._enabled = false;
 	this._stored_value = null;
 }
 
@@ -145,6 +153,7 @@ ResultWatcher.prototype.set = function (value) {
 			_removeViews(this._value);
 		this._value = _addViews(value);
 		this._change();
+		this._enabled = true;
 	}
 }
 
@@ -156,6 +165,7 @@ ResultWatcher.prototype.clear = function () {
 		_removeViews(this._value);
 		this._value = null;
 		this._change();
+		this._enabled = false;
 	}
 }
 
@@ -205,7 +215,7 @@ function _resultsForResultWatchers(resultWatchers, backendResponse, expectAll, o
 				var globalViewId = viewUniqueValues[watcher._value[localViewId]].id;
 				if (!backendResponse.hasOwnProperty(globalViewId)) {
 					if (!expectAll)
-						console.log("warning: didn't get anything for view \"" + localViewId + "\"");
+						console.log("warning: didn't get anything for view '" + localViewId + "'");
 					ok = false;
 					break;
 				}
@@ -265,7 +275,7 @@ Constraint.prototype.set = function(value) {
 		this._clear()
 	} else if (this._value != value) {
 		var changeType = this._value == null ? 'added' : 'changed';
-		this._value = JSON.stringify(value);
+		this._value = value;
 		this._updateChangeWatchers(changeType);
 	}
 }
@@ -288,7 +298,7 @@ Constraint.prototype.addChangeWatcher = function(watcher) {
 	if (!this._changeWatchers.hasOwnProperty(watcher._id)) {
 		this._changeWatchers[watcher._id] = watcher;
 	} else
-		console.log("warning: change watcher \"" + watacher._id + "\" already on query, can't add");
+		console.log("warning: change watcher '" + watacher._id + "' already on query, can't add");
 }
 
 /*
@@ -298,7 +308,7 @@ Constraint.prototype.removeChangeWatcher = function(watcher) {
 	if (this._changeWatchers.hasOwnProperty(watcher._id)) {
 		delete this._changeWatchers[watcher._id];
 	} else
-		console.log("warning: change watcher \"" + watacher._id + "\" not on constraint, can't remove");
+		console.log("warning: change watcher '" + watacher._id + "' not on constraint, can't remove");
 }
 
 /*
@@ -366,7 +376,7 @@ Continuer.prototype.fetchNext = function(callback) {
 		view.page = (view.page || 0) + contr._pageOffset;
 		return JSON.stringify(view);
 	});
-	var queryJson = "{\"constraints\":" + cnstrsJson + ",\"views\":" + viewsJson + "}";
+	var queryJson = '{"constraints":' + cnstrsJson + ',"views":' + viewsJson + '}';
 
 	$.post(this._query._backendUrl, queryJson, 'json').done(function(response) {
 		contr._haveMore = false;
@@ -406,13 +416,14 @@ function Query(backendUrl, type, arg1, arg2) {
 	this._resultWatchersWithErrors = {};
 	this._errorWatchers = [];
 	this._errorResolvedWatchers = {};
+	this._childrenToUpdate = {};
 
 	if (type == 'base')
 		this._setupBase();
 	else if (type == 'setminus')
 		this._setupSetminus(arg1, arg2);
 	else
-		console.log("error: unknown query type \"" + type + "\"");
+		console.log("error: unknown query type '" + type + "'");
 }
 
 /*
@@ -451,12 +462,8 @@ Query.prototype._setupSetminus = function (query1, query2) {
 				query._addConstraint(cnstr);
 		}
 	}, true);
-	query1.onResult({}, function () {
-		query.update();
-	});
-	query2.onResult({}, function () {
-		query.update();
-	});
+	query1._childrenToUpdate[query._id] = query;
+	query2._childrenToUpdate[query._id] = query;
 }
 
 /*
@@ -464,10 +471,16 @@ Query.prototype._setupSetminus = function (query1, query2) {
  */
 Query.prototype._updateChangeWatchers = function(changeType, constraint) {
 	var query = this;
-	for (var watcherId in this._changeWatchers)
-		this._changeWatchers[watcherId]._callback(changeType, query, constraint);
-	for (var watcherId in constraint._changeWatchers)
-		constraint._changeWatchers[watcherId]._callback(changeType, query, constraint);
+	for (var watcherId in this._changeWatchers) {
+		var changeWatcher = this._changeWatchers[watcherId];
+		if (changeWatcher._active)
+			changeWatcher._callback(changeType, query, constraint);
+	}
+	for (var watcherId in constraint._changeWatchers) {
+		var changeWatcher = constraint._changeWatchers[watcherId];
+		if (changeWatcher._active)
+			changeWatcher._callback(changeType, query, constraint);
+	}
 	this._someConstraintChangedSinceUpdate = true;
 }
 
@@ -548,7 +561,7 @@ Query.prototype.addConstraint = function(constraint) {
 	if (!this._constraints.hasOwnProperty(constraint._id)) {
 		this._addConstraint(constraint);
 	} else
-		console.log("warning: constraint \"" + constraint._id + "\" already in query, can't add");
+		console.log("warning: constraint '" + constraint._id + "' already in query, can't add");
 }
 
 /*
@@ -562,7 +575,7 @@ Query.prototype.removeConstraint = function(constraint) {
 	if (this._constraints.hasOwnProperty(constraint._id)) {
 		this._removeConstraint(constraint);
 	} else
-		console.log("warning: constraint \"" + constraint._id + "\" not in query, can't remove");
+		console.log("warning: constraint '" + constraint._id + "' not in query, can't remove");
 }
 
 /*
@@ -578,7 +591,7 @@ Query.prototype.addChangeWatcher = function(watcher) {
 					watcher._callback('current', cnstr);
 			});
 	} else
-		console.log("warning: change watcher \"" + watacher._id + "\" already on query, can't add");
+		console.log("warning: change watcher '" + watacher._id + "' already on query, can't add");
 }
 
 /*
@@ -588,7 +601,7 @@ Query.prototype.removeChangeWatcher = function(watcher) {
 	if (this._changeWatchers.hasOwnProperty(watcher._id)) {
 		delete this._changeWatchers[watcher._id];
 	} else
-		console.log("warning: change watcher \"" + watacher._id + "\" not on query, can't remove");
+		console.log("warning: change watcher '" + watacher._id + "' not on query, can't remove");
 }
 
 /*
@@ -600,7 +613,7 @@ Query.prototype.addResultWatcher = function(watcher) {
 		this._resultWatchers[watcher._id] = watcher;
 		watcher._queriesIn[this._id] = this;
 	} else
-		console.log("warning: result watcher \"" + watacher._id + "\" already on query, can't add");
+		console.log("warning: result watcher '" + watacher._id + "' already on query, can't add");
 }
 
 /*
@@ -611,7 +624,7 @@ Query.prototype.removeResultWatcher = function(watcher) {
 		delete this._resultWatchers[watcher._id];
 		delete watcher._queriesIn[this._id];
 	} else
-		console.log("warning: result watcher \"" + watacher._id + "\" not on query, can't remove");
+		console.log("warning: result watcher '" + watacher._id + "' not on query, can't remove");
 }
 
 /*
@@ -680,6 +693,19 @@ Query.prototype.backendUrl = function() {
 }
 
 /*
+ * Get a list of all active constraints.
+ */
+Query.prototype.constraints = function() {
+	var constraints = [];
+	for (var cnstrId in this._constraints) {
+		var cnstr = this._constraints[cnstrId];
+		if (cnstr._value != null)
+			constraints.push(cnstr);
+	}
+	return constraints;
+}
+
+/*
  * Make complete JSON in the backend's format for all constraints.
  */
 Query.prototype._getConstraintsJSON = function() {
@@ -693,7 +719,7 @@ Query.prototype._getConstraintsJSON = function() {
 			else
 				jsonStr += ",";
 			jsonStr += "\"" + cnstrId + "\":";
-			jsonStr += cnstr._value;
+			jsonStr += JSON.stringify(cnstr._value);
 		}
 	}
 	jsonStr += "}";
@@ -721,7 +747,7 @@ Query.prototype._getViewsJSON = function(resultWatchers, viewRewriter) {
 					first = false;
 				else
 					jsonStr += ",";
-				jsonStr += "\"" + globalViewId + "\":";
+				jsonStr += '"' + globalViewId + '":';
 				jsonStr += view;
 				seenGlobalIds[view] = true;
 			}
@@ -748,7 +774,6 @@ Query.prototype.update = function(postponeFinish) {
 			var watcher = query._resultWatchers[watcherId];
 			if (query._someConstraintChangedSinceUpdate || query._resultWatchersChangedSinceUpdate[watcher._id])
 				(watcher._value != null ? resultWatchersToUpdate : toForceResolve)[watcher._id] = watcher;
-					
 		}
 
 		// We resolve any errors on watchers that are no longer active, because otherwise they are stuck in an error state
@@ -760,7 +785,7 @@ Query.prototype.update = function(postponeFinish) {
 		query._updateErrorResolvedWatchers(currentResultWatchersWithErrors);
 
 		if (!$.isEmptyObject(resultWatchersToUpdate)) {
-			var queryJson = "{\"constraints\":" + query._getConstraintsJSON() + ",\"views\":" + query._getViewsJSON(resultWatchersToUpdate) + "}";
+			var queryJson = '{"constraints":' + query._getConstraintsJSON() + ',"views":' + query._getViewsJSON(resultWatchersToUpdate) + '}';
 			if (typeof verbose_log != 'undefined' && verbose_log.hasOwnProperty('outgoing_query') && verbose_log.outgoing_query)
 				console.log("outgoing query", query._id, queryJson);
 			var sendTime = (new Date()).getTime();
@@ -792,6 +817,10 @@ Query.prototype.update = function(postponeFinish) {
 	}
 	if (finish == null)
 		finish = function () {};
+
+	$.each(this._childrenToUpdate, function (childId, child) {
+		child.update();
+	});
 
 	if (postponeFinish)
 		return finish;

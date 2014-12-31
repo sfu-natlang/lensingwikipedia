@@ -1,6 +1,7 @@
 #!/bin/bash
 
-date=20140413                                                         #TODO: get date from machine
+date=`date +%Y%m%d`                                                         #get date from machine
+echo $date
 W_DIR=/cs/natlang-projects/users/maryam/wikiCrawler/Crawl_$date
 NER_HOME=/cs/natlang-projects/users/maryam/clustering/NERStanford
 UIUC_Dir=/cs/natlang-sw/Linux-x86_64/NL/TOOLKITS/UIUCSRL/2.0/
@@ -13,6 +14,7 @@ DUMP_Dir=$W_DIR/Dump_$date
 #module load NL/TOOLKITS/UIUCSRL/2.0
 
 mkdir -p $W_DIR
+mkdir -p $DUMP_Dir
 cd $W_DIR
 
 ### STEP 1: crawling the main domain ###
@@ -41,7 +43,6 @@ echo "Extracting locations recognized by NER (\"locFromNER.txt\") and tokenized 
 for dir in $(find $DUMP_Dir -mindepth 1 -type d); do
 	$PYPATH $SCRIPT_PATH/coRefResolution.py $dir NER newJ.json >> outCoRef.txt
 done
-
 
 #NER.tok:		each line is one event (tokenized)
 #NER.loc: 		each line is a location predicted by NER
@@ -86,6 +87,8 @@ $PYPATH $SCRIPT_PATH/makePersonDict.py organization.json orgFromNER.json organiz
 # Therefore you should run it seperately and prepare a file contains all locations ("locationDictionary.json") 
 #using txturl2latlong.txt, and use it to prepare final json file.
 
+cp $SCRIPT_PATH/data/locationDictionary.json $W_DIR
+
 $PYPATH $SCRIPT_PATH/findNewLocations.py txturl2latlong.json locationDictionary.json newLocations.json
 
 sh $SCRIPT_PATH/reverseGeocoding.sh newLocations.json
@@ -94,8 +97,9 @@ if [ -f locationDictionary.json.cln ] && [ -f newLocationsCountry.json ];
 then
 cat locationDictionary.json.cln > locationDictionary.json
 cat newLocationsCountry.json >> locationDictionary.json
+cp locationDictionary.json $SCRIPT_PATH/data/
 else
-echo "err in preparing locationDictionary.json"
+echo "err in preparing locationDictionary.json, use the old one"
 fi
 
 ### STEP 5: Running SRL ###

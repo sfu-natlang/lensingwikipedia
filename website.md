@@ -4,7 +4,10 @@ This assumes a bare bones CentOS 6 install.
 
 ## Choose a domain
 
-The instructions below assume we are building the main Lensing Wikipedia site. We therefore use the domains/wikipediahistory/ directory for the backend and frontend. For a different domain use the appropriate sub-directory in domains/ instead, and adjust local paths and URLs as needed.
+The instructions below assume we are building the main Lensing Wikipedia site.
+We therefore use the domains/wikipediahistory/ directory for the backend and
+frontend. For a different domain use the appropriate sub-directory in domains/
+instead, and adjust local paths and URLs as needed.
 
 ## Set up packages on CentOS 6
 
@@ -17,9 +20,9 @@ The instructions below assume we are building the main Lensing Wikipedia site. W
 ## Set up Python 2.7
 
     cd /tmp
-    wget http://python.org/ftp/python/2.7.5/Python-2.7.5.tar.bz2
-    tar xf Python-2.7.5.tar.bz2
-    cd Python-2.7.5
+    wget http://python.org/ftp/python/2.7.8/Python-2.7.8.tgz
+    tar xf Python-2.7.8.tgz
+    cd Python-2.7.8
     ./configure --prefix=/usr/local
     make && sudo make altinstall
 
@@ -65,7 +68,7 @@ The instructions below assume we are building the main Lensing Wikipedia site. W
     create file /etc/httpd/sites-available/lensingwikipedia.cs.sfu.ca.conf # see below
     symlink above file to /etc/httpd/sites-enabled/lensingwikipedia.cs.sfu.ca.conf
 
-### sites-available/lensingwikipedia.cs.sfu.ca.conf 
+### sites-available/lensingwikipedia.cs.sfu.ca.conf
 
     <VirtualHost lensingwikipedia.cs.sfu.ca:80>
       ServerName lensingwikipedia.cs.sfu.ca
@@ -75,6 +78,7 @@ The instructions below assume we are building the main Lensing Wikipedia site. W
       DocumentRoot /var/www/html/lensingwikipedia.cs.sfu.ca
       <Directory /var/www/html/lensingwikipedia.cs.sfu.ca>
         Options -Indexes FollowSymLinks MultiViews
+        AddDefaultCharset utf-8
         AllowOverride None
         Order allow,deny
         allow from all
@@ -125,7 +129,7 @@ Now the appropriate programs are in `/var/www/html/checkouts/20131017/domains/wi
       'querier': {
       }
     }
-    
+
 ## Configure frontend and deploy
 
     cd /var/www/html/checkouts/20131017/domains/wikipediahistory
@@ -157,7 +161,7 @@ If Apache is not available and you only want to execute the frontend for testing
     cd /var/www/html/checkouts/20131017/domains/wikipediahistory/backend
     nohup python2.7 backend -p 1510 -c full.conf
 
-Note that you do not always need to restart the backed to change to new data; see the backend README.
+Note that you do not always need to restart the backend to change to new data; see the backend README.
 
 ## Pull new frontend and deploy
 

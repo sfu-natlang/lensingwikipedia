@@ -246,30 +246,30 @@ function drawMarkers(svg, group, proj, initialCounts, contextCounts, refPointLin
  * Make and manage the extra interface controls.
  */
 function makeMapControls(container, projections, minZoom, maxZoom, defaults) {
-	container.append(" \
-		<div class=\"selbox\"> \
-			<button type=\"button\" class=\"btn btn-mini btn-warning clear mapclear\" title=\"Clear the map selection.\">Clear selection</button> \
-			<div class=\"btn-group mode\" data-toggle=\"buttons-radio\"></div> \
+	container.append(' \
+		<div class="selbox"> \
+			<button type="button" class="btn btn-mini btn-warning clear mapclear" title="Clear the map selection.">Clear selection</button> \
+			<div class="btn-group mode" data-toggle="buttons-radio"></div> \
 		</div> \
-		<div class=\"viewbox\"> \
-			<div class=\"btn-group zoomcontrols\"> \
-				<button class=\"btn btn-mini zoomout\" title=\"Zoom out.\">-</button> \
-				<a class=\"btn btn-mini dropdown-toggle zoomlevelbtn\" data-toggle=\"dropdown\" href=\"#\"><span class=\"value\"></span><span class=\"caret\"></span></a> \
-				<div class=\"dropdown-menu zoomlevelmenu\"> \
-					<div class=\"btn-group btn-group-vertical zoomlevel\" data-toggle=\"buttons-radio\"></div> \
+		<div class="viewbox"> \
+			<div class="btn-group zoomcontrols"> \
+				<button class="btn btn-mini zoomout" title="Zoom out.">-</button> \
+				<a class="btn btn-mini dropdown-toggle zoomlevelbtn" data-toggle="dropdown" href="#"><span class="value"></span><span class="caret"></span></a> \
+				<div class="dropdown-menu zoomlevelmenu"> \
+					<div class="btn-group btn-group-vertical zoomlevel" data-toggle="buttons-radio"></div> \
 				</div> \
-				<button class=\"btn btn-mini zoomin\" title=\"Zoom in.\">+</button> \
+				<button class="btn btn-mini zoomin" title="Zoom in.">+</button> \
 			</div> \
-			<button type=\"button\" class=\"btn btn-mini centreview\" title=\"Re-centre the view.\">Centre</button> \
-			<div class=\"btn-group\"> \
-				<a class=\"btn btn-mini dropdown-toggle view\" data-toggle=\"dropdown\" href=\"#\" title=\"View settings.\">View<span class=\"caret\"></span></a> \
-				<div class=\"dropdown-menu viewsettingsmenu\"> \
-					<div class=\"btn-group btn-group-vertical projection\" data-toggle=\"buttons-radio\"></div> \
-					<ul class=\"viewchoices\"></ul> \
+			<button type="button" class="btn btn-mini centreview" title="Re-centre the view.">Centre</button> \
+			<div class="btn-group"> \
+				<a class="btn btn-mini dropdown-toggle view" data-toggle="dropdown" href="#" title="View settings.">View<span class="caret"></span></a> \
+				<div class="dropdown-menu viewsettingsmenu"> \
+					<div class="btn-group btn-group-vertical projection" data-toggle="buttons-radio"></div> \
+					<ul class="viewchoices"></ul> \
 				</div> \
 			</div> \
 		</div> \
-	");
+	');
 
 	var modeElt = container.find(".selbox .mode");
 	var inputModes = {
@@ -278,7 +278,7 @@ function makeMapControls(container, projections, minZoom, maxZoom, defaults) {
 		pan: { title: "Pan", desc: "Input mode to pan the view without changing the selection." }
 	};
 	$.each(inputModes, function (key, value) {
-		$("<button class=\"btn btn-mini\" value=\"" + key + "\" title=\"" + value.desc + "\">" + value.title + "</button>").appendTo(modeElt);
+		$('<button class="btn btn-mini" value="' + key + '" title="' + value.desc + '">' + value.title + '</button>').appendTo(modeElt);
 	});
 	function updateSelMode() {
 		var defBtn = modeElt.find("button[value=" + defaults.selectionMode + "]");
@@ -290,7 +290,7 @@ function makeMapControls(container, projections, minZoom, maxZoom, defaults) {
 	var zoomBtnElt = container.find(".zoomlevelbtn");
 	var zoomElt = container.find(".zoomlevel");
 	$.each([1, 2, 3, 4, 5], function (key, value) {
-		$("<button class=\"btn btn-mini\" value=\"" + value + "\" + title=\"Zoom level " + value + ".\">" + value + "</button>").appendTo(zoomElt);
+		$('<button class="btn btn-mini" value="' + value + '" + title="Zoom level ' + value + '.">' + value + '</button>').appendTo(zoomElt);
 	});
 	zoomElt.find("button").bind('click', function () {
 		var value = $(this).val();
@@ -321,7 +321,7 @@ function makeMapControls(container, projections, minZoom, maxZoom, defaults) {
 
 	var projElt = container.find(".projection");
 	$.each(projections, function (key, proj) {
-		$("<button class=\"btn btn-mini\" value=\"" + key + "\" title=\"" + proj.longName + " projection.\">" + proj.name + "</button>").appendTo(projElt);
+		$('<button class="btn btn-mini" value="' + key + '" title="' + proj.longName + ' projection.">' + proj.name + '</button>').appendTo(projElt);
 	});
 	projElt.find("button").bind('click', function () {
 		$(this).button('toggle');
@@ -339,7 +339,7 @@ function makeMapControls(container, projections, minZoom, maxZoom, defaults) {
 		currentcountryboundary: { title: "Current countries", desc: "Show boundaries of currently existing countries." }
 	};
 	$.each(viewChoices, function (key, value) {
-		$("<li><label class=\"checkbox\" title=\"" + value.desc + "\"><input type=\"checkbox\" value=\"" + key + "\">" + value.title + "</label></li>").appendTo(choicesElt);
+		$('<li><label class="checkbox" title="' + value.desc + '"><input type="checkbox" value="' + key + '">' + value.title + '</label></li>').appendTo(choicesElt);
 	});
 	// First pass to make the checkedness consistent
 	$.each(defaults.viewChoices, function (key, value) {
@@ -405,9 +405,9 @@ function setupMap(container, initialQuery, globalQuery, mapDataUrl, minZoom, max
 	// Margins for the map.
 	var margins = { left: 10, right: 10, top: 10, bottom: 10, between: 10 };
 
-	var outerElt = $("<div class=\"map\"></div>").appendTo(container);
-	var topBoxElt = $("<div class=\"topbox\"></div>").appendTo(outerElt);
-	var svgElt = $("<svg viewBox=\"" + viewBox.x + " " + viewBox.y + " " + viewBox.width + " " + viewBox.height + "\" preserveAspectRatio=\"xMidYMid meet\"></svg>").appendTo(outerElt);
+	var outerElt = $('<div class="map"></div>').appendTo(container);
+	var topBoxElt = $('<div class="topbox"></div>').appendTo(outerElt);
+	var svgElt = $('<svg viewBox="' + viewBox.x + " " + viewBox.y + " " + viewBox.width + " " + viewBox.height + '" preserveAspectRatio="xMidYMid meet"></svg>').appendTo(outerElt);
 	var loadingIndicator = new LoadingIndicator(outerElt);
 
 	var defaultSettings = {
@@ -538,7 +538,7 @@ function setupMap(container, initialQuery, globalQuery, mapDataUrl, minZoom, max
 				curState.group.attr("transform", "");
 				curProj.rotate([pan[0], -pan[1]]);
 			} else
-				console.log("warning: unknown projection pan mode \"" + projection.panMode + "\"");
+				console.log('warning: unknown projection pan mode "' + projection.panMode + '"');
 			if (!quick || projection.panMode == 'rotate') {
 				svg.selectAll("path").attr("d", curState.path);
 				$.each(viewChoices, function (setting, choice) {
