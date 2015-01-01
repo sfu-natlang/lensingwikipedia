@@ -34,7 +34,7 @@ instead, and adjust local paths and URLs as needed.
     sudo /usr/local/bin/python2.7 setup.py install
     sudo /usr/local/bin/easy_install-2.7 pip
     sudo /usr/local/bin/pip-2.7 install whoosh
-    sudo /usr/local/bin/pip-2.7 install numpy scipy scikit-learn
+    sudo /usr/local/bin/pip-2.7 install numpy scipy scikit-learn nltk nltk-data
 
 ## Set up web directory to pull from github.com/lensingwikipedia
 
