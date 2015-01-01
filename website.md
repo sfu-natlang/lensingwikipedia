@@ -113,6 +113,7 @@ Now the appropriate programs are in `/var/www/html/checkouts/20131017/domains/wi
     # create full.index in data/20131017 (use current date) using instructions in the backend README
     python2.7 buildindex /var/www/html/data/20131017/fullData.20131017.index /var/www/html/data/20131017/fullData.20131017.json
     python2.7 cluster /var/www/html/data/20131017/fullData.20131017.index
+    python2.7 tsne /var/www/html/data/20131017/fullData.20131017.index
 
 ## Run backend
 
@@ -145,6 +146,7 @@ The make command above creates default settings files. If you already have your 
 
     make release
     cp release/*.* /var/www/html/lensingwikipedia.cs.sfu.ca/.
+
 
 ## Deploying frontend without Apache
 If Apache is not available and you only want to execute the frontend for testing, execute the following command (Works and tested with devel build of frontend and not release):

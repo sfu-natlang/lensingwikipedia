@@ -62,6 +62,7 @@ class Querier:
       yield { 'type': 'countbyreferencepoint' }
       yield { 'type': 'referencepointlinks' }
       yield { 'type': 'descriptions' }
+      yield { 'type': 'tsnecoordinates' }
       for page_num in range(self.num_initial_description_pages_to_cache):
         yield { 'type': 'descriptions', 'page': page_num }
     yield { 'constraints': {}, 'views': dict((i, v) for i, v in enumerate(views_for_initial())) }
@@ -109,6 +110,8 @@ class Querier:
       return whoosh.query.NumericRange('year', low, high)
     elif type == 'referencepoints':
       return whoosh.query.Or([whoosh.query.Term('referencePoints', whooshutils.escape_keyword(p)) for p in cnstr['points']])
+    elif type == 'tsneCoordinates':
+      return whoosh.query.Or([whoosh.query.Term('id', int(p)) for p in cnstr['points']])
     else:
       raise ValueError("unknown constraint type \"%s\"" % (type))
 
@@ -182,6 +185,26 @@ class Querier:
     return {
       'links': [{ 'refpoints': p, 'count': c } for (p, c) in link_counts.iteritems()]
     }
+  
+  def _handle_tsnecoordinates_view(self, view, whoosh_query):
+    print >> sys.stderr, whoosh_query
+    coordinates = {}
+    with self.whoosh_index.searcher() as searcher:
+      hits = searcher.search(whoosh_query, limit=None)
+      print >> sys.stderr, "whoosh search results: %s" % (repr(hits))
+      for hit in hits:
+        if '2DtSNECoordinates' in hit:
+          refpoints = whooshutils.split_keywords(hit['2DtSNECoordinates'])
+          id = hit['id']
+          sentence = hit['sentence']
+          for refpoint in refpoints:
+            if refpoint:
+              coordinate_splits = whooshutils.split_keywords(refpoint)
+              coordinates[id] = {'x': coordinate_splits[0], 'y': coordinate_splits[1], 'text': sentence}
+    return {
+      'coordinates': [{ 'id': i, 'coordinates': {'x': p['x'], 'y': p['y']}, 'text': p['text'] } for i, p in coordinates.iteritems()]
+    }
+
 
   def _handle_plottimeline_view(self, view, whoosh_query):
     def find_cooccurrences(entities, cooc_fields, need_field, is_disjunctive):
@@ -235,6 +258,8 @@ class Querier:
       return self._handle_descriptions_view(view, whoosh_query)
     elif type == 'referencepointlinks':
       return self._handle_referencepointlinks_view(view, whoosh_query)
+    elif type == 'tsnecoordinates':
+      return self._handle_tsnecoordinates_view(view, whoosh_query)
     elif type == 'plottimeline':
       return self._handle_plottimeline_view(view, whoosh_query)
     else:
