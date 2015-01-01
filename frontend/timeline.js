@@ -4,6 +4,7 @@
 
 // Number for generating unique clipping element IDs
 var timelineClipNum = 0;
+var smooth_k = 5;
 
 /*
  * Convert results from the backend into sequence data we can use for plotting.
@@ -32,6 +33,8 @@ function resultToPlotData(initialCounts, contextCounts) {
 		sample = {
 			year: +year,
 			date: jsDateOfYear(year),
+			// TODO smooth data here. It's too slow to loop over the entire
+			// array afterwards
 			initialCount: +initialCounts[year] || 0,
 			contextCount: +contextCounts[year] || 0
 		};
@@ -44,34 +47,72 @@ function resultToPlotData(initialCounts, contextCounts) {
 	return samples;
 }
 
+function smoothData(data, k) {
+	if (k == 0) {
+		return data;
+	}
+
+	var samples = [];
+
+	for (i = 0; i < data.length; i++) {
+		var start_at = (i-k) < 0 ? 0 : i - k;
+		var end_at = (i+k) >= data.length ? data.length : i + k;
+
+		var smooth_sum = 0;
+
+		for (j = start_at; j < end_at; j++) {
+			smooth_sum += data[j].contextCount;
+		}
+
+		smooth_sum /= end_at - start_at;
+
+		sample = data[i];
+		sample.contextCount = smooth_sum;
+
+		samples.push(sample);
+	}
+
+	return samples;
+}
+
 /*
  * Draw histogram of counts by year.
  */
-function drawCounts(data, box, draw, scales, classStr, clipId) {
-	var initialArea = d3.svg.area()
-		.interpolate('step-after')
-		.x(function(s) { return scales.x(s.date); })
-		.y0(box.height)
-		.y1(function(s) { return scales.y(s.initialCount); });
+function drawCounts(data, box, draw, scales, classStr, clipId, showInitial) {
+
+	if (showInitial) {
+		var initialArea = d3.svg.area()
+			.interpolate('basis')
+			.x(function(s) { return scales.x(s.date); })
+			.y0(box.height)
+			.y1(function(s) { return scales.y(s.initialCount); });
+	}
+
 	var contextArea = d3.svg.area()
-		.interpolate('step-after')
+		.interpolate('basis')
 		.x(function(s) { return scales.x(s.date); })
 		.y0(box.height)
 		.y1(function(s) { return scales.y(s.contextCount); });
 
-	var initialPath = draw.append('path')
-		.datum(data)
-		.attr('class', "bar " + classStr + " initial");
+	if (showInitial) {
+		var initialPath = draw.append('path')
+			.datum(data)
+			.attr('class', "bar " + classStr + " initial");
+	}
+
 	var contextPath = draw.append('path')
 		.datum(data)
 		.attr('class', "bar " + classStr + " context");
 	if (clipId != null) {
-		initialPath.attr('clip-path', "url(#" + clipId + ")");
+		if (showInitial)
+			initialPath.attr('clip-path', "url(#" + clipId + ")");
+
 		contextPath.attr('clip-path', "url(#" + clipId + ")");
 	}
 
 	function update () {
-		initialPath.attr('d', initialArea);
+		if (showInitial)
+			initialPath.attr('d', initialArea);
 		contextPath.attr('d', contextArea);
 	}
 	update();
@@ -82,7 +123,7 @@ function drawCounts(data, box, draw, scales, classStr, clipId) {
 /*
  * Draw a single complete plot, including axes.
  */
-function drawPlot(svg, box, data, classStr, matchScales, fitY, logY, clipId) {
+function drawPlot(svg, box, data, classStr, matchScales, fitY, logY, clipId, showInitial) {
 	var draw = svg.append('g')
 		.attr('transform', "translate(" + box.x + "," + box.y + ")");
 	var scales = {
@@ -124,7 +165,7 @@ function drawPlot(svg, box, data, classStr, matchScales, fitY, logY, clipId) {
 		}
 	}
 	fitYScale();
-	var updatePlot = drawCounts(data, box, draw, scales, classStr, clipId);
+	var updatePlot = drawCounts(data, box, draw, scales, classStr, clipId, showInitial);
 	draw.append('g')
 		.attr('class', "x axis " + classStr)
 		.attr('transform', "translate(0," + box.height + ")")
@@ -157,8 +198,8 @@ function drawTimeline(svg, detailBox, selectBox, data, initialBrushExtent, brush
 		.append('rect')
 		.attr('width', detailBox.width)
 		.attr('height', detailBox.height);
-	var detailPlot = drawPlot(svg, detailBox, data, 'detail', null, true, false, clipId);
-	var selectPlot = drawPlot(svg, selectBox, data, 'selection', detailPlot.scales, false, false);
+	var detailPlot = drawPlot(svg, detailBox, data, 'detail', null, true, false, clipId, false);
+	var selectPlot = drawPlot(svg, selectBox, data, 'selection', detailPlot.scales, false, false, null, true);
 	var brush = null;
 	function updateBrush() {
 		detailPlot.updateX(brush.empty() ? selectPlot.scales.x.domain() : brush.extent());
@@ -214,6 +255,17 @@ function setupTimeline(container, initialQuery, globalQuery) {
 	var outerElt = $('<div class="timeline"></div>').appendTo(container);
 	var topBoxElt = $('<div class="topbox"></div>').appendTo(outerElt);
 	var clearElt = $('<button type="button" class="btn btn-block btn-mini btn-warning" title="Clear the timeline selection.">Clear selection</button></ul>').appendTo(topBoxElt);
+	var smoothSelectElt = $('<select id="smoothSel">                    \
+							<option value="0">0</option>                \
+							<option value="1">1</option>                \
+							<option value="5">5</option>                \
+							<option value="10">10</option>              \
+							<option value="50">50</option>              \
+							<option value="100">100</option>            \
+							<option value="200">200</option>            \
+							<option value="500">500</option>            \
+							</select>').val("5").appendTo(topBoxElt);
+	var smoothElt = $('<button type="button" class="btn btn-mini btn-warning" title="Select smoothing">Smooth</button>').appendTo(topBoxElt);
 	var loadingIndicator = new LoadingIndicator(outerElt);
 	var outerSvgElt = $('<svg class="outersvg"></svg>').appendTo(outerElt);
 	var svgElt = $('<svg class="innersvg" viewBox="' + viewBox.x + " " + viewBox.y + " " + viewBox.width + " " + viewBox.height + '" preserveAspectRatio="none"></svg>').appendTo(outerSvgElt);
@@ -222,10 +274,10 @@ function setupTimeline(container, initialQuery, globalQuery) {
 	setupPanelled(outerElt, topBoxElt, outerSvgElt, 'vertical', 0, false);
 	var scaleSvg = dontScaleSvgParts(outerSvgElt, 'text,.tick');
 
-	var width = viewBox.width - margins.left - margins.right,
-	    height = viewBox.height - margins.top - margins.bottom - margins.between;
-	var detailBox = { x: viewBox.x + margins.left, y: viewBox.y + margins.top, width: width, height: height * split },
-	    selectBox = { x: viewBox.x + margins.left, y: viewBox.y + margins.top + detailBox.height + margins.between, width: width, height: height * (1.0 - split) };
+	var width = viewBox.width - margins.left - margins.right;
+	var height = viewBox.height - margins.top - margins.bottom - margins.between;
+	var detailBox = { x: viewBox.x + margins.left, y: viewBox.y + margins.top, width: width, height: height * split };
+	var selectBox = { x: viewBox.x + margins.left, y: viewBox.y + margins.top + detailBox.height + margins.between, width: width, height: height * (1.0 - split) };
 
 	function setLoadingIndicator(enabled) {
 		svgElt.css('display', !enabled ? '' : 'none');
@@ -276,8 +328,8 @@ function setupTimeline(container, initialQuery, globalQuery) {
 				if (updateTimer != null)
 					clearTimeout(updateTimer);
 				updateTimer = setTimeout(function () {
-					var low = getYear(selection[0]),
-					    high = getYear(selection[1]);
+					var low = getYear(selection[0]);
+					var high = getYear(selection[1]);
 					constraint.name("Timeline: " + formatYear(low) + " - " + formatYear(high));
 					constraint.set({
 						type: 'timerange',
@@ -308,18 +360,23 @@ function setupTimeline(container, initialQuery, globalQuery) {
 		constraint.clear();
 		globalQuery.update();
 	});
+	smoothElt.click(function() {
+		var k = $('#smoothSel').val();
+		smooth_k = parseInt(k);
+		draw();
+	});
 	constraint.onChange(function (changeType, query) {
 		if (changeType == 'removed' && query == ownCnstrQuery && clearBrush != null)
 			clearBrush();
 	});
 
-	var initialData = null,
-	    contextData = null;
+	var initialData = null;
+	var contextData = null;
 	function draw() {
 		if (initialData != null && contextData != null) {
 			svgElt.children().remove();
 			var svg = jqueryToD3(svgElt);
-			var plotData = resultToPlotData(initialData, contextData);
+			var plotData = smoothData(resultToPlotData(initialData, contextData), smooth_k);
 			setLoadingIndicator(false);
 			clearBrush = drawTimeline(svg, detailBox, selectBox, plotData, lastSelection, function (selection) {
 				if (selection == null)
