@@ -15,7 +15,7 @@ instead, and adjust local paths and URLs as needed.
     sudo yum install git
     sudo yum install screen
     sudo yum groupinstall "Development tools"
-    sudo yum install zlib-devel bzip2-devel openssl-devel ncurses-devel sqlite-devel readline-devel tk-devel
+    sudo yum install zlib-devel bzip2-devel openssl-devel ncurses-devel sqlite-devel readline-devel tk-devel atlas-devel
 
 ## Set up Python 2.7
 
