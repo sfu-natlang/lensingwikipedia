@@ -84,7 +84,7 @@ function setupCompare(container, globalQuery, facets) {
 		setLoadingIndicator(true);
 		smooth_k = Number(smoothSel[0].value);
 		drawCompare(viewBox, detailBox, selectBox, margins, data_allNames,
-					data_allPairs, smooth_k, container);
+								data_allPairs, smooth_k, container);
 		setLoadingIndicator(false);
 	});
 
@@ -303,7 +303,10 @@ function createYearlyCounts(data, names) {
 	return yearly_data;
 }
 
-function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth_k, container) {
+function processData(data, names, smooth_k) {
+	// will give us multiple ways of representing that data so we can use it
+	// however we like
+	//
 	// data is allPairs
 	var smoothed_data = [];
 	for (name_idx in data) {
@@ -314,6 +317,42 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 	}
 	var updated_data = mergeCounts(smoothed_data);
 	var yearly_data = createYearlyCounts(updated_data);
+
+	updated_data.forEach(function(d) {
+		var jsYear = +d.year;
+		// The input data represents n BCE as -n whereas Javascript uses 1-n
+		if (jsYear < 0)
+			jsYear += 1;
+		var date = new Date(0, 0, 1);
+		date.setFullYear(jsYear);
+		d.date = date;
+	});
+
+	updated_data.sort(function(a, b) {
+		return a.date - b.date;
+	});
+
+	var persons = names.map(function(name) {
+		return {
+			name: name,
+			values: updated_data.map(function(d) {
+			var c = +d[name];
+			if (isNaN(c))
+				c = 0.0;
+			return {date: d.date, count: c};
+			})
+		};
+	});
+
+	return {merged: updated_data, persons: persons, yearly: yearly_data};
+}
+
+function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth_k, container) {
+	var processed = processData(data, names, smooth_k);
+
+	var persons = processed.persons;
+	var merged_data = processed.merged;
+	var yearly_data = processed.yearly;
 
 	var parseDate = d3.time.format("%Y").parse;
 
@@ -344,7 +383,6 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 		.scale(y)
 		.orient("left");
 
-
 	hoverLineXOffset = margins.left+$(container).offset().left;
 	hoverLineYOffset = margins.top+$(container).offset().top;
 	hoverLineGroup = svg.append("svg:g")
@@ -357,20 +395,6 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 
 		// hide it by default
 		hoverLine.classed("hide", true);
-
-	updated_data.forEach(function(d) {
-		var jsYear = +d.year;
-		// The input data represents n BCE as -n whereas Javascript uses 1-n
-		if (jsYear < 0)
-			jsYear += 1;
-		var date = new Date(0, 0, 1);
-		date.setFullYear(jsYear);
-		d.date = date;
-	});
-
-	updated_data.sort(function(a, b) {
-		return a.date - b.date;
-	});
 
 	var line = d3.svg.line()
 		.interpolate("basis")
@@ -386,19 +410,7 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 
 	color.domain(names);
 
-	var persons = names.map(function(name) {
-		return {
-			name: name,
-			values: updated_data.map(function(d) {
-			var c = +d[name];
-			if (isNaN(c))
-				c = 0.0;
-			return {date: d.date, count: c};
-			})
-		};
-	});
-
-	x.domain(d3.extent(updated_data, function(d) { return d.date; }));
+	x.domain(d3.extent(merged_data, function(d) { return d.date; }));
 
 	y.domain([
 		d3.min(persons, function(c) { return d3.min(c.values, function(v) { return v.count; }); }),
