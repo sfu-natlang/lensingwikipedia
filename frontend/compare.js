@@ -436,6 +436,7 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 	person.append("path")
 			.attr("class", "line")
 			.attr("d", function(d) { return line(d.values); })
+			.attr("name", function(d) { return d.name; })
 			.style("stroke", function(d) { return color(d.name); });
 
 	var person2 = svg.selectAll(".person2")
@@ -446,6 +447,7 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 	person2.append("path")
 			.attr("class", "line")
 			.attr("d", function(d) { return line2(d.values); })
+			.attr("name", function(d) { return d.name; })
 			.style("stroke", function(d) { return color(d.name); });
 
 	person.append("text")
@@ -457,7 +459,16 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 		.style("fill", function(d) {
 			return color(d.name);
 		})
-		.text(function(d) { return d.name; });
+		.text(function(d) { return d.name; })
+		.on("click", function(d) {
+			$('.person path.line[name="' + d.name + '"]').toggle();
+			$('.person2 path.line[name="' + d.name + '"]').toggle();
+
+			if (this.style.textDecoration == "")
+				this.style.textDecoration = "line-through";
+			else
+				this.style.textDecoration = "";
+		});
 
 	svg.append("text")
 		.attr("transform", function(d, i) { return "translate(" + (detailBox.width / 2) + "," + (detailBox.height + 60)  + ")"; })
