@@ -127,6 +127,10 @@ function setupCompare(container, globalQuery, facets) {
 					// This is a callback, so this is the only way we can do
 					// this
 					if (data_allPairs.length == topCount) {
+						var first_year = d3.min(data_allPairs, function(c) { return d3.min(c.counts, function(v) { return v.year; }); }) - 100;
+						var last_year = d3.max(data_allPairs, function(c) { return d3.max(c.counts, function(v) { return v.year; }); }) + 100;
+						add_zeroes(data_allPairs, first_year, last_year);
+
 						drawCompare(viewBox, detailBox, selectBox, margins,
 									data_allNames, data_allPairs, smooth_k, container);
 						setLoadingIndicator(false);
@@ -301,11 +305,6 @@ function createYearlyCounts(data, names) {
 
 function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth_k, container) {
 	// data is allPairs
-	var first_year = d3.min(data, function(c) { return d3.min(c.counts, function(v) { return v.year; }); }) - 100;
-	var last_year = d3.max(data, function(c) { return d3.max(c.counts, function(v) { return v.year; }); }) + 100;
-
-	add_zeroes(data, first_year, last_year);
-
 	var smoothed_data = [];
 	for (name_idx in data) {
 		smoothed_data.push({
