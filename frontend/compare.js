@@ -360,14 +360,32 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 
 	var svg = d3.select("#comparesvg")
 			.attr("width", viewBox.width)
-			.attr("height", viewBox.height)
-		.append("g")
-			.attr("transform", "translate(" + margins.left + "," + 0 + ")");
+			.attr("height", viewBox.height);
+
+	svg.append("defs").append("clipPath")
+			.attr("id", "clip")
+		.append("rect")
+			.attr('width', detailBox.width)
+			.attr('height', detailBox.height)
+			.attr('x', detailBox.x)
+			.attr('y', detailBox.y);
+
+	var legend = svg.append("g")
+		.attr("class", "legend")
+		.attr("transform", "translate(" + margins.left + "," + (margins.top/2) + ")");
+
+	var focus = svg.append("g")
+			.attr("transform", "translate(" + margins.left + "," + detailBox.y + ")")
+			.attr("id", "compare-focus");
+
+	var context = svg.append("g")
+			.attr("transform", "translate(" + margins.left + "," + selectBox.y + ")")
+			.attr("id", "compare-context");
 
 	var x = d3.time.scale().range([0, detailBox.width]);
 	var x2 = d3.time.scale().range([0, selectBox.width]);
 	var y = d3.scale.linear().range([detailBox.height, 0]);
-	var y2 = d3.scale.linear().range([selectBox.y + selectBox.height, selectBox.y]);
+	var y2 = d3.scale.linear().range([selectBox.height, 0]);
 
 	var color = d3.scale.category10();
 
@@ -385,11 +403,11 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 
 	hoverLineXOffset = margins.left+$(container).offset().left;
 	hoverLineYOffset = margins.top+$(container).offset().top;
-	hoverLineGroup = svg.append("svg:g")
+	hoverLineGroup = focus.append("g")
 		.attr("class", "hover-line");
 		// add the line to the group
 		hoverLine = hoverLineGroup
-			.append("svg:line")
+			.append("line")
 				.attr("x1", 10).attr("x2", 10) // vertical line so same value on each
 				.attr("y1", 0).attr("y2", detailBox.height); // top to bottom
 
@@ -420,17 +438,17 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 	x2.domain(x.domain());
 	y2.domain(y.domain());
 
-	svg.append("g")
+	focus.append("g")
 			.attr("class", "x axis")
 			.attr("transform", "translate(0," + detailBox.height + ")")
 			.call(xAxis);
 
-	svg.append("g")
+	context.append("g")
 			.attr("class", "x axis")
-			.attr("transform", "translate(0," + (selectBox.y + selectBox.height) + ")")
+			.attr("transform", "translate(0," + selectBox.height + ")")
 			.call(xAxis2);
 
-	svg.append("g")
+	focus.append("g")
 			.attr("class", "y axis")
 			.call(yAxis)
 		.append("text")
@@ -440,59 +458,51 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 			.style("text-anchor", "end")
 			.text("Count");
 
-	var person = svg.selectAll(".person")
+	focus.selectAll()
 			.data(persons)
-		.enter().append("g")
-			.attr("class", "person");
+		.enter()
+			.append("path")
+				.attr("class", "line")
+				.attr("clip-path", "url(#clip)")
+				.attr("d", function(d) { return line(d.values); })
+				.attr("name", function(d) { return d.name; })
+				.style("stroke", function(d) { return color(d.name); });
 
-	person.append("path")
-			.attr("class", "line")
-			.attr("d", function(d) { return line(d.values); })
-			.attr("name", function(d) { return d.name; })
-			.style("stroke", function(d) { return color(d.name); });
-
-	var person2 = svg.selectAll(".person2")
+	context.selectAll()
 			.data(persons)
-		.enter().append("g")
-			.attr("class", "person2");
+		.enter()
+			.append("path")
+				.attr("class", "line")
+				.attr("d", function(d) { return line2(d.values); })
+				.attr("name", function(d) { return d.name; })
+				.style("stroke", function(d) { return color(d.name); });
 
-	person2.append("path")
-			.attr("class", "line")
-			.attr("d", function(d) { return line2(d.values); })
-			.attr("name", function(d) { return d.name; })
-			.style("stroke", function(d) { return color(d.name); });
+	legend.selectAll()
+			.data(persons)
+		.enter().append("text")
+			.attr("transform", function(d, i) { return "translate(" + (i*(detailBox.width / 5)) + "," + 0 + ")"; })
+			.attr("x", 3)
+			.attr("dy", ".35em")
+			.attr("class", "legend")
+			.style("fill", function(d) {
+				return color(d.name);
+			})
+			.text(function(d) { return d.name; })
+			.on("click", function(d) {
+				$('path.line[name="' + d.name + '"]').toggle();
 
-	person.append("text")
-		.datum(function(d) { return {name: d.name, value: d.values[d.values.length - 1]}; })
-		.attr("transform", function(d, i) { return "translate(" + (i*(detailBox.width / 5)) + "," + (detailBox.height + 40)  + ")"; })
-		.attr("x", 3)
-		.attr("dy", ".35em")
-		.attr("class", "legend")
-		.style("fill", function(d) {
-			return color(d.name);
-		})
-		.text(function(d) { return d.name; })
-		.on("click", function(d) {
-			$('.person path.line[name="' + d.name + '"]').toggle();
-			$('.person2 path.line[name="' + d.name + '"]').toggle();
+				if (this.style.textDecoration == "")
+					this.style.textDecoration = "line-through";
+				else
+					this.style.textDecoration = "";
+			});
 
-			if (this.style.textDecoration == "")
-				this.style.textDecoration = "line-through";
-			else
-				this.style.textDecoration = "";
-		});
-
-	svg.append("text")
-		.attr("transform", function(d, i) { return "translate(" + (detailBox.width / 2) + "," + (detailBox.height + 60)  + ")"; })
+	legend.append("text")
+		.attr("transform", function(d, i) { return "translate(" + (-margins.left) + "," + 0 + ")"; })
 		.attr("x", 3)
 		.attr("dy", ".35em")
 		.attr("id", "legend-year")
 		.style("fill", "black")
-
-	// add a g so we have somewhere to brush
-	var context = svg.append("g")
-		.attr("class", "context")
-		.attr("transform", "translate(" + 0 + "," + selectBox.y + ")");
 
 	var brush = d3.svg.brush()
 		.x(x2)
@@ -507,8 +517,8 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 
 	function brushed() {
 		x.domain(brush.empty() ? x2.domain() : brush.extent());
-		person.select(".line").attr("d", function(d) { return line(d.values); });
-		svg.select(".x.axis").call(xAxis);
+		focus.selectAll(".line").attr("d", function(d) { return line(d.values); });
+		focus.select(".x.axis").call(xAxis);
 	}
 
 	var handleMouseOverLine = function(lineData, index) {
@@ -520,7 +530,7 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 		var mouseX = event.pageX-hoverLineXOffset;
 		var mouseY = event.pageY-hoverLineYOffset;
 
-		if(mouseX >= 0 && mouseX <= detailBox.width && mouseY >= 0 && mouseY <= detailBox.height) {
+		if(mouseX >= 0 && mouseX <= detailBox.width && mouseY >= detailBox.y && mouseY <= detailBox.height + detailBox.y) {
 			// show the hover line
 			hoverLine.classed("hide", false);
 
