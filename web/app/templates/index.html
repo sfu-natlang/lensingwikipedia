@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block content %}
+You've got some content, {{ g.user.email }}!
+
+<a href="{{ url_for("logout") }}">Log out</a>
+{% endblock %}
