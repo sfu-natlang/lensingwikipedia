@@ -58,16 +58,20 @@ function smoothData(data, k) {
 		var start_at = (i-k) < 0 ? 0 : i - k;
 		var end_at = (i+k) >= data.length ? data.length : i + k;
 
-		var smooth_sum = 0;
+		var smooth_sum_context = 0;
+		var smooth_sum_initial = 0;
 
 		for (j = start_at; j < end_at; j++) {
-			smooth_sum += data[j].contextCount;
+			smooth_sum_context += data[j].contextCount;
+			smooth_sum_initial += data[j].initialCount;
 		}
 
-		smooth_sum /= end_at - start_at;
+		smooth_sum_context /= end_at - start_at;
+		smooth_sum_initial /= end_at - start_at;
 
 		sample = data[i];
-		sample.contextCount = smooth_sum;
+		sample.contextCount = smooth_sum_context;
+		sample.initialCount = smooth_sum_initial;
 
 		samples.push(sample);
 	}
