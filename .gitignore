@@ -1,3 +1,7 @@
 *.pyc
 *.html~
 *.d
+
+web/app.db
+web/local_config.py
+venv/
