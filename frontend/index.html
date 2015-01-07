@@ -26,19 +26,19 @@
 				<div class="selectorsarea"> \
 					<ul class="nav nav-pills" id="tabbar"> \
 						<li class="active"><a href="#facetstab" data-toggle="tab" title="Facets view">Facets</a></li> \
+						<li><a href="#storyline" data-toggle="tab" title="Storyline">Storyline</a></li> \
 						<li><a href="#timelinetab" data-toggle="tab" title="Timeline view">Timeline</a></li> \
 						<li><a href="#maptab" data-toggle="tab" title="Map view">Map</a></li> \
 						<li><a href="#tsnetab" data-toggle="tab" title="Cluster view">Cluster</a></li> \
 						<li><a href="#textsearchtab" data-toggle="tab" title="Text search">Text search</a></li> \
-						<li><a href="#storyline" data-toggle="tab" title="Storyline">Storyline</a></li> \
 					</ul> \
 					<div class="tab-content" id="tabcontents"> \
 						<div class="tab-pane active" id="facetstab"></div> \
+						<div class="tab-pane" id="storyline"></div> \
 						<div class="tab-pane" id="timelinetab"></div> \
 						<div class="tab-pane" id="maptab"></div> \
 						<div class="tab-pane" id="tsnetab"></div> \
 						<div class="tab-pane" id="textsearchtab"></div> \
-						<div class="tab-pane" id="storyline"></div> \
 					</div> \
 				</div> \
 			</div>').appendTo($('body'));
@@ -72,18 +72,18 @@
 				}
 			});
 			setupSplitMakeElements($('#facetstab'), 'horizontal', facetMakers);
+			setupStoryline($('#storyline'), globalQuery, facetsInfo);
 			setupTimeline($('#timelinetab'), initialQuery, globalQuery);
 			setupMap($('#maptab'), initialQuery, globalQuery, mapDataUrl, minMapZoom, maxMapZoom);
 			setupTSNE($('#tsnetab'), initialQuery, globalQuery, minMapZoom, maxMapZoom);
 			setupTextSearch($('#textsearchtab'), globalQuery);
-			setupStoryline($('#storyline'), globalQuery, facetsInfo);
 
 			fillElement($('.tab-content'), $('#facetstab'), 'vertical');
+			fillElement($('.tab-content'), $('#storyline'), 'vertical');
 			fillElement($('.tab-content'), $('#timelinetab'), 'vertical');
 			fillElement($('.tab-content'), $('#maptab'), 'vertical');
 			fillElement($('.tab-content'), $('#tsnetab'), 'vertical');
 			fillElement($('.tab-content'), $('#textsearchtab'), 'vertical');
-			fillElement($('.tab-content'), $('#storyline'), 'vertical');
 			fillElement($('.tab-content'), $('#abouttab'), 'vertical');
 
 			// Update the queries only after setting up all the controls
