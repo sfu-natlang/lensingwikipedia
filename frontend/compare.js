@@ -367,8 +367,8 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 		.append("rect")
 			.attr('width', detailBox.width)
 			.attr('height', detailBox.height)
-			.attr('x', detailBox.x)
-			.attr('y', detailBox.y);
+			.attr('x', 0)
+			.attr('y', 0);
 
 	var legend = svg.append("g")
 		.attr("class", "legend")
