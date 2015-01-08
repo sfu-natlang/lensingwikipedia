@@ -48,7 +48,7 @@ function resultToPlotData(initialCounts, contextCounts) {
 }
 
 function smoothData(data, k) {
-	if (k == 0) {
+	if (k <= 0) {
 		return data;
 	}
 
@@ -84,16 +84,18 @@ function smoothData(data, k) {
  */
 function drawCounts(data, box, draw, scales, classStr, clipId, showInitial) {
 
+	var interpolation = smooth_k >= 0 ? 'basis' : 'step-before';
+
 	if (showInitial) {
 		var initialArea = d3.svg.area()
-			.interpolate('basis')
+			.interpolate(interpolation)
 			.x(function(s) { return scales.x(s.date); })
 			.y0(box.height)
 			.y1(function(s) { return scales.y(s.initialCount); });
 	}
 
 	var contextArea = d3.svg.area()
-		.interpolate('basis')
+		.interpolate(interpolation)
 		.x(function(s) { return scales.x(s.date); })
 		.y0(box.height)
 		.y1(function(s) { return scales.y(s.contextCount); });
@@ -260,6 +262,7 @@ function setupTimeline(container, initialQuery, globalQuery) {
 	var topBoxElt = $('<div class="topbox"></div>').appendTo(outerElt);
 	var clearElt = $('<button type="button" class="btn btn-block btn-mini btn-warning" title="Clear the timeline selection.">Clear selection</button></ul>').appendTo(topBoxElt);
 	var smoothSelectElt = $('<select id="smoothSel">                    \
+							<option value="-1">None</option>                \
 							<option value="0">0</option>                \
 							<option value="1">1</option>                \
 							<option value="5">5</option>                \
