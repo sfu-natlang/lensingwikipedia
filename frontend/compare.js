@@ -333,7 +333,7 @@ function processData(data, names, smooth_k) {
 		});
 	}
 	var updated_data = mergeCounts(smoothed_data);
-	var yearly_data = createYearlyCounts(updated_data);
+	var yearly_data = createYearlyCounts(mergeCounts(data));
 
 	updated_data.forEach(function(d) {
 		var jsYear = +d.year;
@@ -432,13 +432,13 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 		hoverLine.classed("hide", true);
 
 	var line = d3.svg.line()
-		.interpolate("basis")
+		.interpolate("monotone")
 		.tension(0.85)
 		.x(function(d) { return x(d.date); })
 		.y(function(d) { return y(d.count); });
 
 	var line2 = d3.svg.line()
-		.interpolate("basis")
+		.interpolate("monotone")
 		.tension(0.85)
 		.x(function(d) { return x2(d.date); })
 		.y(function(d) { return y2(d.count); });
