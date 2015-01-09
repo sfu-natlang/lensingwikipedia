@@ -42,6 +42,13 @@ function setupCompare(container, globalQuery, facets) {
 	var controlsElt = $('<div class="controls"></div>').appendTo(outerElt);
 	var clearSelElt = $('<button type="button" class="btn btn-mini btn-warning clear mapclear" title="Clear">Clear selection</button>').appendTo(controlsElt);
 	var modeElt = $('<select class="btn btn-mini"></select>').appendTo(controlsElt);
+	var numElt = $('<select class="btn btn-mini"> \
+										<option value="1">1</option> \
+										<option value="2">2</option> \
+										<option value="3">3</option> \
+										<option value="5" selected>5</option> \
+										<option value="-1">All</option> \
+								 </select>').appendTo(controlsElt);
 	var updateBtn = $('<button type="submit" class="btn btn-warning" title="Update the visualization">Update</button></ul>').appendTo(controlsElt);
 
 	var smoothSel = $('<select class="btn btn-mini"> \
@@ -93,6 +100,12 @@ function setupCompare(container, globalQuery, facets) {
 		setLoadingIndicator(true);
 
 		currentFacet = facets[Number(modeElt[0].value)];
+		topCount = Number(numElt[0].value);
+
+		if (topCount < 0) {
+			// topCount == -1 means we want all the items in the facet
+
+		}
 
 		currentFacet.constraintsQuery.onResult({
 			counts: {
@@ -104,6 +117,10 @@ function setupCompare(container, globalQuery, facets) {
 			//		 It might be a good idea to check if it was already
 			//		 executed so we don't reload too many times.
 			var topNames = [];
+
+			if (topCount < 0) {
+				topCount = result.counts.counts.length;
+			}
 
 			$.each(result.counts.counts, function(idx, count) {
 				if (idx < topCount)
@@ -480,7 +497,7 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 	legend.selectAll()
 			.data(persons)
 		.enter().append("text")
-			.attr("transform", function(d, i) { return "translate(" + (i*(detailBox.width / 5)) + "," + 0 + ")"; })
+			.attr("transform", function(d, i) { return "translate(" + (i*(detailBox.width / topCount)) + "," + 0 + ")"; })
 			.attr("x", 3)
 			.attr("dy", ".35em")
 			.attr("class", "legend")
