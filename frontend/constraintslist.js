@@ -85,6 +85,7 @@ function setupConstraintList(container, globalQuery) {
 
 	clearAllElt.click(function() {
 		$(".mapclear").click();
+		$(".clusterclear").click();
 		globalQuery.clearAll();
 		globalQuery.update();
 	});

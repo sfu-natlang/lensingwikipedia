@@ -1,0 +1,22 @@
+{
+	"constraints": {
+	},
+	"views": {
+		"0": {
+			"type": "plottimeline",
+			"clusterField": "referencePoints",
+			"cooccurrences": "or",
+			"cooccurrenceFields": ["person", "organization"],
+			"entities": {
+				"person": [
+					"Hannibal",
+					"Ptolemy"
+				],
+				"organization": [
+					"Philips",
+					"Mazda"
+				]
+			}
+		}
+	}
+}

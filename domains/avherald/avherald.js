@@ -5,6 +5,19 @@
 // Prefix for links to Wikipedia pages
 baseWikipediaUrl = "https://en.wikipedia.org";
 
+// List of data fields to include in help text (these don't necessarily have to be real field names, just text to show in a list)
+var helpFieldsList = [
+	"year",
+	"predicate",
+	"location",
+	"currentcountry",
+	"person",
+	"description",
+	"category",
+	"role",
+	"roleA0, roleA1, etc."
+];
+
 function createDescriptionList(container) {
 	return $("<dl></dl>").appendTo(container);
 }

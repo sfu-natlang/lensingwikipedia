@@ -69,13 +69,11 @@
 			var facetsInfo = [];
 			var facetMakers = $.map(facets, function (title, field) {
 				return function (container) {
-					var constraintsQuery = setupFacet(container, globalQuery,
-							title, field);
-
+					var constraintsQuery = setupFacet(container, globalQuery, title, field);
 					facetsInfo.push({
-					    title: title,
-					    field: field,
-					    constraintsQuery: constraintsQuery
+						title: title,
+						field: field,
+						constraintsQuery: constraintsQuery
 					});
 				}
 			});
@@ -85,6 +83,7 @@
 				{ id: "timelinetab", name: "Timeline", longname: "Timeline view", make: function(elt) { setupTimeline(elt, initialQuery, globalQuery) } },
 				{ id: "comparetab", name: "Comparison", longname: "Comparison view", make: function(elt) { setupCompare(elt, globalQuery, facetsInfo) } },
 				{ id: "maptab", name: "Map", longname: "Map view", make: function(elt) { setupMap(elt, initialQuery, globalQuery, mapDataUrl, minMapZoom, maxMapZoom) } },
+				{ id: 'tsnetab', name: 'Cluster', longname: 'Cluster view', make: function(elt) { setupTSNE($('#tsnetab'), initialQuery, globalQuery, minMapZoom, maxMapZoom); } }
 				{ id: "textsearchtab", name: "Text Search", longname: "Text Search", make: function(elt) { setupTextSearch(elt, globalQuery) } }
 			], 'facetstab');
 

@@ -15,14 +15,14 @@ instead, and adjust local paths and URLs as needed.
     sudo yum install git
     sudo yum install screen
     sudo yum groupinstall "Development tools"
-    sudo yum install zlib-devel bzip2-devel openssl-devel ncurses-devel sqlite-devel readline-devel tk-devel
+    sudo yum install zlib-devel bzip2-devel openssl-devel ncurses-devel sqlite-devel readline-devel tk-devel atlas-devel
 
 ## Set up Python 2.7
 
     cd /tmp
-    wget http://python.org/ftp/python/2.7.5/Python-2.7.5.tar.bz2
-    tar xf Python-2.7.5.tar.bz2
-    cd Python-2.7.5
+    wget http://python.org/ftp/python/2.7.8/Python-2.7.8.tgz
+    tar xf Python-2.7.8.tgz
+    cd Python-2.7.8
     ./configure --prefix=/usr/local
     make && sudo make altinstall
 
@@ -34,6 +34,8 @@ instead, and adjust local paths and URLs as needed.
     sudo /usr/local/bin/python2.7 setup.py install
     sudo /usr/local/bin/easy_install-2.7 pip
     sudo /usr/local/bin/pip-2.7 install whoosh
+    sudo /usr/local/bin/pip-2.7 install numpy scipy scikit-learn nltk
+    sudo python2.7 -c 'import nltk; nltk.download("all")'
 
 ## Set up web directory to pull from github.com/lensingwikipedia
 
@@ -113,6 +115,7 @@ Now the appropriate programs are in `/var/www/html/checkouts/20131017/domains/wi
     # create full.index in data/20131017 (use current date) using instructions in the backend README
     python2.7 buildindex /var/www/html/data/20131017/fullData.20131017.index /var/www/html/data/20131017/fullData.20131017.json
     python2.7 cluster /var/www/html/data/20131017/fullData.20131017.index
+    python2.7 tsne /var/www/html/data/20131017/fullData.20131017.index
 
 ## Run backend
 
@@ -145,6 +148,7 @@ The make command above creates default settings files. If you already have your 
 
     make release
     cp release/*.* /var/www/html/lensingwikipedia.cs.sfu.ca/.
+
 
 ## Deploying frontend without Apache
 If Apache is not available and you only want to execute the frontend for testing, execute the following command (Works and tested with devel build of frontend and not release):

@@ -92,6 +92,7 @@ function ChangeWatcher(callback, getCurrent) {
 	nextChangeWatcherId++;
 	this._callback = callback;
 	this._getCurrent = (getCurrent == true);
+	this._active = true;
 }
 
 /*
@@ -99,6 +100,13 @@ function ChangeWatcher(callback, getCurrent) {
  */
 ChangeWatcher.prototype.setCallback = function(callback) {
 	this._callback = callback;
+}
+
+ChangeWatcher.prototype.active = function(state) {
+	if (state == null)
+		return this._active;
+	else
+		this._active = state;
 }
 
 /*
@@ -111,7 +119,7 @@ function ResultWatcher(callback) {
 	this._value = null;
 	this._queriesIn = {};
 
-	this._enabled = true;
+	this._enabled = false;
 	this._stored_value = null;
 }
 
@@ -145,6 +153,7 @@ ResultWatcher.prototype.set = function (value) {
 			_removeViews(this._value);
 		this._value = _addViews(value);
 		this._change();
+		this._enabled = true;
 	}
 }
 
@@ -156,6 +165,7 @@ ResultWatcher.prototype.clear = function () {
 		_removeViews(this._value);
 		this._value = null;
 		this._change();
+		this._enabled = false;
 	}
 }
 
@@ -265,7 +275,7 @@ Constraint.prototype.set = function(value) {
 		this._clear()
 	} else if (this._value != value) {
 		var changeType = this._value == null ? 'added' : 'changed';
-		this._value = JSON.stringify(value);
+		this._value = value;
 		this._updateChangeWatchers(changeType);
 	}
 }
@@ -406,6 +416,7 @@ function Query(backendUrl, type, arg1, arg2) {
 	this._resultWatchersWithErrors = {};
 	this._errorWatchers = [];
 	this._errorResolvedWatchers = {};
+	this._childrenToUpdate = {};
 
 	if (type == 'base')
 		this._setupBase();
@@ -451,12 +462,8 @@ Query.prototype._setupSetminus = function (query1, query2) {
 				query._addConstraint(cnstr);
 		}
 	}, true);
-	query1.onResult({}, function () {
-		query.update();
-	});
-	query2.onResult({}, function () {
-		query.update();
-	});
+	query1._childrenToUpdate[query._id] = query;
+	query2._childrenToUpdate[query._id] = query;
 }
 
 /*
@@ -464,10 +471,16 @@ Query.prototype._setupSetminus = function (query1, query2) {
  */
 Query.prototype._updateChangeWatchers = function(changeType, constraint) {
 	var query = this;
-	for (var watcherId in this._changeWatchers)
-		this._changeWatchers[watcherId]._callback(changeType, query, constraint);
-	for (var watcherId in constraint._changeWatchers)
-		constraint._changeWatchers[watcherId]._callback(changeType, query, constraint);
+	for (var watcherId in this._changeWatchers) {
+		var changeWatcher = this._changeWatchers[watcherId];
+		if (changeWatcher._active)
+			changeWatcher._callback(changeType, query, constraint);
+	}
+	for (var watcherId in constraint._changeWatchers) {
+		var changeWatcher = constraint._changeWatchers[watcherId];
+		if (changeWatcher._active)
+			changeWatcher._callback(changeType, query, constraint);
+	}
 	this._someConstraintChangedSinceUpdate = true;
 }
 
@@ -680,6 +693,19 @@ Query.prototype.backendUrl = function() {
 }
 
 /*
+ * Get a list of all active constraints.
+ */
+Query.prototype.constraints = function() {
+	var constraints = [];
+	for (var cnstrId in this._constraints) {
+		var cnstr = this._constraints[cnstrId];
+		if (cnstr._value != null)
+			constraints.push(cnstr);
+	}
+	return constraints;
+}
+
+/*
  * Make complete JSON in the backend's format for all constraints.
  */
 Query.prototype._getConstraintsJSON = function() {
@@ -692,8 +718,8 @@ Query.prototype._getConstraintsJSON = function() {
 				first = false;
 			else
 				jsonStr += ",";
-			jsonStr += '"' + cnstrId + '":';
-			jsonStr += cnstr._value;
+			jsonStr += "\"" + cnstrId + "\":";
+			jsonStr += JSON.stringify(cnstr._value);
 		}
 	}
 	jsonStr += "}";
@@ -748,7 +774,6 @@ Query.prototype.update = function(postponeFinish) {
 			var watcher = query._resultWatchers[watcherId];
 			if (query._someConstraintChangedSinceUpdate || query._resultWatchersChangedSinceUpdate[watcher._id])
 				(watcher._value != null ? resultWatchersToUpdate : toForceResolve)[watcher._id] = watcher;
-					
 		}
 
 		// We resolve any errors on watchers that are no longer active, because otherwise they are stuck in an error state
@@ -792,6 +817,10 @@ Query.prototype.update = function(postponeFinish) {
 	}
 	if (finish == null)
 		finish = function () {};
+
+	$.each(this._childrenToUpdate, function (childId, child) {
+		child.update();
+	});
 
 	if (postponeFinish)
 		return finish;

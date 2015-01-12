@@ -1,0 +1,7 @@
+echo "Make sure to change the path to CBLAS in this file before running it!"
+# On Ubuntu 12.10 the below paths are -I/usr/include/ -L/usr/lib/ and you need
+#   to have the libatlas-base-dev package installed
+#
+# cblas is already compiled in atlas
+# also create a symbolic link of ln -s /usr/lib64/libgslcblas.so.0 /cs/natlang-user/jasneet/tSNE/barnes-hut-sne/libcblas.so
+g++ quadtree.cpp tsne.cpp -o bh_tsne -O3 -I/cs/natlang-sw/Linux-x86_64/NL/LINALG/ATLAS/3.9.11/include -L/cs/natlang-user/jasneet/tSNE/barnes-hut-sne -lcblas
