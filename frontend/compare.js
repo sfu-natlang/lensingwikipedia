@@ -353,10 +353,10 @@ function processData(data, names, smooth_k) {
 		return {
 			name: name,
 			values: updated_data.map(function(d) {
-			var c = +d[name];
-			if (isNaN(c))
-				c = 0.0;
-			return {date: d.date, count: c};
+				var c = +d[name];
+				if (isNaN(c))
+					c = 0.0;
+				return {date: d.date, count: c};
 			})
 		};
 	});
@@ -534,8 +534,26 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 
 	function brushed() {
 		x.domain(brush.empty() ? x2.domain() : brush.extent());
+
+		var filtered = persons.map(function(d) {
+			return {
+				name: d.name,
+				values: d.values.filter(function(d, i) {
+					if ((d.date >= x.domain()[0]) && (d.date <= x.domain()[1])) {
+						return true;
+					}
+				})
+			};
+		});
+
+		y.domain([
+			d3.min(filtered, function(c) { return d3.min(c.values, function(v) { return v.count; }); }),
+			d3.max(filtered, function(c) { return d3.max(c.values, function(v) { return v.count; }); })
+		]);
+
 		focus.selectAll(".line").attr("d", function(d) { return line(d.values); });
 		focus.select(".x.axis").call(xAxis);
+		focus.select(".y.axis").call(yAxis);
 	}
 
 	var handleMouseOverLine = function(lineData, index) {
