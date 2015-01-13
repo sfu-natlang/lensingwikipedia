@@ -142,6 +142,48 @@ where each element corresponds to a particular event and has the format:
 	}
 This view is always paginated.
 
+### Get grouped occurrences of entities (field name and value pairs) over time
+	{
+		"type": "plottimeline",
+		"clusterField": /* field name to group entities on per year */,
+		"cooccurrences": /* optional; method "and" or "or" of finding co-occurring entities */,
+		"cooccurrenceFields": /* optional but must be set of "cooccurrences" is; names of fields to find co-occurring entities on */,
+		"entities": /* entity specification */
+	}
+where the entity specification is a structure keyed on field names, where each value is a list of corresponding field values, as follows:
+	"entities": {
+		"fieldname1": [
+			"fieldvalue1",
+			"fieldvalue2",
+			/* ... */
+		],
+		"fieldname2": [ /* ... */ ],
+		/* ... */
+	}
+Result:
+	{
+		"timeline": /* timeline table */
+	}
+where the timeline table is:
+	{
+		"fieldname1": {
+			"fieldvalue1" {
+				"year1": [
+					"clustervalue1",
+					"clustervalue2",
+					/* ... */
+				],
+				"year2": [ /* ... */ ],
+				/* ... */
+			},
+			"fieldvalue2" { /* ... */ },
+			/* ... */
+		},
+		"fieldname2": { /* ... */ },
+		/* ... */
+	}
+The result indicates for each entity (field name and value) which cluster values (the values of the field to group on) the entity occurs with for each year. Only years where the entity occurs with some cluster value are included. If "cooccurrences" is set in the query, the result also includes extra entities using the field names from "cooccurrenceFields" which co-occur with the specified entities and any cluster value; if cooccurrences is "or" co-occurrences with any of the specified entities are included, while if it is "and" only co-occurrences with all of the specified entities together are included.
+
 Errors
 ======
 
