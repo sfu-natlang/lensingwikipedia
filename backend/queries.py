@@ -212,12 +212,20 @@ class Querier:
       rel_query = op([whoosh.query.Term(ef, ev) for ef, evs in entities.iteritems() for ev in evs])
       with self.whoosh_index.searcher() as searcher:
         hits = searcher.search(whoosh.query.And([whoosh_query, rel_query]), limit=None)
-        cooc_entities = dict((ef, set()) for ef in cooc_fields)
+        cooc_counts = dict((ef, {}) for ef in cooc_fields)
         for hit in hits:
           if need_field in hit:
             for cooc_field in cooc_fields:
-              cooc_entities[cooc_field].update(whooshutils.split_keywords(hit[cooc_field]))
-      return cooc_entities
+              for value in whooshutils.split_keywords(hit[cooc_field]):
+                cooc_counts[cooc_field].setdefault(value, 0)
+                cooc_counts[cooc_field][value] += 1
+
+        def cooc_for(entity_field):
+          values = set(entities[entity_field])
+          ordered = sorted(cooc_counts[entity_field].iteritems(), key=lambda (ef, c): c, reverse=True)
+          values.update(set(ef for (ef, c) in ordered[:self.plottimeline_max_cooccurring_entities]))
+          return values
+        return dict((ef, cooc_for(ef)) for ef in cooc_fields)
 
     cluster_field = view['clusterField']
     entities = view['entities']
