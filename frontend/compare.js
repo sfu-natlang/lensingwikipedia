@@ -63,8 +63,8 @@ function setupCompare(container, globalQuery, facets) {
 										).appendTo(controlsElt);
 	var smoothBtn = $('<button class="btn btn-warning" title="Update smoothing">Smooth</button></ul>').appendTo(controlsElt);
 
-	var svgElt = $('<svg id="comparesvg"</svg>').appendTo(outerElt);
-	//var contentElt = $('<div id="compare-content"></div>').appendTo(outerElt);
+	var outerSvgElt = $('<svg class="outersvg"></svg>').appendTo(outerElt);
+	var svgElt = $('<svg id="comparesvg"</svg>').appendTo(outerSvgElt);
 
 	var loadingIndicator = new LoadingIndicator(outerElt);
 
@@ -78,6 +78,8 @@ function setupCompare(container, globalQuery, facets) {
 	});
 
 	fillElement(container, outerElt, 'vertical');
+	setupPanelled(outerElt, controlsElt, outerSvgElt, 'vertical', 0, false);
+	var scaleSvg = dontScaleSvgParts(outerSvgElt, 'text,.tick');
 
 	/************************* END BUILD UI **************************/
 
@@ -376,8 +378,8 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 	d3.select("#comparesvg").selectAll("*").remove();
 
 	var svg = d3.select("#comparesvg")
-			.attr("width", viewBox.width)
-			.attr("height", viewBox.height);
+			.attr("viewBox", [viewBox.x, viewBox.y, viewBox.width, viewBox.height].join(" "))
+			.attr("preserveAspectRatio", "none")
 
 	svg.append("defs").append("clipPath")
 			.attr("id", "clip")
