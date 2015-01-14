@@ -198,13 +198,24 @@ function setupTSNE(container, initialQuery, globalQuery, minZoom, maxZoom) {
             selectedPoints.push(key);
         }
 
-        constraint.name("Cluster: " + selectedPoints.length + (selectedPoints.length == 1 ? " point" : " points"));
-        constraint.set( {
-            type: 'tsneCoordinates',
-            points: selectedPoints
-        });
-        
-        globalQuery.update();
+        /**
+        * Hack fix to not allow more than 300 selections at a time.
+        */
+        if (selectedPoints.length > 300) {
+            constraintIds = {}
+            d3.selectAll(".brush").call(brush.clear());
+            brushed();
+            alert("Selection of more than 300 points is not supported currently.");
+        } else {
+            constraint.name("Cluster: " + selectedPoints.length + (selectedPoints.length == 1 ? " point" : " points"));
+            constraint.set( {
+                type: 'tsneCoordinates',
+                points: selectedPoints
+            });
+
+            globalQuery.update();
+        }
+
     }
 }
 
