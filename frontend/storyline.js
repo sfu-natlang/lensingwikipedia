@@ -529,6 +529,10 @@ function setupStoryline(container, globalQuery, facets) {
 	// Vertical size of the detail area as a fraction of the total.
 	var split = 0.8;
 
+	facets = facets.filter(function (facet) {
+		return storylineUseFacets.indexOf(facet.field) >= 0;
+	});
+
 	var outerElt = $("<div class=\"storyline\"></div>").appendTo(container);
 	var topBoxElt = $("<div class=\"topbox\"></div>").appendTo(outerElt);
 	var loadingIndicator = new LoadingIndicator(outerElt);

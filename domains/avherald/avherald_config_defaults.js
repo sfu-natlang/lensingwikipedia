@@ -14,6 +14,8 @@ facets = {
         "location": "Location",
         "category": "Category"
 };
+// Facets to include in the storyline view
+storylineUseFacets = ["organization"];
 // Field to use to define clusters in the storyline
 storylineClusterField = "referencePoints";
 // Default facet to use for the storyline view
