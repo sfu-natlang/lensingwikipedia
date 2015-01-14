@@ -11,8 +11,8 @@ facets = {
 	"role": "Role",
 	"person": "Person",
 	"organization": "Organization",
-	"category": "Category",
-	"location": "Location"
+	"location": "Location",
+	"category": "Category"
 };
 // Facets to include in the storyline view
 storylineUseFacets = ["person", "organization"];
