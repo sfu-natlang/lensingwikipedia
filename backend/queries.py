@@ -221,17 +221,19 @@ class Querier:
                 cooc_counts[cooc_field][value] += 1
 
         def cooc_for(entity_field):
-          values = set(entities[entity_field])
           ordered = sorted(cooc_counts[entity_field].iteritems(), key=lambda (ef, c): c, reverse=True)
-          values.update(set(ef for (ef, c) in ordered[:self.plottimeline_max_cooccurring_entities]))
-          return values
+          return set(ef for (ef, c) in ordered[:self.plottimeline_max_cooccurring_entities])
         return dict((ef, cooc_for(ef)) for ef in cooc_fields)
 
     cluster_field = view['clusterField']
     entities = view['entities']
     if 'cooccurrences' in view:
       is_disjunctive = { 'and': False, 'or': True }[view['cooccurrences']]
-      entities = find_cooccurrences(entities, set(view['cooccurrenceFields']), cluster_field, is_disjunctive)
+      cooc_entities = find_cooccurrences(entities, set(view['cooccurrenceFields']), cluster_field, is_disjunctive)
+      for entity_field, entity_values in entities.iteritems():
+        cooc_entities.setdefault(entity_field, set())
+        cooc_entities[entity_field].update(entity_values)
+      entities = cooc_entities
 
     # Checking for cluster_field per hit below seems to be slightly faster (empirically) than including Every(cluster_field) in the query
     rel_query = whoosh.query.Or([whoosh.query.Term(ef, ev) for ef, evs in entities.iteritems() for ev in evs])
