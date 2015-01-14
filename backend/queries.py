@@ -216,9 +216,11 @@ class Querier:
         for hit in hits:
           if need_field in hit:
             for cooc_field in cooc_fields:
+              known_field = cooc_field in entities
               for value in whooshutils.split_keywords(hit[cooc_field]):
-                cooc_counts.setdefault((cooc_field, value), 0)
-                cooc_counts[cooc_field, value] += 1
+                if not (known_field and value in entities[cooc_field]):
+                  cooc_counts.setdefault((cooc_field, value), 0)
+                  cooc_counts[cooc_field, value] += 1
 
         cooc_counts = sorted(cooc_counts.iteritems(), key=lambda (e, c): c, reverse=True)
         return cooc_counts[:self.plottimeline_max_cooccurring_entities], len(cooc_counts)
