@@ -910,7 +910,7 @@ function setupStoryline(container, globalQuery, facets) {
 		}
 	});
 	queryFormElt.hide();
-	if (defaultFacetI > 0) {
+	if (defaultFacetI >= 0) {
 		useHelpElt = queryHelpElt;
 		modeElt.val(defaultFacetI);
 	} else {
