@@ -56,36 +56,24 @@ function extractEntities(resultData) {
 	var nextEntityId = 0;
 	$.each(resultData.timeline, function (field, valueTable) {
 		$.each(valueTable, function (value, yearsTable) {
-			// We ignore entities that only appear once, and thus can't form a line
-			// TODO: is this a sensible place to do this?
-			var nonEmptyYearCount = 0;
+			var addedEntity = false;
 			$.each(yearsTable, function (year, clusters) {
 				if (clusters.length > 0) {
-					nonEmptyYearCount++;
-					if (nonEmptyYearCount > 1)
-						return false;
+					year = parseInt(year);
+					if (!byYear.hasOwnProperty(year))
+						byYear[year] = {};
+					var forYear = byYear[year];
+					$.each(clusters, function (clusterI, cluster) {
+						if (!forYear.hasOwnProperty(cluster))
+							forYear[cluster] = [];
+						addedEntity = true;
+						forYear[cluster].push(nextEntityId);
+					});
 				}
 			});
-			if (nonEmptyYearCount > 1) {
-				var addedEntity = false;
-				$.each(yearsTable, function (year, clusters) {
-					if (clusters.length > 0) {
-						year = parseInt(year);
-						if (!byYear.hasOwnProperty(year))
-							byYear[year] = {};
-						var forYear = byYear[year];
-						$.each(clusters, function (clusterI, cluster) {
-							if (!forYear.hasOwnProperty(cluster))
-								forYear[cluster] = [];
-							addedEntity = true;
-							forYear[cluster].push(nextEntityId);
-						});
-					}
-				});
-				if (addedEntity) {
-					entities.push({ field: field, value: value });
-					nextEntityId++;
-				}
+			if (addedEntity) {
+				entities.push({ field: field, value: value });
+				nextEntityId++;
 			}
 		});
 	});
@@ -201,6 +189,7 @@ function makeLayout(data, importantEntities, layoutHeight, layoutMarginSlots) {
 	var importantEntityIds = getImportantEntityIds(entities.all),
 	    visClusters = makeVisClusters(yearsOrder, entities.byYear);
 	var layout = storylinelayout.layout(yearsOrder, Object.keys(entities.all), visClusters.byYear, function (n) { return n.entityIds; }, importantEntityIds);
+
 	storylinelayout.normalizeEntityLineFillerVisNodes(layout);
 	layout.entityLineLinks = storylinelayout.makeEntityLineLinks(layout.entityLines);
 	layout.entities = entities.all;
@@ -285,16 +274,8 @@ function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, node
 			// We swap x and y above and put them back here to get the right orientation of curves (see http://stackoverflow.com/questions/15007877/how-to-use-the-d3-diagonal-function-to-draw-curved-lines)
 			return [xy.y, xy.x];
 		});
-	var lines = draw.append("g")
-		.selectAll(".line")
-		.data(layout.entityLineLinks)
-		.enter()
-		.append("path")
-		.attr('clip-path', "url(#" + clipId + ")")
-		.attr("class", function (l) { return classForEntityLine(l.entityLine); })
-		.style('stroke-width', lineWidth)
-		.style("stroke", function(l, i) { return linesColour(l.entityLine.entityId); });
-	if (doMouseovers)
+
+	function lineMouseovers(lines) {
 		lines
 			.on("mouseover", function (l) {
 				classEnitityLines([l.entityLine.entityId], true, 'highlight');
@@ -304,6 +285,30 @@ function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, node
 			})
 			.append("title")
 			.text(function (l) { var e = layout.entities[l.entityLine.entityId]; return "" + (useFieldPrefixes ? e.field + ":" : "") + e.value; });
+	}
+	var lines = draw.append("g")
+		.selectAll(".line")
+		.data(layout.entityLineLinks.links)
+		.enter()
+		.append("path")
+		.attr('clip-path', "url(#" + clipId + ")")
+		.attr("class", function (l) { return classForEntityLine(l.entityLine); })
+		.style('stroke-width', lineWidth)
+		.style("stroke", function(l, i) { return linesColour(l.entityLine.entityId); });
+	if (doMouseovers)
+		lineMouseovers(lines);
+	var lineSingletons = draw.append("g")
+		.selectAll(".linesingletons")
+		.data(layout.entityLineLinks.singletons)
+		.enter()
+		.append("circle")
+		.attr('clip-path', "url(#" + clipId + ")")
+		.attr("class", function (s) { return classForEntityLine(s.entityLine); })
+		.attr('r', lineWidth * 2)
+		.style("fill", function(s, i) { return linesColour(s.entityLine.entityId); })
+		.style("stroke", function(s, i) { return linesColour(s.entityLine.entityId); });
+	if (doMouseovers)
+		lineMouseovers(lineSingletons);
 	var node = draw.append("g")
 		.selectAll(".node")
 		.data(layout.visNodesForInputNodes)
@@ -330,8 +335,13 @@ function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, node
 
 	if (onChooseNode != null)
 		node.on("click", function (n) { return onChooseNode(n.node); });
-	if (onChooseEntityLine != null)
-		lines.on("click", function (el) { return onChooseEntityLine(el.entityLine); });
+	if (onChooseEntityLine != null) {
+		function setOnClickLine(lines) {
+			lines.on("click", function (el) { return onChooseEntityLine(el.entityLine); });
+		}
+		setOnClickLine(lines);
+		setOnClickLine(lineSingletons);
+	}
 	function selectNodes(nodeKeys, areSelected) {
 		if (nodeKeys.length > 0)
 			draw.selectAll(nodeKeys.map(function (nk) { return ".node" + nk; }).join(', '))
@@ -391,6 +401,9 @@ function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, node
 	function update(scaleWidthChanged) {
 		lines
 			.attr("d", linesLine);
+		lineSingletons
+			.attr('cx', function (s) { return xScale(s.linePoint.visNode.node.date); })
+			.attr('cy', function (s) { return slotY(s.linePoint.slot.index) + yLineOffset; });
 		node
 			.attr("x", function (vn) { return xScale(vn.node.date) - nodeWidth / 2; })
 			.attr("y", function (vn) { return slotY(vn.startSlot.index) + yNodeOffset; })
