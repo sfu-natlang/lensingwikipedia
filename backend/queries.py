@@ -212,28 +212,26 @@ class Querier:
       rel_query = op([whoosh.query.Term(ef, ev) for ef, evs in entities.iteritems() for ev in evs])
       with self.whoosh_index.searcher() as searcher:
         hits = searcher.search(whoosh.query.And([whoosh_query, rel_query]), limit=None)
-        cooc_counts = dict((ef, {}) for ef in cooc_fields)
+        cooc_counts = {}
         for hit in hits:
           if need_field in hit:
             for cooc_field in cooc_fields:
               for value in whooshutils.split_keywords(hit[cooc_field]):
-                cooc_counts[cooc_field].setdefault(value, 0)
-                cooc_counts[cooc_field][value] += 1
+                cooc_counts.setdefault((cooc_field, value), 0)
+                cooc_counts[cooc_field, value] += 1
 
-        def cooc_for(entity_field):
-          ordered = sorted(cooc_counts[entity_field].iteritems(), key=lambda (ef, c): c, reverse=True)
-          return set(ef for (ef, c) in ordered[:self.plottimeline_max_cooccurring_entities])
-        return dict((ef, cooc_for(ef)) for ef in cooc_fields)
+        cooc_counts = sorted(cooc_counts.iteritems(), key=lambda (e, c): c, reverse=True)
+        return cooc_counts[:self.plottimeline_max_cooccurring_entities]
 
     cluster_field = view['clusterField']
     entities = view['entities']
     if 'cooccurrences' in view:
       is_disjunctive = { 'and': False, 'or': True }[view['cooccurrences']]
       cooc_entities = find_cooccurrences(entities, set(view['cooccurrenceFields']), cluster_field, is_disjunctive)
-      for entity_field, entity_values in entities.iteritems():
-        cooc_entities.setdefault(entity_field, set())
-        cooc_entities[entity_field].update(entity_values)
-      entities = cooc_entities
+      entities = dict((ef, set(evs)) for ef, evs in entities.iteritems())
+      for (entity_field, entity_value), entity_count in cooc_entities:
+        entities.setdefault(entity_field, set())
+        entities[entity_field].add(entity_value)
 
     # Checking for cluster_field per hit below seems to be slightly faster (empirically) than including Every(cluster_field) in the query
     rel_query = whoosh.query.Or([whoosh.query.Term(ef, ev) for ef, evs in entities.iteritems() for ev in evs])
