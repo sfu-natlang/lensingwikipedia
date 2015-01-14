@@ -544,6 +544,7 @@ function setupStoryline(container, globalQuery, facets) {
 	var formElt = $("<form></form>").appendTo(topBoxElt);
 	var clearSelElt = $("<button type=\"button\" class=\"btn btn-mini btn-warning clear mapclear\" title=\"Clear the map selection.\">Clear selection</button>").appendTo(formElt);
 	var modeElt = $("<select class=\"btn btn-mini\"></select>").appendTo(formElt);
+	var statusElt = $("<span class=\"status\"></span>").appendTo(formElt);
 	var queryFormElt = $("<form class=\"query\"></form>").appendTo(topBoxElt);
 	var clearQueryElt = $("<button type=\"button\" class=\"btn btn-warning\" title=\"Clear the visualization\">Clear</button></ul>").appendTo(queryFormElt);
 	var updateElt = $("<button type=\"submit\" class=\"btn btn-primary\" title=\"Update the visualization\">Update</button></ul>").appendTo(queryFormElt);
@@ -650,6 +651,7 @@ function setupStoryline(container, globalQuery, facets) {
 			setLoadingIndicator(false);
 			clearQueryElt.attr('disabled', 'disabled');
 			updateHelp(true);
+			statusElt.html("");
 			outerSvgElt.hide();
 		}
 	}
@@ -809,6 +811,12 @@ function setupStoryline(container, globalQuery, facets) {
 				constrainToNodeSelection();
 			vis.selectNodes(Object.keys(nodeSelection), true);
 			vis.selectEntities($.map(entityConstraints, function (r) { return $.map(r, function (ec) { return ec.entityId; }); }), true);
+			statusElt.html(
+				"showing "
+				+ (data.numIncludedCooccurringEntities < data.numCooccurringEntities ? "top" : "all")
+				+ " " + data.numIncludedCooccurringEntities
+				+ " co-occurring entities"
+			);
 			scaleSvg();
 		} else {
 			setLoadingIndicator(false);
