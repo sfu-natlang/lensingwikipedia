@@ -6,6 +6,8 @@ var smooth_k = 5;
 var data_allPairs = [];
 var data_allNames = [];
 
+var hidden_names = [];
+
 /*
  * Setup the control in some container element.
  * container: container element as a jquery selection
@@ -510,10 +512,22 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 			.on("click", function(d) {
 				$('path.line[name="' + d.name + '"]').toggle();
 
-				if (this.style.textDecoration == "")
+				if (this.style.textDecoration == "")  {
+					// disable
 					this.style.textDecoration = "line-through";
-				else
+					hidden_names.push(d.name);
+					yRescale();
+				} else {
+					// enable
 					this.style.textDecoration = "";
+
+					var index = hidden_names.indexOf(d.name);
+					if (index >= 0) {
+						hidden_names.splice(index, 1);
+					}
+
+					yRescale();
+				}
 			});
 
 	legend.append("text")
@@ -534,15 +548,15 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 			.attr("y", -6)
 			.attr("height", selectBox.height + 7);
 
-	function brushed() {
-		x.domain(brush.empty() ? x2.domain() : brush.extent());
 
+	function yRescale() {
 		var filtered = persons.map(function(d) {
 			return {
 				name: d.name,
-				values: d.values.filter(function(d, i) {
-					if ((d.date >= x.domain()[0]) && (d.date <= x.domain()[1])) {
-						return true;
+				values: d.values.filter(function(item, i) {
+					if ((item.date >= x.domain()[0]) && (item.date <= x.domain()[1])) {
+						if (hidden_names.indexOf(d.name) < 0)
+							return true;
 					}
 				})
 			};
@@ -554,8 +568,17 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 		]);
 
 		focus.selectAll(".line").attr("d", function(d) { return line(d.values); });
-		focus.select(".x.axis").call(xAxis);
 		focus.select(".y.axis").call(yAxis);
+
+	}
+
+	function brushed() {
+		x.domain(brush.empty() ? x2.domain() : brush.extent());
+
+		focus.selectAll(".line").attr("d", function(d) { return line(d.values); });
+		focus.select(".x.axis").call(xAxis);
+
+		yRescale();
 	}
 
 	var handleMouseOverLine = function(lineData, index) {
