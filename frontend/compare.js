@@ -45,10 +45,10 @@ function setupCompare(container, globalQuery, facets) {
 	var clearSelElt = $('<button type="button" class="btn btn-mini btn-warning clear mapclear" title="Clear">Clear selection</button>').appendTo(controlsElt);
 	var modeElt = $('<select class="btn btn-mini"></select>').appendTo(controlsElt);
 	var numElt = $('<select class="btn btn-mini"> \
-										<option value="1">1</option> \
-										<option value="2">2</option> \
-										<option value="3">3</option> \
-										<option value="5" selected>5</option> \
+										<option value="1">Top 1</option> \
+										<option value="2">Top 2</option> \
+										<option value="3">Top 3</option> \
+										<option value="5" selected>Top 5</option> \
 										<option value="-1">All</option> \
 								 </select>').appendTo(controlsElt);
 	var updateBtn = $('<button type="submit" class="btn btn-warning" title="Update the visualization">Update</button></ul>').appendTo(controlsElt);
