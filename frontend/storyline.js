@@ -650,6 +650,7 @@ function setupStoryline(container, globalQuery, facets) {
 			resultWatcher.clear();
 			setLoadingIndicator(false);
 			clearQueryElt.attr('disabled', 'disabled');
+			clearOwnConstraints();
 			updateHelp(true);
 			statusElt.html("");
 			outerSvgElt.hide();
@@ -765,8 +766,7 @@ function setupStoryline(container, globalQuery, facets) {
 		var toSet = !(entityConstraints.hasOwnProperty(entity.field) && entityConstraints[entity.field].hasOwnProperty(entity.value));
 		constrainEntity(entityLine.entityId, entity, toSet);
 	}
-	clearSelElt.attr('disabled', 'disabled');
-	clearSelElt.bind('click', function () {
+	function clearOwnConstraints() {
 		{
 			if (vis != null)
 				vis.selectNodes(Object.keys(nodeSelection), false);
@@ -782,9 +782,14 @@ function setupStoryline(container, globalQuery, facets) {
 					ownCnstrQuery.removeConstraint(info.constraint);
 				});
 			});
-			vis.selectEntities(removingEntityIds, false);
+			if (vis != null)
+				vis.selectEntities(removingEntityIds, false);
 			entityConstraints = {};
 		}
+	}
+	clearSelElt.attr('disabled', 'disabled');
+	clearSelElt.bind('click', function () {
+		clearOwnConstraints();
 	});
 	nodesConstraint.onChange(function (type, query) {
 		if (type == 'removed' && query == globalQuery) {
@@ -903,6 +908,7 @@ function setupStoryline(container, globalQuery, facets) {
 				queryEntities = [];
 				updateQuery(resultWatcher);
 			} else {
+				clearOwnConstraints();
 				updateHelp(true);
 			}
 			curFacetManager = null;
@@ -911,6 +917,7 @@ function setupStoryline(container, globalQuery, facets) {
 		} else {
 			queryFormElt.hide();
 			useHelpElt = facetHelpElt;
+			clearOwnConstraints();
 			updateHelp(true);
 			facetManagers[this.selectedIndex].use();
 			curFacetManager = facetManagers[this.selectedIndex];
