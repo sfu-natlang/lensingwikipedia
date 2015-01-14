@@ -162,6 +162,8 @@ where the entity specification is a structure keyed on field names, where each v
 	}
 Result:
 	{
+		"numCooccurringEntities: /* only included if "cooccurrences" set in query; total number of co-occurring entities */,
+		"numIncludedCooccurringEntities: /* only included if "cooccurrences" set in query; number of co-occurring entities included in result */,
 		"timeline": /* timeline table */
 	}
 where the timeline table is:
