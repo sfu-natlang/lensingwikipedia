@@ -2,6 +2,8 @@
  * Entity timeline visualization similar to XKCD #657.
  */
 
+var Storyline = (function () {
+
 // Number for generating unique clipping element IDs
 var timelineClipNum = 0;
 
@@ -31,7 +33,7 @@ var storylineFacetHelpText = " \
 /*
  * Parse the manual query format.
  */
-function parsePlotlineQueryString(entitiesString) {
+function parseQueryString(entitiesString) {
 	return entitiesString.split(",").map(function (entityString) {
 		var parts = entityString.split(":").map(function (p) { return p.replace(/^\s+|\s+$/g, "") });
 		return {
@@ -44,7 +46,7 @@ function parsePlotlineQueryString(entitiesString) {
 /*
  * Output the manual query format.
  */
-function unparsePlotlineQuery(entities) {
+function unparseQuery(entities) {
 	return $.map(entities, function (entity) {
 		return [entity.field, entity.value].join(":");
 	}).join(", ");
@@ -157,7 +159,7 @@ function makeVisClusters(yearsOrder, entitiesByYear) {
 			if (visCluster != null) {
 				var visCluster = {
 					year: year,
-					date: jsDateOfYear(year),
+					date: TimeAxis.jsDateOfYear(year),
 					clusters: visCluster.clusters,
 					entityIds: Object.keys(visCluster.entityIds),
 					clusterSetId: makeClusterSetId(visCluster.clusters)
@@ -214,7 +216,7 @@ function makeLayout(data, importantEntities, layoutHeight, layoutMarginSlots) {
 		if (visNode.isFiller) {
 			visNode.node = {
 				year: visNode.time,
-				date: jsDateOfYear(visNode.time)
+				date: TimeAxis.jsDateOfYear(visNode.time)
 			}
 		}
 	});
@@ -222,7 +224,7 @@ function makeLayout(data, importantEntities, layoutHeight, layoutMarginSlots) {
 	return layout;
 }
 
-function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, nodeWidth, lineWidth, drawLabels, doMouseovers, useFieldPrefixes, importantEntities, onChooseNode, onChooseEntityLine) {
+function drawDiagram(svg, box, clipId, data, layout, layoutHeight, nodeWidth, lineWidth, drawLabels, doMouseovers, useFieldPrefixes, importantEntities, onChooseNode, onChooseEntityLine) {
 	var yScale = box.height / layoutHeight;
 
 	var draw = svg.append('g')
@@ -234,8 +236,8 @@ function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, node
 	var xAxis = d3.svg.axis()
 		.scale(xScale)
 		.orient('bottom')
-		.tickFormat(timeAxisTickFormater)
-		.tickValues(timeAxisTickValues(xScale));
+		.tickFormat(TimeAxis.tickFormater)
+		.tickValues(TimeAxis.tickValues(xScale));
 
 	function classEnitityLines(entityIds, value, classname) {
 		draw.selectAll(entityIds.map(function (eid) { return ".line" + eid; }).join(', '))
@@ -323,7 +325,7 @@ function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, node
 			})
 			.append("title")
 			.text(function(vn) {
-				return "" + timeAxisTickFormater(vn.node.date)
+				return "" + TimeAxis.tickFormater(vn.node.date)
 					+ "\n" + $.map(vn.node.entityIds, function (eid, i) { var e = layout.entities[eid]; return "" + (useFieldPrefixes ? e.field + ":" : "") + e.value; }).join("\n")
 					+ "\n" + $.map(vn.node.clusters, function (v, f) { return f; }).join("\n");
 			});
@@ -429,7 +431,7 @@ function drawStorylineDiagram(svg, box, clipId, data, layout, layoutHeight, node
 /*
  * Draw the whole visualization.
  */
-function drawStoryline(svg, detailBox, selectBox, data, initialBrushExtent, useFieldPrefixes, importantEntities, onSelectNode, onSelectEntityLine, brushCallback) {
+function drawAll(svg, detailBox, selectBox, data, initialBrushExtent, useFieldPrefixes, importantEntities, onSelectNode, onSelectEntityLine, brushCallback) {
 	var nodeWidth = detailBox.width * 0.01,
 	    layoutHeight = detailBox.height,
 			layoutMarginSlots = 4,
@@ -480,8 +482,8 @@ function drawStoryline(svg, detailBox, selectBox, data, initialBrushExtent, useF
 	var knownVisClusterKeys = keyVisClusters(layout.visClusters),
 			knownEntities = findKnownEntities(layout.entities);
 
-	var detailPlot = drawStorylineDiagram(svg, detailBox, clipId, data, layout, layoutHeight, nodeWidth, lineWidth, true, true, useFieldPrefixes, importantEntities, onSelectNode, onSelectEntityLine);
-	var selectPlot = drawStorylineDiagram(svg, selectBox, clipId, data, layout, layoutHeight, nodeWidth, lineWidth, false, false, useFieldPrefixes, importantEntities, null, null);
+	var detailPlot = drawDiagram(svg, detailBox, clipId, data, layout, layoutHeight, nodeWidth, lineWidth, true, true, useFieldPrefixes, importantEntities, onSelectNode, onSelectEntityLine);
+	var selectPlot = drawDiagram(svg, selectBox, clipId, data, layout, layoutHeight, nodeWidth, lineWidth, false, false, useFieldPrefixes, importantEntities, null, null);
 
 	var brush = null;
 	function updateBrush() {
@@ -521,7 +523,7 @@ function drawStoryline(svg, detailBox, selectBox, data, initialBrushExtent, useF
  * initialQuery: the initial (empty) query
  * globalQuery: the global query
  */
-function setupStoryline(container, globalQuery, facets) {
+function setup(container, globalQuery, facets) {
 	// The view space for SVG; this doesn't have to correspond to screen units.
 	var viewBox = { x: 0, y : 0, width: 1024, height: 768 };
 	// Margins for the graph
@@ -531,7 +533,7 @@ function setupStoryline(container, globalQuery, facets) {
 
 	var outerElt = $("<div class=\"storyline\"></div>").appendTo(container);
 	var topBoxElt = $("<div class=\"topbox\"></div>").appendTo(outerElt);
-	var loadingIndicator = new LoadingIndicator(outerElt);
+	var loadingIndicator = new LoadingIndicator.LoadingIndicator(outerElt);
 	var outerSvgElt = $("<svg class=\"outersvg\"></svg>").appendTo(outerElt);
 	var svgElt = $("<svg class=\"innersvg\" viewBox=\"" + viewBox.x + " " + viewBox.y + " " + viewBox.width + " " + viewBox.height + "\" preserveAspectRatio=\"none\"></svg>").appendTo(outerSvgElt);
 	var facetHelpElt = $("<div class=\"alert alert-warning alert-dismissable\"></div>").appendTo(outerElt);
@@ -545,14 +547,14 @@ function setupStoryline(container, globalQuery, facets) {
 	var updateElt = $("<button type=\"submit\" class=\"btn btn-primary\" title=\"Update the visualization\">Update</button></ul>").appendTo(queryFormElt);
 	var queryElt = $("<input type=\"text\" title=\"Query\"></input>").appendTo($("<div class=\"inputbox\"></div>").appendTo(queryFormElt));
 
-	fillElement(container, outerElt, 'vertical');
-	setupPanelled(outerElt, topBoxElt, outerSvgElt, 'vertical', 0, false);
-	var scaleSvg = dontScaleSvgParts(outerSvgElt, 'text,.tick');
+	LayoutUtils.fillElement(container, outerElt, 'vertical');
+	LayoutUtils.setupPanelled(outerElt, topBoxElt, outerSvgElt, 'vertical', 0, false);
+	var scaleSvg = D3Utils.dontScaleSvgParts(outerSvgElt, 'text,.tick');
 
 	facetHelpElt.html(storylineFacetHelpText);
 	queryHelpElt.html(storylineQueryHelpText);
 	var queryHelpFieldExElt = queryHelpElt.find('.fieldexamples');
-	$.each(helpFieldsList, function (fieldI, field) {
+	$.each(FrontendConfig.helpFieldsList, function (fieldI, field) {
 		$("<li>" + field + "</li>").appendTo(queryHelpFieldExElt);
 	});
 	var allHelpElts = [facetHelpElt, queryHelpElt],
@@ -577,14 +579,14 @@ function setupStoryline(container, globalQuery, facets) {
 	var detailBox = { x: viewBox.x + margins.left, y: viewBox.y + margins.top, width: width, height: height * split },
 	    selectBox = { x: viewBox.x + margins.left, y: viewBox.y + margins.top + detailBox.height + margins.between, width: width, height: height * (1.0 - split) };
 
-	var ownCnstrQuery = new Query(globalQuery.backendUrl());
-	var nodesConstraint = new Constraint(),
+	var ownCnstrQuery = new Queries.Query(globalQuery.backendUrl());
+	var nodesConstraint = new Queries.Constraint(),
 	    entityConstraints = {};
 	globalQuery.addConstraint(nodesConstraint);
 	ownCnstrQuery.addConstraint(nodesConstraint);
-	var contextQuery = new Query(globalQuery.backendUrl(), 'setminus', globalQuery, ownCnstrQuery);
+	var contextQuery = new Queries.Query(globalQuery.backendUrl(), 'setminus', globalQuery, ownCnstrQuery);
 
-	var resultWatcher = new ResultWatcher(function () {});
+	var resultWatcher = new Queries.ResultWatcher(function () {});
 	contextQuery.addResultWatcher(resultWatcher);
 
 	var facetManagers = null;
@@ -625,7 +627,7 @@ function setupStoryline(container, globalQuery, facets) {
 			var view = {
 				"plottimeline": {
 					"type": "plottimeline",
-					"clusterField": storylineClusterField,
+					"clusterField": FrontendConfig.storylineClusterField,
 					"entities": entities
 				}
 			};
@@ -718,7 +720,7 @@ function setupStoryline(container, globalQuery, facets) {
 			if ($.isEmptyObject(nodeSelection))
 				clearSelElt.attr('disabled', 'disabled');
 		} else {
-			var constraint = new Constraint();
+			var constraint = new Queries.Constraint();
 			constraint.name("Storyline: " + entity.field + " = " + entity.value);
 			constraint.set({
 				type: 'fieldvalue',
@@ -794,13 +796,13 @@ function setupStoryline(container, globalQuery, facets) {
 	function draw() {
 		if (data != null) {
 			svgElt.children().remove();
-			var svg = jqueryToD3(svgElt);
+			var svg = D3Utils.jqueryToD3(svgElt);
 			setLoadingIndicator(false);
 			outerSvgElt.show();
 			function onBrush(selection) {
 				lastBrushSelection = selection;
 			}
-			vis = drawStoryline(svg, detailBox, selectBox, data, lastBrushSelection, drawEntityTitlePrefixes, drawImportantEntities, onSelectNode, onSelectEntityLine, onBrush);
+			vis = drawAll(svg, detailBox, selectBox, data, lastBrushSelection, drawEntityTitlePrefixes, drawImportantEntities, onSelectNode, onSelectEntityLine, onBrush);
 			if (cleanSelectionToMatchData())
 				constrainToNodeSelection();
 			vis.selectNodes(Object.keys(nodeSelection), true);
@@ -831,7 +833,7 @@ function setupStoryline(container, globalQuery, facets) {
 
 	updateElt.bind('click', function() {
 		setLoadingIndicator(true);
-		queryEntities = parsePlotlineQueryString(queryElt.val());
+		queryEntities = parseQueryString(queryElt.val());
 		updateQuery(resultWatcher);
 	});
 	queryFormElt.submit(function () {
@@ -845,8 +847,8 @@ function setupStoryline(container, globalQuery, facets) {
 
 	var defaultFacetI = -1;
 	facetManagers = $.map(facets, function (facet, facetI) {
-		var excludeQuery = new Query(globalQuery.backendUrl(), 'setminus', contextQuery, facet.constraintsQuery);
-		var excludeResultWatcher = new ResultWatcher(function (a) {
+		var excludeQuery = new Queries.Query(globalQuery.backendUrl(), 'setminus', contextQuery, facet.constraintsQuery);
+		var excludeResultWatcher = new Queries.ResultWatcher(function (a) {
 			onResult(a);
 		});
 		excludeResultWatcher.enabled(false);
@@ -861,10 +863,10 @@ function setupStoryline(container, globalQuery, facets) {
 			});
 			updateQuery(excludeResultWatcher);
 		}
-		var watcher = new ChangeWatcher(function () { useFacet() });
+		var watcher = new Queries.ChangeWatcher(function () { useFacet() });
 		watcher.active(false);
 		facet.constraintsQuery.addChangeWatcher(watcher);
-		if (facet.field == defaultStorylineFacet)
+		if (facet.field == FrontendConfig.defaultStorylineFacet)
 			defaultFacetI = facetI;
 		return {
 			use: useFacet,
@@ -887,7 +889,7 @@ function setupStoryline(container, globalQuery, facets) {
 			queryFormElt.show();
 			useHelpElt = queryHelpElt;
 			if (curFacetManager != null) {
-				facetQueryText = unparsePlotlineQuery(queryEntities);
+				facetQueryText = unparseQuery(queryEntities);
 				queryEntities = [];
 				updateQuery(resultWatcher);
 			} else {
@@ -921,3 +923,8 @@ function setupStoryline(container, globalQuery, facets) {
 			vis.update();
 	});
 }
+
+return {
+	setup: setup
+};
+}());

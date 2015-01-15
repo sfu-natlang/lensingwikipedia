@@ -16,7 +16,7 @@ Javascript file manually or by running the makefile once to create a default.
 The default will create a `frontendsettings.js` that sets the backend URL as
 follows; modify it for the real URL:
 
-	backendUrl = "http://example.net:1500";
+	backendUrl: "http://example.net:1500";
 
 Either way you can also override other settings. See below for more information
 on the config files.
@@ -59,10 +59,14 @@ Javacript as desired.
 See the top of Makefile for the makefile variables the config files can
 override.
 
+Configuration settings expected by the Javascript code should go in a module
+called 'frontendConfig', so for example it will look for the backend URL at
+frontendConfig.backendUrl.
+
 Debugging
 =========
 
-The `verbose_log` structure in `config.js` sets options for verbose logging in
+The `verboseLog` structure in `config.js` sets options for verbose logging in
 the browser console. These options can be set at runtime in the console.
 
 Design notes

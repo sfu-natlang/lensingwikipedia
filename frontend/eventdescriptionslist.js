@@ -2,15 +2,17 @@
  * Control which lists event descriptions from a query.
  */
 
+var EventDescriptionsList = (function () {
+
 /*
  * Setup the control in some container element.
  * container: container element as a jquery selection
  * globalQuery: the global query
  */
-function setupEventDescriptionsList(container, globalQuery) {
+function setup(container, globalQuery) {
 	var outerElt = $("<div class=\"eventdescriptionslist\"></div>").appendTo(container);
-	var loadingIndicator = new LoadingIndicator(outerElt);
-	var listElt = createDescriptionList(outerElt);
+	var loadingIndicator = new LoadingIndicator.LoadingIndicator(outerElt);
+	var listElt = FrontendConfig.createDescriptionList(outerElt);
 	var moreBoxElt = $("<div class=\"buttonbox\"></div>").appendTo(outerElt);
 	var moreElt = $("<button type=\"button\" class=\"btn\" disabled=\"true\">More</button>").appendTo(moreBoxElt);
 
@@ -29,7 +31,7 @@ function setupEventDescriptionsList(container, globalQuery) {
 	globalQuery.onChange(function() {
 		loadingIndicator.enabled(true);
 		setMoreEnabled(false);
-		clearDescriptionList(listElt);
+		FrontendConfig.clearDescriptionList(listElt);
 	});
 
 	var continuer = null;
@@ -46,8 +48,8 @@ function setupEventDescriptionsList(container, globalQuery) {
 		} else {
 			loadingIndicator.error('descriptions', false);
 			loadingIndicator.enabled(false);
-			clearDescriptionList(listElt);
-			addToDescriptionList(result.descriptions.descriptions, listElt);
+			FrontendConfig.clearDescriptionList(listElt);
+			FrontendConfig.addToDescriptionList(result.descriptions.descriptions, listElt);
 			continuer = getContinuer();
 			setMoreEnabled(continuer.hasMore());
 		}
@@ -56,8 +58,13 @@ function setupEventDescriptionsList(container, globalQuery) {
 	moreElt.click(function() {
 		if (continuer != null)
 			continuer.fetchNext(function(result) {
-				addToDescriptionList(result.descriptions.descriptions, listElt);
+				FrontendConfig.addToDescriptionList(result.descriptions.descriptions, listElt);
 				setMoreEnabled(continuer.hasMore());
 			});
 	});
 }
+
+return {
+	setup: setup
+};
+}());

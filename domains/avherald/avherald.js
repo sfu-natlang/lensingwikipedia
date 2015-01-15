@@ -2,6 +2,8 @@
  * Things especially specific to the Avherald domain.
  */
 
+var AvheraldDomain = (function () {
+
 // Prefix for links to Wikipedia pages
 baseWikipediaUrl = "https://en.wikipedia.org";
 
@@ -29,7 +31,7 @@ function addToDescriptionList(descriptions, listElt) {
 		var sentenceSpan = event.sentenceSpan.split(",").map(function (i) { return +i; });
 
 		event.descriptionReplacements = JSON.parse(event.descriptionReplacements);
-		var replacements = makeURLReplacements(event.descriptionReplacements, baseWikipediaUrl);
+		var replacements = TextReplacements.makeURLReplacements(event.descriptionReplacements, baseWikipediaUrl);
 		replacements = replacements.concat([
 			{
 				src: event.event,
@@ -44,7 +46,7 @@ function addToDescriptionList(descriptions, listElt) {
 				post: "</emph>"
 			}
 		]);
-		replacements = normalizeReplacements(replacements);
+		replacements = TextReplacements.normalize(replacements);
 
 		// Find reference links and remove them from replacements
 		var refLinks = [];
@@ -65,8 +67,8 @@ function addToDescriptionList(descriptions, listElt) {
 			tooltipText += ", predicate stem '" + event.predicate + "'";
 		tooltipText += ".";
 
-		var shortDesc = applyReplacements(event.sentence, replacements, sentenceSpan[0]);
-		var longDesc = applyReplacements(event.description, replacements);
+		var shortDesc = TextReplacements.apply(event.sentence, replacements, sentenceSpan[0]);
+		var longDesc = TextReplacements.apply(event.description, replacements);
 
 		var refsElt = $("<ul class=\"eventrefs\"></ul>");
 		$.each(refLinks, function (i, url) {
@@ -86,3 +88,11 @@ function addToDescriptionList(descriptions, listElt) {
 		});
 	});
 }
+
+return {
+	helpFieldsList: helpFieldsList,
+	createDescriptionList: createDescriptionList,
+	clearDescriptionList: clearDescriptionList,
+	addToDescriptionList: addToDescriptionList
+};
+}());

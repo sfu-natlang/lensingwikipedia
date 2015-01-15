@@ -2,6 +2,8 @@
  * Things especially specific to the Wikipedia history domain.
  */
 
+var WikipediaHistoryDomain = (function () {
+
 // Prefix for links to Wikipedia pages
 baseWikipediaUrl = "https://en.wikipedia.org";
 
@@ -37,7 +39,7 @@ function addToDescriptionList(descriptions, listElt) {
 		var sentenceSpan = event.sentenceSpan.split(",").map(function (i) { return +i; });
 
 		handleSingleSpans(event);
-		var replacements = makeURLReplacements(event.descriptionReplacements, baseWikipediaUrl);
+		var replacements = TextReplacements.makeURLReplacements(event.descriptionReplacements, baseWikipediaUrl);
 		replacements = replacements.concat([
 			{
 				src: event.event,
@@ -52,7 +54,7 @@ function addToDescriptionList(descriptions, listElt) {
 				post: "</emph>"
 			}
 		]);
-		replacements = normalizeReplacements(replacements);
+		replacements = TextReplacements.normalize(replacements);
 
 		var yearText = event.year > 0 ? event.year + " CE" : -event.year + " BCE";
 
@@ -62,8 +64,8 @@ function addToDescriptionList(descriptions, listElt) {
 			tooltipText += ", predicate stem '" + event.predicate + "'";
 		tooltipText += ".";
 
-		var shortDesc = applyReplacements(event.sentence, replacements, sentenceSpan[0]);
-		var longDesc = applyReplacements(event.description, replacements);
+		var shortDesc = TextReplacements.apply(event.sentence, replacements, sentenceSpan[0]);
+		var longDesc = TextReplacements.apply(event.description, replacements);
 
 		var dtElt = $("<dt title=\"" + tooltipText + "\"><a href=\"" + yearUrl + "\">" + yearText + "</a>: " + event.predicate + "</dt>").appendTo(listElt);
 		var ddElt = $("<dd>" + shortDesc + "</dd>").appendTo(listElt);
@@ -81,3 +83,11 @@ function addToDescriptionList(descriptions, listElt) {
 		}
 	});
 }
+
+return {
+	helpFieldsList: helpFieldsList,
+	createDescriptionList: createDescriptionList,
+	clearDescriptionList: clearDescriptionList,
+	addToDescriptionList: addToDescriptionList
+};
+}());
