@@ -11,6 +11,10 @@
 	margin: 0;
 	padding: 0;
 }
+.storyline .topbox form .status {
+	font-size: 80%;
+	margin-left: 0.5em;
+}
 .storyline .topbox form.query {
 	margin: 0.2em 0 0.1em 0;
 }
