@@ -13,9 +13,11 @@ facets = {
 	"role": "Role",
 	"person": "Person",
 	"organization": "Organization",
-	"category": "Category",
-	"location": "Location"
+	"location": "Location",
+	"category": "Category"
 };
+// Facets to include in the storyline view
+storylineUseFacets = ["person", "organization"];
 // Field to use to define clusters in the storyline
 storylineClusterField = "referencePoints";
 // Default facet to use for the storyline view
@@ -35,7 +37,9 @@ return Utils.extendModule([WikipediaHistoryDomain], {
 	maxMapZoom: maxMapZoom,
 	mapDataUrl: mapDataUrl,
 	facets: facets,
+	storylineUseFacets: storylineUseFacets,
 	storylineClusterField: storylineClusterField,
+	defaultStorylineFacet: defaultStorylineFacet,
 	verboseLog: verboseLog
 });
 }());
