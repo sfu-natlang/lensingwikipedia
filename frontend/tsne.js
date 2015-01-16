@@ -82,9 +82,14 @@ function setupTSNE(container, initialQuery, globalQuery, minZoom, maxZoom) {
     var quadtree;
 
     //Initialize Tooltip
-    var tooltip = d3.select("body").append("div")   
-    .attr("class", "tooltip")               
-    .style("opacity", 0);
+    var selectionTooltip = d3.select("body").append("div")
+        .attr("class", "tooltip")
+        .style("opacity", 0)
+        .style("width", "auto");
+
+    var tooltip = d3.select("body").append("div")
+        .attr("class", "tooltip")
+        .style("opacity", 0);
     var tooltipRendered = false;
 
 
@@ -114,7 +119,7 @@ function setupTSNE(container, initialQuery, globalQuery, minZoom, maxZoom) {
             .attr("r", 2.5)
             .attr("transform", transform)
             .on("mouseover", renderTooltip)
-            .on("mouseout", renderTooltip);
+            .on("mouseout", turnOffTooltip);
 
         svg.append("g")
             .attr("class", "brush")
@@ -141,7 +146,9 @@ function setupTSNE(container, initialQuery, globalQuery, minZoom, maxZoom) {
       var extent = brush.extent();
       circle.each(function(d) { d.selected = false; });
       search(quadtree, extent[0][0], extent[0][1], extent[1][0], extent[1][1]);
-      circle.classed("selected", function(d) { return d.selected; });
+      circle.classed("selected", function(d) { 
+        return d.selected;
+      });
     }
 
     function brushended() {
@@ -149,6 +156,7 @@ function setupTSNE(container, initialQuery, globalQuery, minZoom, maxZoom) {
             updateTextConstraints();
             constraintsChanged = false;
         }
+        renderSelectionTooltipOff();
     }
 
     // Find the nodes within the specified rectangle.
@@ -159,6 +167,8 @@ function setupTSNE(container, initialQuery, globalQuery, minZoom, maxZoom) {
             p.selected = (p[0] >= x0) && (p[0] < x3) && (p[1] >= y0) && (p[1] < y3);
             if (p.selected) {
                 constraintSelection(p);
+            } else {
+                removeFromConstraints(p);
             }
         }
         return x1 >= x3 || y1 >= y3 || x2 < x0 || y2 < y0;
@@ -170,26 +180,44 @@ function setupTSNE(container, initialQuery, globalQuery, minZoom, maxZoom) {
             constraintIds[d[2]] = true;
             constraintsChanged = true;
         }
-    }
-    
-    function renderTooltip(d) {
-        if (tooltipRendered == false) {
-            tooltipRendered = true;
-            tooltip.transition().duration(200).style("opacity", 1);      
-            tooltip.html(d[3])
-            .style("left", (d3.event.pageX) + "px")
-            .style("top", (d3.event.pageY - 28) + "px");   
-        } else {
-            tooltipRendered = false;
-            tooltip.transition().duration(500).style("opacity", 0)
-        }
-        
+        renderSelectionTooltip(Object.keys(constraintIds).length);
     }
 
-    topBoxElt.find(".selbox .clear").bind('click', function () {
+    function removeFromConstraints(d) {
+        //if (d[2] in constraintIds) {
+            delete constraintIds[d[2]];
+            constraintsChanged = true;
+        //}
+        renderSelectionTooltip(Object.keys(constraintIds).length);
+    }
+
+    function renderSelectionTooltip(d) {
+        selectionTooltip.transition().duration(0).style("opacity", 1);
+        selectionTooltip.html('Points Selected: ' + d)
+            .style("left", (event.pageX - 130) + "px")
+            .style("top", (event.pageY - 33) + "px");
+    }
+
+    function renderSelectionTooltipOff() {
+        selectionTooltip.transition().duration(0).style("opacity", 0);
+    }
+
+    function renderTooltip(d) {
+        tooltip.transition().duration(0).style("opacity", 1);      
+        tooltip.html(d[3])
+            .style("left", (event.pageX) + "px")
+            .style("top", (event.pageY - 28) + "px");
+    }
+
+    function turnOffTooltip(d) {
+        tooltip.transition().duration(0).style("opacity", 0)
+    }
+
+    topBoxElt.find(".selbox .clusterclear").bind('click', function () {
         constraintIds = {}
         d3.selectAll(".brush").call(brush.clear());
         brushed();
+        brushended();
     });
 
     function updateTextConstraints() {
