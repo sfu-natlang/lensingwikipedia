@@ -29,7 +29,7 @@ verboseLog = {
 	// Print out the replies being received from the backend
 	incomingReply: false,
 	// Print out timing information for the query handling system
-	queryTiming: true
+	queryTiming: false
 }
 
 return Utils.extendModule([WikipediaHistoryDomain], {
