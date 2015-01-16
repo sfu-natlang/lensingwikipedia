@@ -187,7 +187,6 @@ class Querier:
     }
   
   def _handle_tsnecoordinates_view(self, view, whoosh_query):
-    print >> sys.stderr, whoosh_query
     coordinates = {}
     with self.whoosh_index.searcher() as searcher:
       hits = searcher.search(whoosh_query, limit=None)
