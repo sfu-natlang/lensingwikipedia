@@ -4,7 +4,7 @@
 
 var Utils = (function () {
 
-function extendModule(toExtend, module) {
+function extendObject(toExtend, module) {
 	for (var i = 0; i < toExtend.length; i++) {
 		var extending = toExtend[i];
 		for (var attr in extending)
@@ -13,6 +13,8 @@ function extendModule(toExtend, module) {
 	}
 	return module;
 }
+
+var extendModule = extendObject;
 
 /*
  * Convert a list of pairs to a dictionary object.
@@ -27,6 +29,7 @@ function pairListToDict(list) {
 }
 
 return {
+	extendObject: extendObject,
 	extendModule: extendModule,
 	pairListToDict: pairListToDict
 };

@@ -545,7 +545,7 @@ function setup(container, globalQuery, facets) {
 	var split = 0.8;
 
 	facets = facets.filter(function (facet) {
-		return storylineUseFacets.indexOf(facet.field) >= 0;
+		return facet.hasOwnProperty('storylineInclude') && facet.storylineInclude;
 	});
 
 	var outerElt = $("<div class=\"storyline\"></div>").appendTo(container);
@@ -896,7 +896,7 @@ function setup(container, globalQuery, facets) {
 		var watcher = new Queries.ChangeWatcher(function () { useFacet() });
 		watcher.active(false);
 		facet.constraintsQuery.addChangeWatcher(watcher);
-		if (facet.field == FrontendConfig.defaultStorylineFacet)
+		if (facet.hasOwnProperty('storylineDefault') && facet.storylineDefault)
 			defaultFacetI = facetI;
 		return {
 			use: useFacet,

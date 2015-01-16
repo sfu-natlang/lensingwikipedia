@@ -60,19 +60,16 @@
 			}
 			setupSidebar($(".sidebar"), globalQuery);
 
-			var facetsInfo = [];
-			var facetMakers = $.map(FrontendConfig.facets, function (title, field) {
+			var facetsExpanded = [];
+			var facetMakers = $.map(FrontendConfig.facets, function (facet) {
 				return function (container) {
-					var constraintsQuery = Facet.setup(container, globalQuery, title, field);
-					facetsInfo.push({
-						title: title,
-						field: field,
-						constraintsQuery: constraintsQuery
-					});
+					facetsExpanded.push(Utils.extendObject([facet], {
+						constraintsQuery: Facet.setup(container, globalQuery, facet.title, facet.field)
+					}));
 				}
 			});
 			LayoutUtils.setupSplitMakeElements($('#facetstab'), 'horizontal', facetMakers);
-			Storyline.setup($('#storyline'), globalQuery, facetsInfo);
+			Storyline.setup($('#storyline'), globalQuery, facetsExpanded);
 			Timeline.setup($('#timelinetab'), initialQuery, globalQuery);
 			Map.setup($('#maptab'), initialQuery, globalQuery, mapDataUrl, FrontendConfig.minMapZoom, FrontendConfig.maxMapZoom);
 			Tsne.setup($('#tsnetab'), initialQuery, globalQuery, FrontendConfig.minMapZoom, FrontendConfig.maxMapZoom);
