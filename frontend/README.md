@@ -60,8 +60,9 @@ See the top of Makefile for the makefile variables the config files can
 override.
 
 Configuration settings expected by the Javascript code should go in a module
-called 'frontendConfig', so for example it will look for the backend URL at
-frontendConfig.backendUrl.
+called 'FrontendConfig', so for example it will look for the backend URL at
+FrontendConfig.backendUrl. Files added by frontenddomain.mk should create this
+module, while files added by frontendsettings should modify it.
 
 Debugging
 =========
