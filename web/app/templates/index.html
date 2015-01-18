@@ -1,6 +1,15 @@
 {% extends "base.html" %}
 {% block content %}
-You've got some content, {{ g.user.email }}!
 
+{% if g.user.is_authenticated() %}
+
+You've got some content, {{ g.user.email }}!
 <a href="{{ url_for("logout") }}">Log out</a>
+
+{% else %}
+
+You probably want to log in: <a href="{{ url_for("login") }}">Log in</a>
+
+{% endif %}
+
 {% endblock %}

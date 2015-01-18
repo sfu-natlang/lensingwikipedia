@@ -19,9 +19,6 @@ def before_request():
 
 @app.route('/')
 def index():
-    if g.user is None or not g.user.is_authenticated():
-        return redirect(url_for("login"))
-
     return render_template("index.html",
             title="index")
 
