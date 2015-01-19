@@ -1,15 +1,12 @@
 {% extends "base.html" %}
 {% block content %}
 {% if not g.user.is_authenticated() %}
+<h1>Register</h1>
 <form action="" method="POST" name="login_form">
   {{ form.hidden_tag() }}
-  <label for="inputEmail">Email</label>
   {{ form.email(id="inputEmail", placeholder="Email") }}
-
-  <label for="inputPassword">Password</label>
   {{ form.password(id="inputPassword", placeholder="Password") }}
-
-  <button type="submit">Sign in</button>
+  <button type="submit" class="btn">Register</button>
 </form>
 {% else %}
 <p>You're already authenticated!</p>
