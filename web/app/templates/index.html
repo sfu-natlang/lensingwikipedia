@@ -3,13 +3,22 @@
 
 {% if g.user.is_authenticated() %}
 
-You've got some content, {{ g.user.email }}!
+Welcome back, {{ g.user.email }}!
 <a href="{{ url_for("logout") }}">Log out</a>
 
 {% else %}
 
-You probably want to log in: <a href="{{ url_for("login") }}">Log in</a>
+<form action="" method="POST" name="login_form">
+  {{ login_form.hidden_tag() }}
+  {{ login_form.email(id="inputEmail", placeholder="Email") }}
+  {{ login_form.password(id="inputPassword", placeholder="Password") }}
+  <button type="submit" class="btn">Sign in</button>
+  <a href="{{ url_for("register") }}">Register?</a>
+</form>
 
 {% endif %}
+
+<h1>Content</h1>
+<p>Lorem ipsum...</p>
 
 {% endblock %}

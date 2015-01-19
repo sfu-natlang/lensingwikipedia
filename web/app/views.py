@@ -17,25 +17,18 @@ def before_request():
     # so that we can access the current user wherever
     g.user = current_user
 
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def index():
+    login_form = forms.Login()
+
+    if login_form.validate_on_submit():
+        login_user(login_form.user)
+        return redirect(url_for("index"))
+
     return render_template("index.html",
-            title="index")
+            title="index",
+            login_form=login_form)
 
-@app.route('/login', methods=["GET", "POST"])
-def login():
-    if g.user is not None and g.user.is_authenticated():
-        return redirect(url_for("index"))
-
-    form = forms.Login()
-
-    if form.validate_on_submit():
-        login_user(form.user)
-        return redirect(url_for("index"))
-
-    return render_template("login.html",
-            title="Log in",
-            form=form)
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
