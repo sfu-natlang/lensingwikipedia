@@ -1,6 +1,8 @@
 *.pyc
-*.html~
+*~
 *.d
+*.swp
+*.swo
 
 web/app.db
 web/local_config.py
