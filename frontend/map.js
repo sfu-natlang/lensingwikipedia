@@ -2,6 +2,8 @@
  * Map control.
  */
 
+var Map = (function () {
+
 // Maximum width of reference point link strokes. Set to one to be constant.
 var mapRefPointMaxWidth = 8;
 
@@ -245,7 +247,7 @@ function drawMarkers(svg, group, proj, initialCounts, contextCounts, refPointLin
 /*
  * Make and manage the extra interface controls.
  */
-function makeMapControls(container, projections, minZoom, maxZoom, defaults) {
+function makeControls(container, projections, minZoom, maxZoom, defaults) {
 	container.append(' \
 		<div class="selbox"> \
 			<button type="button" class="btn btn-mini btn-warning clear mapclear" title="Clear the map selection.">Clear selection</button> \
@@ -399,7 +401,7 @@ function saveSettingsCookie(name, value) {
  * minZoom: minimum allowed zoom level
  * maxZoom: maximum allowed zoom level
  */
-function setupMap(container, initialQuery, globalQuery, mapDataUrl, minZoom, maxZoom) {
+function setup(container, initialQuery, globalQuery, mapDataUrl, minZoom, maxZoom) {
 	// The view space for SVG; this doesn't have to correspond to screen units.
 	var viewBox = { x: 0, y : 0, width: 1024, height: 768 };
 	// Margins for the map.
@@ -408,7 +410,7 @@ function setupMap(container, initialQuery, globalQuery, mapDataUrl, minZoom, max
 	var outerElt = $('<div class="map"></div>').appendTo(container);
 	var topBoxElt = $('<div class="topbox"></div>').appendTo(outerElt);
 	var svgElt = $('<svg viewBox="' + viewBox.x + " " + viewBox.y + " " + viewBox.width + " " + viewBox.height + '" preserveAspectRatio="xMidYMid meet"></svg>').appendTo(outerElt);
-	var loadingIndicator = new LoadingIndicator(outerElt);
+	var loadingIndicator = new LoadingIndicator.LoadingIndicator(outerElt);
 
 	var defaultSettings = {
 		selectionMode: 'toggle',
@@ -420,19 +422,19 @@ function setupMap(container, initialQuery, globalQuery, mapDataUrl, minZoom, max
 		}
 	};
 	loadSettingsCookies(defaultSettings);
-	var initControls = makeMapControls(topBoxElt, mapProjections, minZoom, maxZoom, defaultSettings);
+	var initControls = makeControls(topBoxElt, mapProjections, minZoom, maxZoom, defaultSettings);
 
-	fillElement(container, outerElt, 'vertical');
-	setupPanelled(outerElt, topBoxElt, svgElt, 'vertical', 0, false);
+	LayoutUtils.fillElement(container, outerElt, 'vertical');
+	LayoutUtils.setupPanelled(outerElt, topBoxElt, svgElt, 'vertical', 0, false);
 
-	var svg = jqueryToD3(svgElt);
+	var svg = D3Utils.jqueryToD3(svgElt);
 	var box = { x: viewBox.x + margins.left, y: viewBox.y + margins.top, width: viewBox.width - margins.left - margins.right, height: viewBox.height - margins.top - margins.bottom };
 
-	var ownCnstrQuery = new Query(globalQuery.backendUrl());
-	var constraint = new Constraint();
+	var ownCnstrQuery = new Queries.Query(globalQuery.backendUrl());
+	var constraint = new Queries.Constraint();
 	globalQuery.addConstraint(constraint);
 	ownCnstrQuery.addConstraint(constraint);
-	var contextQuery = new Query(globalQuery.backendUrl(), 'setminus', globalQuery, ownCnstrQuery);
+	var contextQuery = new Queries.Query(globalQuery.backendUrl(), 'setminus', globalQuery, ownCnstrQuery);
 
 	function setLoadingIndicator(enabled) {
 		svgElt.css('display', !enabled ? '' : 'none');
@@ -609,16 +611,16 @@ function setupMap(container, initialQuery, globalQuery, mapDataUrl, minZoom, max
 			updateSelection();
 		}
 	});
-	makeDragEndWatcher(drag, function () {
+	D3Utils.makeDragEndWatcher(drag, function () {
 		mouseDownOnMarker = false;
 	});
-	makeDragPan(drag, function (movement) {
+	D3Utils.makeDragPan(drag, function (movement) {
 		pan = movement;
 		update(true);
 	}, function () { return [pan[0], pan[1]]; }, function () { return panFactor; }, function () {
 		return (selMode == 'toggle' && !mouseDownOnMarker) || selMode == 'pan';
 	});
-	makeDragSelector(drag, svg, "dragselectextent", function (extent) {
+	D3Utils.makeDragSelector(drag, svg, "dragselectextent", function (extent) {
 		if (curState.screenPoints != null) {
 			var offset = projection.panMode == 'translate' ? pan : [0, 0];
 			for (var pointStr in allPointStrs)
@@ -653,7 +655,7 @@ function setupMap(container, initialQuery, globalQuery, mapDataUrl, minZoom, max
 			setLoadingIndicator(true);
 		} else {
 			loadingIndicator.error('counts', false);
-			initialCounts = pairListToDict(result.counts.counts);
+			initialCounts = Utils.pairListToDict(result.counts.counts);
 			refPointLinkLookup = makeRefPointLinkLookup(result.links);
 			for (var pointStr in initialCounts)
 				allPointStrs[pointStr] = true;
@@ -674,7 +676,7 @@ function setupMap(container, initialQuery, globalQuery, mapDataUrl, minZoom, max
 			setLoadingIndicator(true);
 		} else {
 			loadingIndicator.error('counts', false);
-			contextCounts = pairListToDict(result.counts.counts);
+			contextCounts = Utils.pairListToDict(result.counts.counts);
 			update();
 		}
 	});
@@ -693,3 +695,8 @@ function setupMap(container, initialQuery, globalQuery, mapDataUrl, minZoom, max
 
 	initControls();
 }
+
+return {
+	setup: setup
+};
+}());

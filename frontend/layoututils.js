@@ -4,6 +4,8 @@
  * Elements here are given as jquery selection.
  */
 
+var LayoutUtils = (function () {
+
 /*
  * Set an element to fill its container whenever the window size changes.
  * container: container element
@@ -106,3 +108,11 @@ function setupSplitMakeElements(container, orient, contentMakers) {
 	}
 	setupSplit(container, orient, contentElements);
 }
+
+return {
+	fillElement: fillElement,
+	setupPanelled: setupPanelled,
+	setupSplit: setupSplit,
+	setupSplitMakeElements: setupSplitMakeElements
+};
+}());

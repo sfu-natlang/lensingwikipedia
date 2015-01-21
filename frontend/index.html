@@ -43,48 +43,45 @@
 				</div> \
 			</div>').appendTo($('body'));
 
-			setupPanelled($('body'), $('.header'), $('.contentarea'), 'vertical', 4);
-			setupPanelled($('.selectorsarea'), $('#tabbar'), $('.tab-content'), 'vertical');
+			LayoutUtils.setupPanelled($('body'), $('.header'), $('.contentarea'), 'vertical', 4);
+			LayoutUtils.setupPanelled($('.selectorsarea'), $('#tabbar'), $('.tab-content'), 'vertical');
 
-			var initialQuery = new Query(backendUrl);
-			var globalQuery = new Query(backendUrl);
+			var initialQuery = new Queries.Query(FrontendConfig.backendUrl);
+			var globalQuery = new Queries.Query(FrontendConfig.backendUrl);
 
 			function setupSidebar(container, globalQuery) {
 				var cnstrBoxElt = $(".constraintslistbox");
 				var eventDescBoxElt = $(".eventdescriptionslistbox");
 
-				setupConstraintList(cnstrBoxElt, globalQuery);
-				setupEventDescriptionsList(eventDescBoxElt, globalQuery);
+				ConstraintsList.setup(cnstrBoxElt, globalQuery);
+				EventDescriptionsList.setup(eventDescBoxElt, globalQuery);
 
-				setupPanelled(container, cnstrBoxElt, eventDescBoxElt, 'vertical', 0, true);
+				LayoutUtils.setupPanelled(container, cnstrBoxElt, eventDescBoxElt, 'vertical', 0, true);
 			}
 			setupSidebar($(".sidebar"), globalQuery);
 
-			var facetsInfo = [];
-			var facetMakers = $.map(facets, function (title, field) {
+			var facetsExpanded = [];
+			var facetMakers = $.map(FrontendConfig.facets, function (facet) {
 				return function (container) {
-					var constraintsQuery = setupFacet(container, globalQuery, title, field);
-					facetsInfo.push({
-						title: title,
-						field: field,
-						constraintsQuery: constraintsQuery
-					});
+					facetsExpanded.push(Utils.extendObject([facet], {
+						constraintsQuery: Facet.setup(container, globalQuery, facet.title, facet.field)
+					}));
 				}
 			});
-			setupSplitMakeElements($('#facetstab'), 'horizontal', facetMakers);
-			setupStoryline($('#storyline'), globalQuery, facetsInfo);
-			setupTimeline($('#timelinetab'), initialQuery, globalQuery);
-			setupMap($('#maptab'), initialQuery, globalQuery, mapDataUrl, minMapZoom, maxMapZoom);
-			setupTSNE($('#tsnetab'), initialQuery, globalQuery, minMapZoom, maxMapZoom);
-			setupTextSearch($('#textsearchtab'), globalQuery);
+			LayoutUtils.setupSplitMakeElements($('#facetstab'), 'horizontal', facetMakers);
+			Storyline.setup($('#storyline'), globalQuery, facetsExpanded);
+			Timeline.setup($('#timelinetab'), initialQuery, globalQuery);
+			Map.setup($('#maptab'), initialQuery, globalQuery, mapDataUrl, FrontendConfig.minMapZoom, FrontendConfig.maxMapZoom);
+			Tsne.setup($('#tsnetab'), initialQuery, globalQuery, FrontendConfig.minMapZoom, FrontendConfig.maxMapZoom);
+			TextSearch.setup($('#textsearchtab'), globalQuery);
 
-			fillElement($('.tab-content'), $('#facetstab'), 'vertical');
-			fillElement($('.tab-content'), $('#storyline'), 'vertical');
-			fillElement($('.tab-content'), $('#timelinetab'), 'vertical');
-			fillElement($('.tab-content'), $('#maptab'), 'vertical');
-			fillElement($('.tab-content'), $('#tsnetab'), 'vertical');
-			fillElement($('.tab-content'), $('#textsearchtab'), 'vertical');
-			fillElement($('.tab-content'), $('#abouttab'), 'vertical');
+			LayoutUtils.fillElement($('.tab-content'), $('#facetstab'), 'vertical');
+			LayoutUtils.fillElement($('.tab-content'), $('#storyline'), 'vertical');
+			LayoutUtils.fillElement($('.tab-content'), $('#timelinetab'), 'vertical');
+			LayoutUtils.fillElement($('.tab-content'), $('#maptab'), 'vertical');
+			LayoutUtils.fillElement($('.tab-content'), $('#tsnetab'), 'vertical');
+			LayoutUtils.fillElement($('.tab-content'), $('#textsearchtab'), 'vertical');
+			LayoutUtils.fillElement($('.tab-content'), $('#abouttab'), 'vertical');
 
 			// Update the queries only after setting up all the controls
 			initialQuery.update();

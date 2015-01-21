@@ -2,6 +2,8 @@
  * Utilities for d3.
  */
 
+var D3Utils = (function () {
+
 /*
  * Convert a jquery selection to a d3 selection.
  */
@@ -164,3 +166,12 @@ function makeDragEndWatcher(drag, onEnd) {
 		startDrag = null;
 	});
 }
+
+return {
+	jqueryToD3: jqueryToD3,
+	dontScaleSvgParts: dontScaleSvgParts,
+	makeDragPan: makeDragPan,
+	makeDragSelector: makeDragSelector,
+	makeDragEndWatcher: makeDragEndWatcher
+};
+}());

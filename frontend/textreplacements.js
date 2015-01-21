@@ -2,6 +2,8 @@
  * Things especially specific to the The Aviation Herald domain.
  */
 
+var TextReplacements = (function () {
+
 /*
  * Build URL link replacements from Json data.
  * replacementsInfo: parsed Json data for replacements
@@ -38,7 +40,7 @@ function makeURLReplacements(replacementsInfo, baseUrl) {
  *	any non-nesting overlaps with earlier spans. The function may change the
  *	order of elements in the list it is given.
  */
-function normalizeReplacements(replacements) {
+function normalize(replacements) {
 	function dupRep(rep, span) {
 		return {
 			src: rep.src,
@@ -132,7 +134,7 @@ function normalizeReplacements(replacements) {
  * onlyFirst: If set, only the first of any identical replacement for the same
  *	text is applied.
  */
-function applyReplacements(text, replacements, initIndexOffset, clipSpans, onlyFirst) {
+function apply(text, replacements, initIndexOffset, clipSpans, onlyFirst) {
 	function clean(text) {
 		var escapes = { '&': '&amp;', '<': '&lt;', '>': '&gt;' };
 		return text.replace(/\[[0-9]+\]|[&<>]/g, function (old) {
@@ -208,3 +210,10 @@ function applyReplacements(text, replacements, initIndexOffset, clipSpans, onlyF
 
 	return output.join('');
 }
+
+return {
+	makeURLReplacements: makeURLReplacements,
+	normalize: normalize,
+	apply: apply
+};
+}());

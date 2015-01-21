@@ -14,6 +14,8 @@
  * sent to the backend.
  */
 
+var Queries = (function () {
+
 // Keep track of unique IDs for various objects
 var nextConstraintId = 0;
 var nextChangeWatcherId = 0;
@@ -786,7 +788,7 @@ Query.prototype.update = function(postponeFinish) {
 
 		if (!$.isEmptyObject(resultWatchersToUpdate)) {
 			var queryJson = '{"constraints":' + query._getConstraintsJSON() + ',"views":' + query._getViewsJSON(resultWatchersToUpdate) + '}';
-			if (typeof verbose_log != 'undefined' && verbose_log.hasOwnProperty('outgoing_query') && verbose_log.outgoing_query)
+			if (typeof FrontendConfig.verboseLog != 'undefined' && FrontendConfig.verboseLog.hasOwnProperty('outgoingQuery') && FrontendConfig.verboseLog.outgoingQuery)
 				console.log("outgoing query", query._id, queryJson);
 			var sendTime = (new Date()).getTime();
 			var post = $.post(query._backendUrl, queryJson, null, 'json');
@@ -796,7 +798,7 @@ Query.prototype.update = function(postponeFinish) {
 			finish = function () {
 				post.done(function (response) {
 					var replyTime = (new Date()).getTime();
-					if (typeof verbose_log != 'undefined' && verbose_log.hasOwnProperty('incoming_reply') && verbose_log.incoming_reply)
+					if (typeof FrontendConfig.verboseLog != 'undefined' && FrontendConfig.verboseLog.hasOwnProperty('incomingReply') && FrontendConfig.verboseLog.incomingReply)
 						console.log("incoming reply", query._id, response);
 					var currentResultWatchersWithErrors = {};
 					_resultsForResultWatchers(resultWatchersToUpdate, response, true, function (watcher, result) {
@@ -809,7 +811,7 @@ Query.prototype.update = function(postponeFinish) {
 					});
 					query._updateErrorResolvedWatchers(currentResultWatchersWithErrors);
 					var doneTime = (new Date()).getTime();
-					if (typeof verbose_log != 'undefined' && verbose_log.hasOwnProperty('query_timing') && verbose_log.query_timing)
+					if (typeof FrontendConfig.verboseLog != 'undefined' && FrontendConfig.verboseLog.hasOwnProperty('queryTiming') && FrontendConfig.verboseLog.queryTiming)
 						console.log("query timing", "prepare", (sendTime - startTime) / 1000, "wait on backend", (replyTime - sendTime) / 1000, "handle", (doneTime - replyTime) / 1000, "total", (doneTime - startTime) / 1000);
 				});
 			}
@@ -827,3 +829,12 @@ Query.prototype.update = function(postponeFinish) {
 	else
 		finish();
 }
+
+return {
+	ChangeWatcher: ChangeWatcher,
+	ResultWatcher: ResultWatcher,
+	Constraint: Constraint,
+	Continuer: Continuer,
+	Query: Query
+};
+}());

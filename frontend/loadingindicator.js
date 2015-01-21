@@ -2,6 +2,8 @@
  * Loading indicator control.
  */
 
+var LoadingIndicator = (function () {
+
 /*
  * Make a loading indicator on a container element.
  * container: container element as a jquery selection
@@ -41,3 +43,8 @@ LoadingIndicator.prototype.enabled = function(isEnabled) {
 		this._elt.css('display', isEnabled ? '' : 'none');
 	}
 }
+
+return {
+	LoadingIndicator: LoadingIndicator
+};
+}());

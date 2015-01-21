@@ -2,12 +2,14 @@
  * Control which shows all constraints and allows the user to remove them.
  */
 
+var ConstraintsList = (function () {
+
 /*
  * Setup the control in some container element.
  * container: container element as a jquery selection
  * globalQuery: the global query
  */
-function setupConstraintList(container, globalQuery) {
+function setup(container, globalQuery) {
 	var outerElt = $('<div class="constraintslist">').appendTo(container);
 
 	var clearAllElt = $('<button type="button" class="btn btn-block btn-mini btn-warning" title="Remove all current constraints.">Clear all constraints</button></ul>').appendTo(outerElt);
@@ -103,3 +105,8 @@ function setupConstraintList(container, globalQuery) {
 		});
 	});
 }
+
+return {
+	setup: setup
+};
+}());

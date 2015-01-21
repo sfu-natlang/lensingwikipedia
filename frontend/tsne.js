@@ -1,8 +1,10 @@
+var Tsne = (function () {
+
 var constraintIds = {};
 var constraintsChanged = false;
 
-function setupTSNE(container, initialQuery, globalQuery, minZoom, maxZoom) {
-    var constraint = new Constraint();
+function setup(container, initialQuery, globalQuery, minZoom, maxZoom) {
+    var constraint = new Queries.Constraint();
     globalQuery.addConstraint(constraint);
 
     var width = 1024,
@@ -18,12 +20,12 @@ function setupTSNE(container, initialQuery, globalQuery, minZoom, maxZoom) {
 
     makeControls(topBoxElt);
 
-    var loadingIndicator = new LoadingIndicator(outerElt);
+    var loadingIndicator = new LoadingIndicator.LoadingIndicator(outerElt);
 
-    fillElement(container, outerElt, 'vertical');
-    setupPanelled(outerElt, topBoxElt, svgElt, 'vertical', 0, false);
+    LayoutUtils.fillElement(container, outerElt, 'vertical');
+    LayoutUtils.setupPanelled(outerElt, topBoxElt, svgElt, 'vertical', 0, false);
 
-    var svg = jqueryToD3(svgElt);
+    var svg = D3Utils.jqueryToD3(svgElt);
     var box = { x: viewBox.x + margins.left, y: viewBox.y + margins.top, width: viewBox.width - margins.left - margins.right, height: viewBox.height - margins.top - margins.bottom };
 
     function setLoadingIndicator(enabled) {
@@ -208,7 +210,6 @@ function setupTSNE(container, initialQuery, globalQuery, minZoom, maxZoom) {
     }
 }
 
-
 function makeControls(container) {
     container.append(" \
         <div class=\"selbox\"> \
@@ -217,3 +218,8 @@ function makeControls(container) {
         </div> \
     ");
 }
+
+return {
+	setup: setup
+};
+}());

@@ -3,4 +3,4 @@
  */
 
 // URL for the backend.
-backendUrl = "http://localhost:1500";
+FrontendConfig.backendUrl = "http://localhost:1500";
