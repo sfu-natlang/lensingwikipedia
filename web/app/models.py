@@ -12,6 +12,8 @@ class User(db.Model, UserMixin):
     pw_hash = db.Column(db.String)
     role = db.Column(db.SmallInteger, default=ROLE_USER)
 
+    queries = db.relationship("Query", backref="user", lazy="dynamic")
+
     def __init__(self, email, password, *args, **kwargs):
         super(User, self).__init__(*args, **kwargs)
         self.email = email
@@ -31,3 +33,9 @@ class User(db.Model, UserMixin):
 
     def __repr__(self):
         return '<User %r>' % self.email
+
+class Query(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    json = db.Column(db.String)
+
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
