@@ -4,7 +4,138 @@
 
 var Facet = (function () {
 
+function FacetListBox(container, query, field) {
+	this.outerElt = $('<div class="facetlistbox"></div>').appendTo(container);
+	this.loadingIndicator = new LoadingIndicator.LoadingIndicator(this.outerElt);
+	this.listElt = $('<ul></ul>').appendTo(this.outerElt);
+	var moreBoxElt = $('<div class="buttonbox"></div>').appendTo(this.outerElt);
+	this.moreElt = $('<button type="button" class="btn" disabled="true">More</button>').appendTo(moreBoxElt);
+
+	this.selected = {};
+
+	this.handlers = {};
+
+	this.viewValue = {
+		counts: {
+			type: 'countbyfieldvalue',
+			field: field
+		}
+	};
+
+	var resultWatcher = new Queries.ResultWatcher(function () {});
+	resultWatcher.set(this.viewValue);
+	query.addResultWatcher(resultWatcher);
+
+	this.loadingIndicator.enabled(true);
+	this.clearData();
+
+	var listBox = this,
+	    continuer = null;
+	resultWatcher.setCallback(function(result, getContinuer) {
+		listBox._clearList();
+		if (result.counts.hasOwnProperty('error')) {
+			listBox.loadingIndicator.error('counts', true);
+			listBox.loadingIndicator.enabled(true);
+			listBox._setMoreEnabled(false);
+		} else {
+			listBox.loadingIndicator.error('counts', false);
+			listBox.loadingIndicator.enabled(false);
+			continuer = getContinuer();
+			listBox._setMoreEnabled(continuer.hasMore());
+			listBox._addData(result.counts.counts);
+		}
+	});
+	this.moreElt.click(function() {
+		if (continuer != null)
+			continuer.fetchNext(function(result) {
+				listBox._addData(result.counts.counts);
+			});
+	});
+	query.onChange(function () {
+		listBox.loadingIndicator.enabled(true);
+		listBox._clearList();
+	});
+}
+
+FacetListBox.prototype.on = function (eventType, callback) {
+	if (!this.handlers.hasOwnProperty(eventType))
+		this.handlers[eventType] = [];
+	this.handlers[eventType].push(callback);
+}
+
+FacetListBox.prototype._trigger = function (eventType, value, fromEvent, elt) {
+	if (this.handlers.hasOwnProperty(eventType)) {
+		var handlers = this.handlers[eventType];
+		for (var i = 0; i < handlers.length; i++)
+			handlers[i](value, fromEvent, elt);
+	}
+}
+
+FacetListBox.prototype._toggleSelected = function (value, elt, fromEvent) {
+	if (this.selected.hasOwnProperty(value)) {
+		delete this.selected[value];
+		this.viewValue.counts.requiredkeys = this.viewValue.counts.requiredkeys.splice($.inArray(value, this.viewValue.counts.requiredkeys), 1);
+		if (this.viewValue.counts.length == 0)
+			delete this.viewValue.counts['requredValues'];
+		elt.removeClass('selected');
+		this._trigger('unselect', value, fromEvent, elt);
+	} else {
+		this.selected[value] = true;
+		if (!this.viewValue.counts.hasOwnProperty('requiredkeys'))
+			this.viewValue.counts.requiredkeys = [];
+		this.viewValue.counts.requiredkeys.push(value)
+		elt.addClass('selected');
+		this._trigger('select', value, fromEvent, elt);
+	}
+}
+
+FacetListBox.prototype._clearList = function () {
+	this.listElt.find('li').remove();
+}
+
+FacetListBox.prototype.clearData = function () {
+	this.selected = {};
+	this._clearList();
+}
+
+FacetListBox.prototype._addData = function (data) {
+	var listBox = this;
+	function addValue(value, count) {
+		var isSelected = listBox.selected.hasOwnProperty(value);
+		var classStr = isSelected ? ' class="selected"' : '';
+		var bracketedCountStr = count == null ? '' : ' [' + count + ']';
+		var countStr = count == null ? 'no' : count;
+		var itemElt = $('<li' + classStr + ' title="Value \'' + value + '\' is in ' + countStr + ' events under current constraints. Click to select it.">' + value + bracketedCountStr + '</li>').appendTo(listBox.listElt);
+		itemElt.click(function(fromEvent) {
+			listBox._toggleSelected(value, itemElt, fromEvent);
+		});
+		if (isSelected)
+			listBox._trigger('select', value, null, itemElt);
+	}
+	$.each(data, function (itemI, item) {
+		addValue(item[0], item[1]);
+	});
+}
+
+FacetListBox.prototype._setMoreEnabled = function (enabled) {
+	if (enabled) {
+		this.moreElt.addClass('btn-primary');
+		this.moreElt.removeAttr('disabled');
+	} else {
+		this.moreElt.removeClass('btn-primary');
+		this.moreElt.attr('disabled', 'disabled');
+	}
+}
+
 var facetDefaultIsConjunctive = true;
+
+function setupTest(container, globalQuery, name, field) {
+	var facetElt = $("<div class=\"facet\"></div>").appendTo(container);
+	var listBox = new FacetListBox(facetElt, globalQuery, field);
+	LayoutUtils.fillElement(container, facetElt, 'vertical');
+	LayoutUtils.fillElement(facetElt, listBox.outerElt, 'vertical');
+	globalQuery.update();
+}
 
 /*
  * Setup the control in some container element.
@@ -28,7 +159,7 @@ function setup(container, globalQuery, name, field, isConjunctive) {
 	var searchInputElt = $("<input type=\"text\" autocomplete=\"off\" data-provide=\"typeahead\" title=\"Enter search term here.\"></input>").appendTo($("<div class=\"inputbox\"></div>").appendTo(searchBoxElt));
 	var search = searchInputElt.typeahead();
 
-	var listBoxElt = $("<div class=\"listbox\"></div>").appendTo(facetElt);
+	var listBoxElt = $("<div class=\"facetlistbox\"></div>").appendTo(facetElt);
 	var loadingIndicator = new LoadingIndicator.LoadingIndicator(listBoxElt);
 	var listElt = $("<ul></ul>").appendTo(listBoxElt);
 	var moreBoxElt = $("<div class=\"buttonbox\"></div>").appendTo(listBoxElt);
@@ -291,6 +422,8 @@ function setup(container, globalQuery, name, field, isConjunctive) {
 }
 
 return {
-	setup: setup
+	setup: setup,
+	setupTest: setupTest,
+	FacetListBox: FacetListBox
 };
 }());

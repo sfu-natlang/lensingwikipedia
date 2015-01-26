@@ -22,10 +22,9 @@
 	margin: 1em;
 }
 .storyline select.btn {
-	height: auto;
-	line-height: 14px;
 	display: inline;
 	margin: 0 4px 0 4px;
+	height: 20px;
 }
 .storyline .inputbox {
 	display: block;
@@ -97,4 +96,49 @@
 .storyline .brush .extent {
 	fill: #3a87ad;
 	fill-opacity: .5;
+}
+.storyline .btn-mini {
+	height: 20px;
+}
+
+.storyline .facetlistbox {
+	margin: 0;
+	padding: 0;
+	overflow-y: scroll;
+}
+.storyline .facetlistbox.selected {
+	background-color: rgba(58, 135, 173, 0.5);
+}
+
+.storyline .facetlistbox ul {
+	margin: 1em;
+	padding: 0;
+}
+.storyline .facetlistbox ul li {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	white-space: nowrap;
+}
+.storyline .facetlistbox ul li:before {
+	content: "\2713";
+	color: white;
+	margin-right: 0.5em;
+	padding-left: 0.25em;
+	padding-right: 0.25em;
+}
+.storyline .facetlistbox ul li.selected:before {
+	color: black;
+}
+.storyline .facetlistbox ul li:hover:before {
+	content: "\2713";
+	color: darkgray;
+}
+.storyline .facetlistbox .buttonbox {
+	text-align: center;
+	margin: 0;
+	padding: 0;
+}
+.storyline .facetlistbox button {
+	margin: 0em auto 1em auto;
 }
