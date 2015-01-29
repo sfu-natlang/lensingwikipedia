@@ -20,7 +20,7 @@ cd $W_DIR
 ### STEP 1: crawling the main domain ###
 ########################################
 echo "Running eventSpider to crawl wiki articles"
-scrapy runspider -a outDir=$DUMP_Dir -a endYear='2014' $SCRIPT_PATH/spiders/eventSpiderSplit.py
+scrapy runspider -a outDir=$DUMP_Dir -a startYear='-1500' -a endYear='2014' $SCRIPT_PATH/spiders/eventSpiderSplit.py
 
 ### STEP 2: Running CORENLP ###
 ###############################
@@ -32,7 +32,7 @@ for dir in $(find $DUMP_Dir -mindepth 1 -type d); do
 	java -cp $CORENLP/stanford-corenlp-3.2.0.jar:$CORENLP/stanford-corenlp-3.2.0-models.jar:$CORENLP/xom.jar:$CORENLP/joda-time.jar:$CORENLP/jollyday.jar -Xmx3g edu.stanford.nlp.pipeline.StanfordCoreNLP -annotators tokenize,ssplit,pos,lemma,ner,parse,dcoref -filelist $dir/path.txt -outputDirectory $dir -outputExtension .xml -replaceExtension 
 done
 
-#rm newJ.json
+#rm events.json
 #rm outCoRef.txt
 #rm NER.loc
 #rm NER.per
@@ -41,7 +41,7 @@ done
 
 echo "Extracting locations recognized by NER (\"locFromNER.txt\") and tokenized descriptions (\"eventDescription.ner.tok\") to run SRL"
 for dir in $(find $DUMP_Dir -mindepth 1 -type d); do
-	$PYPATH $SCRIPT_PATH/coRefResolution.py $dir NER newJ.json >> outCoRef.txt
+	$PYPATH $SCRIPT_PATH/coRefResolution.py $dir NER events.json >> outCoRef.txt
 done
 
 #NER.tok:		each line is one event (tokenized)
@@ -56,7 +56,7 @@ done
 cd $W_DIR
 
 echo "Running locationSpider to crawl all links and specified locations"
-scrapy runspider -a infile='newJ.json' -a outfile='url.json' -a outfileLoc='location.json' -a outfilePer='person.json' -a outfileOrg='organization.json' $SCRIPT_PATH/spiders/entitySpider.py
+scrapy runspider -a infile='events.json' -a outfile='url.json' -a outfileLoc='location.json' -a outfilePer='person.json' -a outfileOrg='organization.json' $SCRIPT_PATH/spiders/entitySpider.py
 echo "Running nerLocSpider to crawl corresponding wiki articles and recognize locations"
 scrapy runspider -a infile='NER.loc' -a outfile='locFromNER.json' $SCRIPT_PATH/spiders/nerLocSpider.py
 echo "Running nerPersonSpider to crawl corresponding wiki articles and recognize persons"
@@ -125,4 +125,4 @@ cd $W_DIR
 
 echo "Writing the final json file"
 
-$PYPATH $SCRIPT_PATH/prepareJson.py descriptions.srl locationDictionary.json organizationDictionary.json personDictionary.json url.json newJ.json fullData.json
+$PYPATH $SCRIPT_PATH/prepareJson.py descriptions.srl locationDictionary.json organizationDictionary.json personDictionary.json url.json events.json fullData.json
