@@ -5,6 +5,18 @@
 
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}">
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/base.css') }}">
+
+  {# PUT COMMON CSS / JS FILES HERE #}
+
+  {% if config.DOMAIN == "wikipediahistory %}
+
+  {% elif config.DOMAIN == "avherald" %}
+
+  {% else %}
+
+  {% endif %}
+
+
   </head>
   <body>
   {% block content %}
