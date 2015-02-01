@@ -3,6 +3,11 @@ This code is implemented using Flask.
 Setup
 =====
 
+It's strongly recommended to set up a virtualenv for this:
+
+    virtualenv venv
+    source venv/bin/activate
+
 To install all necessary packages:
 
     pip install -r requirements.txt
