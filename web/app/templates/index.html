@@ -14,25 +14,28 @@
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/timeline.css') }}">
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/tsne.css') }}">
 
-  <script src="{{ url_for('static', filename='js/constraintslist.js') }}"></script>
+  <script>
+    backendUrl = "http://localhost:1500";
+  </script>
+
+  <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/layoututils.js') }}"></script>
   <script src="{{ url_for('static', filename='js/d3utils.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/descriptions.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/timeaxisutils.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/loadingindicator.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/queries.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/constraintslist.js') }}"></script>
   <script src="{{ url_for('static', filename='js/eventdescriptionslist.js') }}"></script>
   <script src="{{ url_for('static', filename='js/facet.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/frontendsettings.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/layoututils.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/loadingindicator.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/map.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/oursheader.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/queries.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/settings_defaults.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/storyline.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/storylinelayout.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/textsearch.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/timeaxisutils.js') }}"></script>
   <script src="{{ url_for('static', filename='js/timeline.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/map.js') }}"></script>
   <script src="{{ url_for('static', filename='js/tsne.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/textsearch.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/storylinelayout.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/storyline.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/descriptions.js') }}"></script>
+
+  <script src="{{ url_for('static', filename='js/oursheader.js') }}"></script>
 
   {% if config.DOMAIN == "wikipediahistory" %}
 

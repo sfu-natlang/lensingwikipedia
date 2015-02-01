@@ -5,7 +5,7 @@
 // Range of allowed map zoom levels
 minMapZoom = 1, maxMapZoom = 5;
 // URL for the map data file (can be relative to the path where the frontend is running)
-mapDataUrl = "map.json";
+mapDataUrl = "static/js/map.json";
 // List of facets by field name (to ask the backend for) and title (to show the user)
 facets = {
 	"role": "Role",
