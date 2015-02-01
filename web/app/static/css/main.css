@@ -1,0 +1,91 @@
+body,html {
+	margin: 0;
+	padding: 0;
+	height: 100%;
+}
+
+.header {
+	background-color: AntiqueWhite;
+	color: black;
+	margin: 0;
+	padding: 2px 1em 2px 1em;
+}
+.header .about {
+	float: right;
+}
+.contentarea {
+	margin: 0;
+	padding: 0;
+}
+
+div.sidebar {
+	float: left;
+	height: 100%;
+	width: 25%;
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+}
+div.selectorsarea {
+	float: right;
+	height: 100%;
+	width: 75%;
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+}
+
+#facetstab,#timelinetab,#maptab {
+	height: 100%;
+	width: 100%;
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+}
+.splitpartbox {
+	float: left;
+	height: 100%;
+	width: 100%;
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+}
+.constraintslistbox {
+	margin: 0;
+	padding: 0;
+}
+.eventdescriptionslistbox {
+	margin: 0;
+	padding: 0;
+}
+
+/* Change the spacing on bootstrap's tab elements to make vertical sizing */
+.nav-pills {
+	margin: 0;
+	padding: 0;
+}
+.nav-pills li {
+	margin: 10px 10px 5px 10px;
+	padding: 0;
+}
+.nav-pills li a {
+	margin: 0;
+	padding: 10px;
+	line-height: 32px;
+}
+
+noscript {
+	margin: 1em auto 1em auto;
+	padding: 1em;
+	width: 80%;
+	display: block;
+	background-color: yellow;
+	border-width: 4;
+	border-color: black;
+	border-style: dashed;
+	text-align: center;
+}
+
+body.about {
+	margin: 1em;
+}
