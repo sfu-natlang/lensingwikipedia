@@ -18,3 +18,6 @@ We use scrapy to crawl wikipedia articles. All scripts are in ```spiders```. See
 
 # Usage
 
+```
+sh dataPrepration.sh <Crawl_Dir> <start_year> <end_year>
+```
