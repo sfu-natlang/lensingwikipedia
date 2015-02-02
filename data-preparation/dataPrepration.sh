@@ -1,4 +1,4 @@
-#!/bin/bashi -l
+#!/bin/bash
 
 UIUC_DIR=/cs/natlang-sw/Linux-x86_64/NL/TOOLKITS/UIUCSRL/2.0/
 PYPATH=/cs/natlang-sw/Linux-x86_64/NL/LANG/PYTHON/2.7.3/bin/python
@@ -8,7 +8,7 @@ SCRIPT_PATH=/cs/grad3/msiahban/testSVN/lensingwikipedia/data-preparation
 W_DIR="$1"_"$2"_"$3"
 START_YEAR="$2"
 END_YEAR="$3"
-module load NL/LANG/PYTHON/2.7.3
+#module load NL/LANG/PYTHON/2.7.3
 #module load NL/TOOLKITS/UIUCSRL/2.0
 
 mkdir -p $W_DIR
@@ -19,8 +19,8 @@ cd $W_DIR
 ### STEP 1: crawling the main domain ###
 ########################################
 echo "Running eventSpider to crawl wiki articles"
+which python
 scrapy runspider -a outDir=$DUMP_Dir -a startYear=$START_YEAR -a endYear=$END_YEAR $SCRIPT_PATH/spiders/eventSpider.py
-
 ### STEP 2: Running CORENLP ###
 ###############################
 
