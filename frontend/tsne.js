@@ -223,13 +223,13 @@ function setup(container, initialQuery, globalQuery, minZoom, maxZoom) {
             brushed();
             alert("Selection of more than 300 points is not supported currently.");
         } else if (selectedPoints.length > 0) {
-                constraint.name("Cluster: " + selectedPoints.length + (selectedPoints.length == 1 ? " point" : " points"));
-                constraint.set( {
-                    type: 'tsneCoordinates',
-                    points: selectedPoints
-                });
+            constraint.name("Cluster: " + selectedPoints.length + (selectedPoints.length == 1 ? " point" : " points"));
+            constraint.set( {
+                type: 'tsneCoordinates',
+                points: selectedPoints
+            });
 
-                globalQuery.update();
+            globalQuery.update();
         }
 
     }
