@@ -147,8 +147,14 @@ function setupTSNE(container, initialQuery, globalQuery, minZoom, maxZoom) {
       circle.each(function(d) { d.selected = false; });
       search(quadtree, extent[0][0], extent[0][1], extent[1][0], extent[1][1]);
       circle.classed("selected", function(d) { 
+        if (d.selected)
+          constraintIds[d[2]] = true;
+        else
+          delete constraintIds[d[2]];
         return d.selected;
       });
+
+      renderSelectionTooltip(Object.keys(constraintIds).length);
     }
 
     function brushended() {
@@ -165,30 +171,10 @@ function setupTSNE(container, initialQuery, globalQuery, minZoom, maxZoom) {
         var p = node.point;
         if (p) {
             p.selected = (p[0] >= x0) && (p[0] < x3) && (p[1] >= y0) && (p[1] < y3);
-            if (p.selected) {
-                constraintSelection(p);
-            } else {
-                removeFromConstraints(p);
-            }
+            constraintsChanged = true;
         }
         return x1 >= x3 || y1 >= y3 || x2 < x0 || y2 < y0;
       });
-    }
-
-    function constraintSelection(d) {
-        if (!(d[2] in constraintIds)) {
-            constraintIds[d[2]] = true;
-            constraintsChanged = true;
-        }
-        renderSelectionTooltip(Object.keys(constraintIds).length);
-    }
-
-    function removeFromConstraints(d) {
-        //if (d[2] in constraintIds) {
-            delete constraintIds[d[2]];
-            constraintsChanged = true;
-        //}
-        renderSelectionTooltip(Object.keys(constraintIds).length);
     }
 
     function renderSelectionTooltip(d) {
