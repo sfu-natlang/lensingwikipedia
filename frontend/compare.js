@@ -8,6 +8,8 @@ var data_allNames = [];
 
 var hidden_names = [];
 
+var current_domain = null;
+
 /*
  * Setup the control in some container element.
  * container: container element as a jquery selection
@@ -375,6 +377,8 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 	var merged_data = processed.merged;
 	var yearly_data = processed.yearly;
 
+	var complete_domain = d3.extent(merged_data, function(d) { return d.date; });
+
 	var parseDate = d3.time.format("%Y").parse;
 
 	d3.select("#comparesvg").selectAll("*").remove();
@@ -449,15 +453,20 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 
 	color.domain(names);
 
-	x.domain(d3.extent(merged_data, function(d) { return d.date; }));
+	if (!current_domain) {
+		current_domain = complete_domain;
+	}
+	x.domain(current_domain);
 
 	y.domain([
 		d3.min(persons, function(c) { return d3.min(c.values, function(v) { return v.count; }); }),
 		d3.max(persons, function(c) { return d3.max(c.values, function(v) { return v.count; }); })
 	]);
 
-	x2.domain(x.domain());
+	x2.domain(complete_domain);
 	y2.domain(y.domain());
+
+	yRescale();
 
 	focus.append("g")
 			.attr("class", "x axis")
@@ -541,6 +550,10 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 		.x(x2)
 		.on("brush", brushed);
 
+	if (current_domain !== complete_domain) {
+		brush.extent(current_domain);
+	}
+
 	context.append("g")
 		.attr("class", "x brush")
 			.call(brush)
@@ -573,7 +586,8 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 	}
 
 	function brushed() {
-		x.domain(brush.empty() ? x2.domain() : brush.extent());
+		current_domain = brush.empty() ? x2.domain() : brush.extent();
+		x.domain(current_domain);
 
 		focus.selectAll(".line").attr("d", function(d) { return line(d.values); });
 		focus.select(".x.axis").call(xAxis);
