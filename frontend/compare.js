@@ -440,10 +440,14 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 		hoverLine.classed("hide", true);
 
 	var line = d3.svg.line()
-		.interpolate("monotone")
-		.tension(0.85)
+		.interpolate("bundle")
+		.tension(1)
 		.x(function(d) { return x(d.date); })
 		.y(function(d) { return y(d.count); });
+
+	if (smooth_k <= 0) {
+		line = line.interpolate("monotone");
+	}
 
 	var line2 = d3.svg.line()
 		.interpolate("monotone")
