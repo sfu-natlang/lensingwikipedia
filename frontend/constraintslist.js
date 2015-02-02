@@ -39,6 +39,7 @@ function setup(container, globalQuery) {
 		container.trigger('changedSize');
 		cnstrElt.click(function() {
 			cnstr.clear();
+			$(".clusterclear").click();
 			globalQuery.update();
 			removeElement(cnstrElt);
 		});

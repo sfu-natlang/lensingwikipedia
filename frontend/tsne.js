@@ -84,9 +84,14 @@ function setup(container, initialQuery, globalQuery, minZoom, maxZoom) {
     var quadtree;
 
     //Initialize Tooltip
-    var tooltip = d3.select("body").append("div")   
-    .attr("class", "tooltip")               
-    .style("opacity", 0);
+    var selectionTooltip = d3.select("body").append("div")
+        .attr("class", "tooltip")
+        .style("opacity", 0)
+        .style("width", "auto");
+
+    var tooltip = d3.select("body").append("div")
+        .attr("class", "tooltip")
+        .style("opacity", 0);
     var tooltipRendered = false;
 
 
@@ -116,7 +121,7 @@ function setup(container, initialQuery, globalQuery, minZoom, maxZoom) {
             .attr("r", 2.5)
             .attr("transform", transform)
             .on("mouseover", renderTooltip)
-            .on("mouseout", renderTooltip);
+            .on("mouseout", turnOffTooltip);
 
         svg.append("g")
             .attr("class", "brush")
@@ -143,7 +148,15 @@ function setup(container, initialQuery, globalQuery, minZoom, maxZoom) {
       var extent = brush.extent();
       circle.each(function(d) { d.selected = false; });
       search(quadtree, extent[0][0], extent[0][1], extent[1][0], extent[1][1]);
-      circle.classed("selected", function(d) { return d.selected; });
+      circle.classed("selected", function(d) { 
+        if (d.selected)
+          constraintIds[d[2]] = true;
+        else
+          delete constraintIds[d[2]];
+        return d.selected;
+      });
+
+      renderSelectionTooltip(Object.keys(constraintIds).length);
     }
 
     function brushended() {
@@ -151,6 +164,7 @@ function setup(container, initialQuery, globalQuery, minZoom, maxZoom) {
             updateTextConstraints();
             constraintsChanged = false;
         }
+        renderSelectionTooltipOff();
     }
 
     // Find the nodes within the specified rectangle.
@@ -159,39 +173,39 @@ function setup(container, initialQuery, globalQuery, minZoom, maxZoom) {
         var p = node.point;
         if (p) {
             p.selected = (p[0] >= x0) && (p[0] < x3) && (p[1] >= y0) && (p[1] < y3);
-            if (p.selected) {
-                constraintSelection(p);
-            }
+            constraintsChanged = true;
         }
         return x1 >= x3 || y1 >= y3 || x2 < x0 || y2 < y0;
       });
     }
 
-    function constraintSelection(d) {
-        if (!(d[2] in constraintIds)) {
-            constraintIds[d[2]] = true;
-            constraintsChanged = true;
-        }
-    }
-    
-    function renderTooltip(d) {
-        if (tooltipRendered == false) {
-            tooltipRendered = true;
-            tooltip.transition().duration(200).style("opacity", 1);      
-            tooltip.html(d[3])
-            .style("left", (d3.event.pageX) + "px")
-            .style("top", (d3.event.pageY - 28) + "px");   
-        } else {
-            tooltipRendered = false;
-            tooltip.transition().duration(500).style("opacity", 0)
-        }
-        
+    function renderSelectionTooltip(d) {
+        selectionTooltip.transition().duration(0).style("opacity", 1);
+        selectionTooltip.html('Points Selected: ' + d)
+            .style("left", (event.pageX - 130) + "px")
+            .style("top", (event.pageY - 33) + "px");
     }
 
-    topBoxElt.find(".selbox .clear").bind('click', function () {
+    function renderSelectionTooltipOff() {
+        selectionTooltip.transition().duration(0).style("opacity", 0);
+    }
+
+    function renderTooltip(d) {
+        tooltip.transition().duration(0).style("opacity", 1);      
+        tooltip.html(d[3])
+            .style("left", (event.pageX) + "px")
+            .style("top", (event.pageY - 28) + "px");
+    }
+
+    function turnOffTooltip(d) {
+        tooltip.transition().duration(0).style("opacity", 0)
+    }
+
+    topBoxElt.find(".selbox .clusterclear").bind('click', function () {
         constraintIds = {}
         d3.selectAll(".brush").call(brush.clear());
         brushed();
+        brushended();
     });
 
     function updateTextConstraints() {
@@ -200,13 +214,24 @@ function setup(container, initialQuery, globalQuery, minZoom, maxZoom) {
             selectedPoints.push(key);
         }
 
-        constraint.name("Cluster: " + selectedPoints.length + (selectedPoints.length == 1 ? " point" : " points"));
-        constraint.set( {
-            type: 'tsneCoordinates',
-            points: selectedPoints
-        });
-        
-        globalQuery.update();
+        /**
+        * Hack fix to not allow more than 300 selections at a time.
+        */
+        if (selectedPoints.length > 300) {
+            constraintIds = {}
+            d3.selectAll(".brush").call(brush.clear());
+            brushed();
+            alert("Selection of more than 300 points is not supported currently.");
+        } else {
+            constraint.name("Cluster: " + selectedPoints.length + (selectedPoints.length == 1 ? " point" : " points"));
+            constraint.set( {
+                type: 'tsneCoordinates',
+                points: selectedPoints
+            });
+
+            globalQuery.update();
+        }
+
     }
 }
 
