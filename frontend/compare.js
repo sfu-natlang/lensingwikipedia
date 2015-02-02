@@ -601,6 +601,9 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 
 			var year = x.invert(mouseX).getFullYear();
 			updateLegendValues(year);
+
+			d3.select("#legend-year").attr("transform", function(d, i) {
+				return "translate(" + (mouseX) + "," + (detailBox.height + detailBox.y + 5) + ")"; })
 		} else {
 			// proactively act as if we've left the area since we're out of the bounds we want
 			handleMouseOutGraph(event)
