@@ -14,6 +14,7 @@ We use scrapy to crawl wikipedia articles. All scripts are in ```spiders```. See
 * Linux
 * Stanford CoreNLP 3.2.0
 * Illinois Semantic Role Labeler (UIUCSRL 2.0)
+* Google Geocoding API
 
 # Usage
 

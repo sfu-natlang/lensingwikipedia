@@ -30,9 +30,9 @@ class eventSpider(BaseSpider):
 			if self.outDir[-1]!= '/': self.outDir += '/'
 			startYear=int(kwargs['startYear'])
 			endYear=int(kwargs['endYear'])
-			assert endYear < startYear
+			assert startYear <= endYear 
 		except:
-			print >>sys.stderr, "eventSpider needs 4 arguments: outDir, outFile, startYear, endYear"
+			print >>sys.stderr, "eventSpider needs 3 arguments: outDir, startYear, endYear"
 			exit(1)
 		startingAdd = "http://en.wikipedia.org/wiki/"
 		self.start_urls = []
