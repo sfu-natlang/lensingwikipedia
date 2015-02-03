@@ -124,7 +124,7 @@ These are instructions for the wikipedia crawl. The avherald and other domains w
     chmod g+s data
     cd data
     # create full.index in data/wikipedia/latest (use current date) using instructions in the backend README
-    python2.7 buildindex /var/www/html/data/wikipedia/latest/fullData.latest.index /var/www/html/data/wikipedia/latest/fullData.json
+    python2.7 buildindex /var/www/html/data/wikipedia/latest/fullData.index /var/www/html/data/wikipedia/latest/fullData.json
     python2.7 cluster /var/www/html/data/wikipedia/latest/fullData.index
     python2.7 tsne /var/www/html/data/wikipedia/latest/fullData.index
 
