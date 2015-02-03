@@ -50,7 +50,8 @@ FacetListBox.prototype._watchQuery = function (query, viewValue) {
 		listBox._setData(dataCounts);
 	});
 
-	this.moreElt.click(function() {
+	listBox.moreElt.click(function(fromEvent) {
+		listBox._trigger('more', null, fromEvent, listBox.moreElt);
 		if (continuer != null)
 			continuer.fetchNext(function(result) {
 				dataCounts = dataCounts.concat(result.counts.counts);
