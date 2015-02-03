@@ -497,6 +497,14 @@ function drawAll(svg, detailBox, selectBox, data, initialBrushExtent, useFieldPr
 	var detailPlot = drawDiagram(svg, detailBox, clipId, data, layout, layoutHeight, nodeWidth, lineWidth, true, true, useFieldPrefixes, importantEntities, entityColour, onSelectNode, onSelectEntityLine);
 	var selectPlot = drawDiagram(svg, selectBox, clipId, data, layout, layoutHeight, nodeWidth, lineWidth, false, false, useFieldPrefixes, importantEntities, entityColour, null, null);
 
+	if (layout.visNodes.length == 0) {
+		detailPlot.draw.append('text')
+			.attr('class', "instructions")
+			.attr('transform', "translate(" + (detailBox.width / 2) + "," + (detailBox.height / 2) + ")")
+			.style('text-anchor', 'middle')
+			.text("No matches");
+	}
+
 	var brush = null;
 	function updateBrush() {
 		detailPlot.updateX(brush.empty() ? selectPlot.scales.x.domain() : brush.extent());
