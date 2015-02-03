@@ -12,27 +12,30 @@ function FacetListBox(container, query, field) {
 	this.moreElt = $('<button type="button" class="btn" disabled="true">More</button>').appendTo(moreBoxElt);
 
 	this.selected = {};
-
-	this.handlers = {};
-
 	this.viewValue = {
 		counts: {
 			type: 'countbyfieldvalue',
 			field: field
 		}
 	};
-
-	var resultWatcher = new Queries.ResultWatcher(function () {});
-	resultWatcher.set(this.viewValue);
-	query.addResultWatcher(resultWatcher);
+	this.handlers = {};
 
 	this.loadingIndicator.enabled(true);
 	this.clearData();
+	this._watchQuery(query, this.viewValue);
+}
 
+FacetListBox.prototype._watchQuery = function (query, viewValue) {
 	var listBox = this,
+	    dataCounts = null,
 	    continuer = null;
+
+	var resultWatcher = new Queries.ResultWatcher(function () {});
+	resultWatcher.set(viewValue);
+	query.addResultWatcher(resultWatcher);
+
 	resultWatcher.setCallback(function(result, getContinuer) {
-		listBox._clearList();
+		dataCounts = [];
 		if (result.counts.hasOwnProperty('error')) {
 			listBox.loadingIndicator.error('counts', true);
 			listBox.loadingIndicator.enabled(true);
@@ -42,15 +45,19 @@ function FacetListBox(container, query, field) {
 			listBox.loadingIndicator.enabled(false);
 			continuer = getContinuer();
 			listBox._setMoreEnabled(continuer.hasMore());
-			listBox._addData(result.counts.counts);
+			dataCounts = dataCounts.concat(result.counts.counts);
 		}
+		listBox._setData(dataCounts);
 	});
+
 	this.moreElt.click(function() {
 		if (continuer != null)
 			continuer.fetchNext(function(result) {
-				listBox._addData(result.counts.counts);
+				dataCounts = dataCounts.concat(result.counts.counts);
+				listBox._setData(dataCounts);
 			});
 	});
+
 	query.onChange(function () {
 		listBox.loadingIndicator.enabled(true);
 		listBox._clearList();
@@ -98,8 +105,9 @@ FacetListBox.prototype.clearData = function () {
 	this._clearList();
 }
 
-FacetListBox.prototype._addData = function (data) {
+FacetListBox.prototype._setData = function (dataCounts) {
 	var listBox = this;
+
 	function addValue(value, count) {
 		var isSelected = listBox.selected.hasOwnProperty(value);
 		var classStr = isSelected ? ' class="selected"' : '';
@@ -112,8 +120,24 @@ FacetListBox.prototype._addData = function (data) {
 		if (isSelected)
 			listBox._trigger('select', value, null, itemElt);
 	}
-	$.each(data, function (itemI, item) {
-		addValue(item[0], item[1]);
+
+	this._clearList();
+
+	var extraToAdd = {};
+	$.each(this.selected, function (value) {
+		extraToAdd[value] = true;
+	});
+
+	$.each(dataCounts, function (itemI, item) {
+		var value = item[0],
+		    count = +item[1];
+		addValue(value, count);
+		if (extraToAdd.hasOwnProperty(value))
+			delete extraToAdd[value];
+	});
+
+	$.each(extraToAdd, function (value) {
+		addValue(value, 0);
 	});
 }
 
