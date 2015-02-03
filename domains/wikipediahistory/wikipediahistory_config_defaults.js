@@ -16,14 +16,11 @@ facets = [
 	},
 	{
 		field: "person",
-		title: "Person",
-		storylineInclude: true,
-		storylineDefault: true
+		title: "Person"
 	},
 	{
 		field: "organization",
-		title: "Organization",
-		storylineInclude: true
+		title: "Organization"
 	},
 	{
 		field: "location",
@@ -36,6 +33,18 @@ facets = [
 ];
 // Field to use to define clusters in the storyline
 storylineClusterField = "referencePoints";
+// List of fields to use in the storyline view
+storylineFields = [
+	{
+		field: "person",
+		title: "Person",
+		isDefault: true
+	},
+	{
+		field: "organization",
+		title: "Organization"
+	}
+];
 // Verbose log settings that can be set in the browser console
 verboseLog = {
 	// Print out the queries being sent to the backend

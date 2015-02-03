@@ -26,8 +26,8 @@ var storylineQueryHelpText = " \
 	<ul class=\"fieldexamples\"> \
 	</ul> \
 "
-var storylineFacetHelpText = " \
-	Make a selection in the facet to generate a storyline. \
+var storylineInitHelpText = " \
+	Make a selection in the entity menu to generate a storyline. \
 "
 
 /*
@@ -213,7 +213,7 @@ function makeLayout(data, importantEntities, layoutHeight, layoutMarginSlots) {
 	return layout;
 }
 
-function drawDiagram(svg, box, clipId, data, layout, layoutHeight, nodeWidth, lineWidth, drawLabels, doMouseovers, useFieldPrefixes, importantEntities, onChooseNode, onChooseEntityLine) {
+function drawDiagram(svg, box, clipId, data, layout, layoutHeight, nodeWidth, lineWidth, drawLabels, doMouseovers, useFieldPrefixes, importantEntities, entityColour, onChooseNode, onChooseEntityLine) {
 	var yScale = box.height / layoutHeight;
 
 	var draw = svg.append('g')
@@ -258,7 +258,6 @@ function drawDiagram(svg, box, clipId, data, layout, layoutHeight, nodeWidth, li
 	var yLineOffset = (layout.ySpacePerSlot / 2) * yScale,
 	    yNodeOffset = (layout.ySpacePerSlot * 0.1) * yScale;
 
-	var linesColour = d3.scale.category10()
 	var linesLine = d3.svg.diagonal()
 		.source(function (l) {
 			return {
@@ -296,7 +295,7 @@ function drawDiagram(svg, box, clipId, data, layout, layoutHeight, nodeWidth, li
 		.attr('clip-path', "url(#" + clipId + ")")
 		.attr("class", function (l) { return classForEntityLine(l.entityLine); })
 		.style('stroke-width', lineWidth)
-		.style("stroke", function(l, i) { return linesColour(l.entityLine.entityId); });
+		.style("stroke", function(l, i) { return entityColour(l.entityLine.entityId); });
 	if (doMouseovers)
 		lineMouseovers(lines);
 	var lineSingletons = draw.append("g")
@@ -307,8 +306,8 @@ function drawDiagram(svg, box, clipId, data, layout, layoutHeight, nodeWidth, li
 		.attr('clip-path', "url(#" + clipId + ")")
 		.attr("class", function (s) { return classForEntityLine(s.entityLine); })
 		.attr('r', lineWidth * 2)
-		.style("fill", function(s, i) { return linesColour(s.entityLine.entityId); })
-		.style("stroke", function(s, i) { return linesColour(s.entityLine.entityId); });
+		.style("fill", function(s, i) { return entityColour(s.entityLine.entityId); })
+		.style("stroke", function(s, i) { return entityColour(s.entityLine.entityId); });
 	if (doMouseovers)
 		lineMouseovers(lineSingletons);
 	var node = draw.append("g")
@@ -371,7 +370,7 @@ function drawDiagram(svg, box, clipId, data, layout, layoutHeight, nodeWidth, li
 			.enter()
 			.append("g")
 			.attr('class', function (l) { return "linelabel" + classForEntityLine(l.entityLine); })
-			.style('stroke', function(l, i) { return linesColour(l.entityLine.entityId); })
+			.style('stroke', function(l, i) { return entityColour(l.entityLine.entityId); })
 			.attr('text-anchor', 'middle');
 		var labelText = labelGroups
 			.append("text")
@@ -444,7 +443,7 @@ function drawDiagram(svg, box, clipId, data, layout, layoutHeight, nodeWidth, li
 /*
  * Draw the whole visualization.
  */
-function drawAll(svg, detailBox, selectBox, data, initialBrushExtent, useFieldPrefixes, importantEntities, onSelectNode, onSelectEntityLine, brushCallback) {
+function drawAll(svg, detailBox, selectBox, data, initialBrushExtent, useFieldPrefixes, importantEntities, entityColour, onSelectNode, onSelectEntityLine, brushCallback) {
 	var nodeWidth = detailBox.width * 0.01,
 	    layoutHeight = detailBox.height,
 			layoutMarginSlots = 4,
@@ -495,8 +494,16 @@ function drawAll(svg, detailBox, selectBox, data, initialBrushExtent, useFieldPr
 	var knownVisClusterKeys = keyVisClusters(layout.visClusters),
 			knownEntities = findKnownEntities(layout.entities);
 
-	var detailPlot = drawDiagram(svg, detailBox, clipId, data, layout, layoutHeight, nodeWidth, lineWidth, true, true, useFieldPrefixes, importantEntities, onSelectNode, onSelectEntityLine);
-	var selectPlot = drawDiagram(svg, selectBox, clipId, data, layout, layoutHeight, nodeWidth, lineWidth, false, false, useFieldPrefixes, importantEntities, null, null);
+	var detailPlot = drawDiagram(svg, detailBox, clipId, data, layout, layoutHeight, nodeWidth, lineWidth, true, true, useFieldPrefixes, importantEntities, entityColour, onSelectNode, onSelectEntityLine);
+	var selectPlot = drawDiagram(svg, selectBox, clipId, data, layout, layoutHeight, nodeWidth, lineWidth, false, false, useFieldPrefixes, importantEntities, entityColour, null, null);
+
+	if (layout.visNodes.length == 0) {
+		detailPlot.draw.append('text')
+			.attr('class', "instructions")
+			.attr('transform', "translate(" + (detailBox.width / 2) + "," + (detailBox.height / 2) + ")")
+			.style('text-anchor', 'middle')
+			.text("No matches");
+	}
 
 	var brush = null;
 	function updateBrush() {
@@ -536,7 +543,7 @@ function drawAll(svg, detailBox, selectBox, data, initialBrushExtent, useFieldPr
  * initialQuery: the initial (empty) query
  * globalQuery: the global query
  */
-function setup(container, globalQuery, facets) {
+function setup(container, globalQuery) {
 	// The view space for SVG; this doesn't have to correspond to screen units.
 	var viewBox = { x: 0, y : 0, width: 1024, height: 768 };
 	// Margins for the graph
@@ -544,21 +551,23 @@ function setup(container, globalQuery, facets) {
 	// Vertical size of the detail area as a fraction of the total.
 	var split = 0.8;
 
-	facets = facets.filter(function (facet) {
-		return facet.hasOwnProperty('storylineInclude') && facet.storylineInclude;
-	});
-
 	var outerElt = $("<div class=\"storyline\"></div>").appendTo(container);
 	var topBoxElt = $("<div class=\"topbox\"></div>").appendTo(outerElt);
 	var loadingIndicator = new LoadingIndicator.LoadingIndicator(outerElt);
 	var outerSvgElt = $("<svg class=\"outersvg\"></svg>").appendTo(outerElt);
 	var svgElt = $("<svg class=\"innersvg\" viewBox=\"" + viewBox.x + " " + viewBox.y + " " + viewBox.width + " " + viewBox.height + "\" preserveAspectRatio=\"none\"></svg>").appendTo(outerSvgElt);
-	var facetHelpElt = $("<div class=\"alert alert-warning alert-dismissable\"></div>").appendTo(outerElt);
+	var initHelpElt = $("<div class=\"alert alert-warning alert-dismissable\"></div>").appendTo(outerElt);
 	var queryHelpElt = $("<div class=\"alert alert-warning alert-dismissable\"></div>").appendTo(outerElt);
 
 	var formElt = $("<form></form>").appendTo(topBoxElt);
 	var clearSelElt = $("<button type=\"button\" class=\"btn btn-mini btn-warning clear mapclear\" title=\"Clear the map selection.\">Clear selection</button>").appendTo(formElt);
 	var modeElt = $("<select class=\"btn btn-mini\"></select>").appendTo(formElt);
+	var entityListMenuElts = $.map(storylineFields, function (fieldInfo) {
+		var menuElt = $('<div class="btn-group"></div>').appendTo(formElt);
+		$('<a class="btn btn-mini dropdown-toggle entitylist" data-toggle="dropdown" href="#" title="View entities">Entities<span class="caret"></span></a>').appendTo(menuElt);
+		menuElt.hide();
+		return menuElt;
+	});
 	var statusElt = $("<span class=\"status\"></span>").appendTo(formElt);
 	var queryFormElt = $("<form class=\"query\"></form>").appendTo(topBoxElt);
 	var clearQueryElt = $("<button type=\"button\" class=\"btn btn-warning\" title=\"Clear the visualization\">Clear</button></ul>").appendTo(queryFormElt);
@@ -569,13 +578,13 @@ function setup(container, globalQuery, facets) {
 	LayoutUtils.setupPanelled(outerElt, topBoxElt, outerSvgElt, 'vertical', 0, false);
 	var scaleSvg = D3Utils.dontScaleSvgParts(outerSvgElt, 'text,.tick');
 
-	facetHelpElt.html(storylineFacetHelpText);
+	initHelpElt.html(storylineInitHelpText);
 	queryHelpElt.html(storylineQueryHelpText);
 	var queryHelpFieldExElt = queryHelpElt.find('.fieldexamples');
 	$.each(FrontendConfig.helpFieldsList, function (fieldI, field) {
 		$("<li>" + field + "</li>").appendTo(queryHelpFieldExElt);
 	});
-	var allHelpElts = [facetHelpElt, queryHelpElt],
+	var allHelpElts = [initHelpElt, queryHelpElt],
 	    useHelpElt = null;
 	function updateHelp(show) {
 		if (show) {
@@ -597,6 +606,8 @@ function setup(container, globalQuery, facets) {
 	var detailBox = { x: viewBox.x + margins.left, y: viewBox.y + margins.top, width: width, height: height * split },
 	    selectBox = { x: viewBox.x + margins.left, y: viewBox.y + margins.top + detailBox.height + margins.between, width: width, height: height * (1.0 - split) };
 
+	var entityColour = d3.scale.category10()
+
 	var ownCnstrQuery = new Queries.Query(globalQuery.backendUrl());
 	var nodesConstraint = new Queries.Constraint(),
 	    entityConstraints = {};
@@ -607,7 +618,14 @@ function setup(container, globalQuery, facets) {
 	var resultWatcher = new Queries.ResultWatcher(function () {});
 	contextQuery.addResultWatcher(resultWatcher);
 
-	var facetManagers = null;
+	var entityLists = $.map(storylineFields, function (fieldInfo, fieldI) {
+		var entityList = new Facet.FacetListBox(entityListMenuElts[fieldI], globalQuery, fieldInfo.field);
+		entityList.outerElt.addClass('dropdown-menu');
+		LayoutUtils.fillElement(container, entityList.outerElt, 'vertical', 100);
+		return entityList;
+	});
+	var entityList = entityLists[0];
+	entityListMenuElts[0].show();
 
 	function setLoadingIndicator(enabled) {
 		svgElt.css('display', !enabled ? '' : 'none');
@@ -618,7 +636,7 @@ function setup(container, globalQuery, facets) {
 	    oldResultWatcher = null,
 	    drawEntityTitlePrefixes = true,
 	    drawImportantEntities = {};
-	function updateQuery(resultWatcher) {
+	function updateQuery() {
 		function getUniqFields(entities) {
 			var fields = [],
 			    seenFields = {};
@@ -826,15 +844,18 @@ function setup(container, globalQuery, facets) {
 			function onBrush(selection) {
 				lastBrushSelection = selection;
 			}
-			vis = drawAll(svg, detailBox, selectBox, data, lastBrushSelection, drawEntityTitlePrefixes, drawImportantEntities, onSelectNode, onSelectEntityLine, onBrush);
+			vis = drawAll(svg, detailBox, selectBox, data, lastBrushSelection, drawEntityTitlePrefixes, drawImportantEntities, entityColour, onSelectNode, onSelectEntityLine, onBrush);
 			if (cleanSelectionToMatchData())
 				constrainToNodeSelection();
 			vis.selectNodes(Object.keys(nodeSelection), true);
 			vis.selectEntities($.map(entityConstraints, function (r) { return $.map(r, function (ec) { return ec.entityId; }); }), true);
 			statusElt.html(
 				"showing "
+				+ queryEntities.length
+				+ " selected and "
 				+ (data.numIncludedCooccurringEntities < data.numCooccurringEntities ? "top" : "all")
-				+ " " + data.numIncludedCooccurringEntities
+				+ " "
+				+ data.numIncludedCooccurringEntities
 				+ " co-occurring entities"
 			);
 			scaleSvg();
@@ -864,7 +885,7 @@ function setup(container, globalQuery, facets) {
 	updateElt.bind('click', function() {
 		setLoadingIndicator(true);
 		queryEntities = parseQueryString(queryElt.val());
-		updateQuery(resultWatcher);
+		updateQuery();
 	});
 	queryFormElt.submit(function () {
 		return false;
@@ -872,83 +893,101 @@ function setup(container, globalQuery, facets) {
 
 	clearQueryElt.bind('click', function () {
 		queryEntities = [];
-		updateQuery(resultWatcher);
+		updateQuery();
 	});
 
-	var defaultFacetI = -1;
-	facetManagers = $.map(facets, function (facet, facetI) {
-		var excludeQuery = new Queries.Query(globalQuery.backendUrl(), 'setminus', contextQuery, facet.constraintsQuery);
-		var excludeResultWatcher = new Queries.ResultWatcher(function (a) {
-			onResult(a);
-		});
-		excludeResultWatcher.enabled(false);
-		excludeQuery.addResultWatcher(excludeResultWatcher);
-		function useFacet() {
-			queryEntities = $.map(facet.constraintsQuery.constraints(), function (cnstr) {
-				var cnstrValue = cnstr.value();
-				return {
-					field: cnstrValue.field,
-					value: cnstrValue.value
-				}
-			});
-			updateQuery(excludeResultWatcher);
-		}
-		var watcher = new Queries.ChangeWatcher(function () { useFacet() });
-		watcher.active(false);
-		facet.constraintsQuery.addChangeWatcher(watcher);
-		if (facet.hasOwnProperty('storylineDefault') && facet.storylineDefault)
-			defaultFacetI = facetI;
-		return {
-			use: useFacet,
-			watcher: watcher,
-			excludeResultWatcher: excludeResultWatcher
+	var defaultFieldI = -1;
+	$.each(storylineFields, function (fieldI, fieldInfo) {
+		if (fieldInfo.hasOwnProperty('isDefault') && fieldInfo.isDefault) {
+			defaultFieldI = fieldI;
+			return false;
 		}
 	});
 
-	$.each(facets, function (facetI, facet) {
-		$("<option value=\"" + facetI + "\">" + facet.title + " facet</option>").appendTo(modeElt);
+	var selectedViewFieldI = null,
+	    savedQueryEntities = [];
+	var maxFieldTitleLen = 0;
+	$.each(storylineFields, function (fieldI, fieldInfo) {
+		if (fieldInfo.title.length > maxFieldTitleLen)
+			maxFieldTitleLen = fieldInfo.title.length;
+		$("<option value=\"" + fieldI + "\">" + fieldInfo.title + "</option>").appendTo(modeElt);
 	});
-	$("<option value=\"query\">Query</option>").appendTo(modeElt);
-	var curFacetManager = null;
+	$("<option value=\"query\">Manual query</option>").appendTo(modeElt);
+	modeElt.width("" + maxFieldTitleLen + "em");
 	modeElt.bind('change', function () {
 		var newMode = this.options[this.selectedIndex].value;
 		var curQueryText = $.trim(queryElt.val());
-		if (curFacetManager != null)
-			curFacetManager.watcher.active(false);
+		if (selectedViewFieldI != null)
+			savedQueryEntities[selectedViewFieldI] = queryEntities;
 		if (newMode == 'query') {
 			queryFormElt.show();
+			if (selectedViewFieldI != null)
+				entityListMenuElts[selectedViewFieldI].hide();
 			useHelpElt = queryHelpElt;
-			if (curFacetManager != null) {
-				facetQueryText = unparseQuery(queryEntities);
-				queryEntities = [];
-				updateQuery(resultWatcher);
-			} else {
-				clearOwnConstraints();
-				updateHelp(true);
-			}
-			curFacetManager = null;
 			if (curQueryText)
 				updateElt.click();
+			selectedViewFieldI = null;
+			queryEntities = [];
 		} else {
+			newMode = +newMode;
 			queryFormElt.hide();
-			useHelpElt = facetHelpElt;
-			clearOwnConstraints();
-			updateHelp(true);
-			facetManagers[this.selectedIndex].use();
-			curFacetManager = facetManagers[this.selectedIndex];
-			curFacetManager.watcher.active(true);
+			if (selectedViewFieldI != null && selectedViewFieldI != newMode)
+				entityListMenuElts[selectedViewFieldI].hide();
+			entityListMenuElts[newMode].show();
+			useHelpElt = initHelpElt;
+			if (savedQueryEntities.hasOwnProperty(newMode))
+				queryEntities = savedQueryEntities[newMode];
+			else
+				queryEntities = [];
+			selectedViewFieldI = newMode;
 		}
+		updateHelp(true);
+		clearOwnConstraints();
+		updateQuery();
 	});
 	queryFormElt.hide();
-	if (defaultFacetI >= 0) {
+	if (defaultFieldI >= 0) {
 		useHelpElt = queryHelpElt;
-		modeElt.val(defaultFacetI);
+		modeElt.val(defaultFieldI);
 	} else {
-		useHelpElt = facetHelpElt;
+		useHelpElt = initHelpElt;
 		modeElt.val('query');
 	}
 	modeElt.change();
-	updateQuery(resultWatcher);
+	updateQuery();
+
+	function findEntity(field, value) {
+		var i = -1;
+		for (var j = 0; j < queryEntities.length; j++) {
+			var entity = queryEntities[j];
+			if (entity.value == value && entity.field == field) {
+				i = j;
+				break;
+			}
+		}
+		return i;
+	}
+	$.each(storylineFields, function (fieldI, fieldInfo) {
+		var entityList = entityLists[fieldI];
+		entityList.on('select', function (value, fromEvent, itemElt) {
+			if (fromEvent != null)
+				fromEvent.stopPropagation();
+			itemElt.css('background-color', entityColour(value));
+			if (findEntity(fieldInfo.field, value) < 0)
+				queryEntities.push({ value: value, field: fieldInfo.field });
+			updateQuery();
+		});
+		entityList.on('unselect', function (value, fromEvent, itemElt) {
+			if (fromEvent != null)
+				fromEvent.stopPropagation();
+			itemElt.css('background-color', 'white');
+			queryEntities.splice(findEntity(fieldInfo.field, value), 1);
+			updateQuery();
+		});
+		entityList.on('more', function (value, fromEvent) {
+			fromEvent.stopPropagation();
+		});
+	});
 
 	$('a[data-toggle="tab"]').on('shown', function (e) {
 		if ($(e.target.getAttribute('href'))[0] === container[0] && vis != null)
