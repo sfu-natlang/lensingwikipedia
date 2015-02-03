@@ -103,6 +103,17 @@ To use the backend we first need to build the domain-specific programs.
 
 Now the appropriate programs are in `/var/www/html/checkouts/20131017/domains/wikipediahistory/backend`
 
+## Get the data from the nightly crawl
+
+These are instructions for the wikipedia crawl. The avherald and other domains will be similar.
+
+    cd /var/www/html/data/wikipedia
+    scp linux.cs.sfu.ca:/cs/natlang-projects/users/maryam/wikiCrawler/Crawl_20150202/fullData.json . # (use the correct date)
+    mkdir Crawl_20150202
+    mv fullData.json Crawl_20150202
+    rm -f latest
+    ln -s Crawl_20150202 latest
+    
 ## Set up data files for backend
 
     cd /var/www/html
@@ -112,10 +123,10 @@ Now the appropriate programs are in `/var/www/html/checkouts/20131017/domains/wi
     chmod g+w data
     chmod g+s data
     cd data
-    # create full.index in data/20131017 (use current date) using instructions in the backend README
-    python2.7 buildindex /var/www/html/data/20131017/fullData.20131017.index /var/www/html/data/20131017/fullData.20131017.json
-    python2.7 cluster /var/www/html/data/20131017/fullData.20131017.index
-    python2.7 tsne /var/www/html/data/20131017/fullData.20131017.index
+    # create full.index in data/wikipedia/latest (use current date) using instructions in the backend README
+    python2.7 buildindex /var/www/html/data/wikipedia/latest/fullData.latest.index /var/www/html/data/wikipedia/latest/fullData.json
+    python2.7 cluster /var/www/html/data/latest/fullData.index
+    python2.7 tsne /var/www/html/data/latest/fullData.index
 
 ## Run backend
 
