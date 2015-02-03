@@ -42,6 +42,15 @@
 	shape-rendering: crispEdges;
 }
 
-button.btn {
-	margin-right: 30px;
+.controls button.btn {
+	margin-right: 50px;
+}
+
+.controls button.clear {
+	margin-left: 50px;
+}
+
+.controls select {
+	width: auto;
+	margin-right: 5px;
 }
