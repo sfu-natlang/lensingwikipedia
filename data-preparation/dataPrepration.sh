@@ -1,15 +1,13 @@
 #!/bin/bash
 
-UIUC_DIR=/cs/natlang-sw/Linux-x86_64/NL/TOOLKITS/UIUCSRL/2.0/
+UIUC_DIR=/cs/natlang-sw/Linux-x86_64/NL/TOOLKITS/UIUCSRL/2.0
 PYPATH=/cs/natlang-sw/Linux-x86_64/NL/LANG/PYTHON/2.7.3/bin/python
 CORENLP=/cs/natlang-projects/users/maryam/codes/stanford-corenlp-full-2013-06-20
-SCRIPT_PATH=/cs/grad3/msiahban/testSVN/lensingwikipedia/data-preparation
+SCRIPT_PATH=/home/msiahban/testSVN/lensingwikipedia/data-preparation
 
 W_DIR="$1"_"$2"_"$3"
 START_YEAR="$2"
 END_YEAR="$3"
-#module load NL/LANG/PYTHON/2.7.3
-#module load NL/TOOLKITS/UIUCSRL/2.0
 
 mkdir -p $W_DIR
 DUMP_Dir=$W_DIR/Dump

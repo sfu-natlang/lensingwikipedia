@@ -1,5 +1,6 @@
 #!/bin/bash
 
+PYTHON2_7_3=/cs/natlang-sw/Linux-x86_64/NL/LANG/PYTHON/2.7.3/bin/python
 
 date=`date +%Y%m%d`                                             #get date from machine
 echo $date
@@ -8,7 +9,7 @@ SCRIPT_DIR=/home/msiahban/testSVN/lensingwikipedia/data-preparation/
 args_file=$SCRIPT_DIR/data/date_spans.txt
 code_file=$SCRIPT_DIR/tcsh_script.sh
 
-tcsh $SCRIPT_DIR/srl_server.sh
+#tcsh $SCRIPT_DIR/srl_server.sh
 
 mkdir -p $W_DIR
 cd $W_DIR
@@ -19,7 +20,7 @@ do
     arrIN=(${myargs//;/ })
     echo ${arrIN[0]}
     echo ${arrIN[1]}
-    tcsh $code_file $SCRIPT_DIR/dataPrepration.sh $W_DIR/Crawl ${arrIN[0]} ${arrIN[1]} &
+    tcsh $code_file $SCRIPT_DIR/dataPrepration.sh $W_DIR/Crawl ${arrIN[0]} ${arrIN[1]} > $W_DIR/${arrIN[0]}_${arrIN[1]}.log &
 done < "$args_file"
 
 
@@ -51,11 +52,4 @@ do
     fi
 done < "$args_file"
 
-exit
-
-if [ "$Failed" == "" ];
-then
-echo "YAY!"
-else
-echo "FAIL! in these rows ($Failed)"
-fi
+$PYTHON2_7_3 $SCRIPT_DIR/countUnique.py $W_DIR/fullData.json > $SCRIPT_DIR/data/date_spans.txt
