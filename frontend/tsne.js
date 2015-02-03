@@ -222,7 +222,7 @@ function setup(container, initialQuery, globalQuery, minZoom, maxZoom) {
             d3.selectAll(".brush").call(brush.clear());
             brushed();
             alert("Selection of more than 300 points is not supported currently.");
-        } else {
+        } else if (selectedPoints.length > 0) {
             constraint.name("Cluster: " + selectedPoints.length + (selectedPoints.length == 1 ? " point" : " points"));
             constraint.set( {
                 type: 'tsneCoordinates',
