@@ -138,7 +138,7 @@ These are instructions for the wikipedia crawl. The avherald and other domains w
 
     {
       'server': {
-        'index_dir_path': '/var/www/html/data/wikipedia/latest/full.index'
+        'index_dir_path': '/var/www/html/data/wikipedia/latest/fullData.index'
       },
       'querier': {
       }
