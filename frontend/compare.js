@@ -21,7 +21,7 @@ function setupCompare(container, globalQuery, facets) {
 	// The view space for SVG; this doesn't have to correspond to screen units.
 	var viewBox = { x: 0, y : 0, width: 1024, height: 768 };
 	// Margins for the main graphs (but not for the axes and axes labels, which go in the margin space).
-	var margins = { left: 50, right: 30, top: 40, bottom: 35, between: 40 };
+	var margins = { left: 50, right: 40, top: 40, bottom: 35, between: 40 };
 	var split = 0.8;
 
 	var width = viewBox.width - margins.left - margins.right;
@@ -67,8 +67,11 @@ function setupCompare(container, globalQuery, facets) {
 										).appendTo(controlsElt);
 	var smoothBtn = $('<button class="btn btn-warning" title="Update smoothing">Smooth</button></ul>').appendTo(controlsElt);
 
+	// legend needs to come before outersvg because we've got float:right on it
+	var legendElt = $('<div class="legend"><ul></ul></div>').appendTo(outerElt);
 	var outerSvgElt = $('<svg class="outersvg"></svg>').appendTo(outerElt);
 	var svgElt = $('<svg id="comparesvg"</svg>').appendTo(outerSvgElt);
+
 
 	var loadingIndicator = new LoadingIndicator(outerElt);
 
@@ -395,9 +398,10 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 			.attr('x', 0)
 			.attr('y', 0);
 
-	var legend = svg.append("g")
-		.attr("class", "legend")
-		.attr("transform", "translate(" + margins.left + "," + (margins.top/2) + ")");
+
+	var legend = d3.select(".legend > ul");
+
+	legend.selectAll("li").remove();
 
 	var focus = svg.append("g")
 			.attr("transform", "translate(" + margins.left + "," + detailBox.y + ")")
@@ -513,12 +517,8 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 
 	legend.selectAll()
 			.data(persons)
-		.enter().append("text")
-			.attr("transform", function(d, i) { return "translate(" + (i*(detailBox.width / topCount)) + "," + 0 + ")"; })
-			.attr("x", 3)
-			.attr("dy", ".35em")
-			.attr("class", "legend")
-			.style("fill", function(d) {
+		.enter().append("li")
+			.style("color", function(d) {
 				return color(d.name);
 			})
 			.text(function(d) { return d.name; })
@@ -543,7 +543,7 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 				}
 			});
 
-	legend.append("text")
+	svg.append("text")
 		.attr("transform", function(d, i) { return "translate(" + (-margins.left) + "," + 0 + ")"; })
 		.attr("x", 3)
 		.attr("dy", ".35em")
@@ -554,7 +554,9 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 		.x(x2)
 		.on("brush", brushed);
 
-	if (current_domain !== complete_domain) {
+	// hack because dates in JS are annoying
+	if (current_domain[0] - complete_domain[0] != 0 &&
+			current_domain[1] - complete_domain[1] != 0) {
 		brush.extent(current_domain);
 	}
 
@@ -646,7 +648,7 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 
 	var updateLegendValues = function(year) {
 		// find element with the right year.
-		d3.selectAll("text.legend")
+		d3.selectAll(".legend > ul li")
 			.text(function(d, i) {
 				return d.name  + " - " + yearly_data[year][d.name];
 			});

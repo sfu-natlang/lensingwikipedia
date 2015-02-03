@@ -15,6 +15,26 @@
 	padding: 0;
 }
 
+.compare .outersvg {
+	width: calc(100% - 150px);
+}
+
+.compare .legend {
+	width: 150px;
+	float: right;
+
+	height: 500px;
+	overflow: scroll;
+}
+
+.compare .legend ul {
+	margin-left: 0;
+}
+
+.compare .legend ul li {
+	list-style: none;
+}
+
 .axis path,
 .axis line {
 	fill: none;
