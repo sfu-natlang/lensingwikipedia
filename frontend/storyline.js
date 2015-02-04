@@ -560,7 +560,7 @@ function setup(container, globalQuery) {
 	var queryHelpElt = $("<div class=\"alert alert-warning alert-dismissable\"></div>").appendTo(outerElt);
 
 	var formElt = $("<form></form>").appendTo(topBoxElt);
-	var clearSelElt = $("<button type=\"button\" class=\"btn btn-mini btn-warning clear mapclear\" title=\"Clear the map selection.\">Clear selection</button>").appendTo(formElt);
+	var clearSelElt = $("<button type=\"button\" class=\"btn btn-mini btn-warning clear mapclear\" title=\"Clear the storyline selection.\">Clear selection</button>").appendTo(formElt);
 	var modeElt = $("<select class=\"btn btn-mini\"></select>").appendTo(formElt);
 	var entityListMenuElts = $.map(storylineFields, function (fieldInfo) {
 		var menuElt = $('<div class="btn-group"></div>').appendTo(formElt);
