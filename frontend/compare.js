@@ -19,9 +19,9 @@ var current_domain = null;
 function setupCompare(container, globalQuery, facets) {
 	/************************** CONSTANTS *****************************/
 	// The view space for SVG; this doesn't have to correspond to screen units.
-	var viewBox = { x: 0, y : 0, width: 1024, height: 768 };
+	var viewBox = { x: 0, y : 0, width: 1024-150, height: 768 };
 	// Margins for the main graphs (but not for the axes and axes labels, which go in the margin space).
-	var margins = { left: 50, right: 40, top: 40, bottom: 35, between: 40 };
+	var margins = { left: 50, right: 40, top: 0, bottom: 35, between: 40 };
 	var split = 0.8;
 
 	var width = viewBox.width - margins.left - margins.right;
@@ -432,6 +432,7 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 
 	hoverLineXOffset = margins.left+$(container).offset().left;
 	hoverLineYOffset = margins.top+$(container).offset().top;
+
 	hoverLineGroup = focus.append("g")
 		.attr("class", "hover-line");
 		// add the line to the group
@@ -541,6 +542,16 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 
 					yRescale();
 				}
+			})
+			.on("mouseover", function(d) {
+				console.log(d);
+				$('path.line[name="' + d.name + '"]').css("stroke-width", "3.5px");
+				$this.style.fontWeight = "bold";
+			})
+			.on("mouseout", function(d) {
+				console.log(d);
+				$('path.line[name="' + d.name + '"]').css("stroke-width", "1.5px");
+				$this.style.fontWeight = "normal";
 			});
 
 	svg.append("text")
@@ -607,8 +618,8 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 	var currentUserPositionX = 0;
 
 	var handleMouseOverGraph = function(event) {
-		var mouseX = event.pageX-hoverLineXOffset;
-		var mouseY = event.pageY-hoverLineYOffset;
+		var mouseX = (event.pageX - hoverLineXOffset);
+		var mouseY = (event.pageY - hoverLineYOffset);
 
 		if(mouseX >= 0 && mouseX <= detailBox.width && mouseY >= detailBox.y && mouseY <= detailBox.height + detailBox.y) {
 			// show the hover line
@@ -623,7 +634,7 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 			updateLegendValues(year);
 
 			d3.select("#legend-year").attr("transform", function(d, i) {
-				return "translate(" + (mouseX) + "," + (detailBox.height + detailBox.y + 5) + ")"; })
+				return "translate(" + (mouseX) + "," + (detailBox.height + detailBox.y + margins.between/2 + 5) + ")"; })
 		} else {
 			// proactively act as if we've left the area since we're out of the bounds we want
 			handleMouseOutGraph(event)
