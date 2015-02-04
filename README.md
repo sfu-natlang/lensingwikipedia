@@ -1,7 +1,7 @@
 Lensing Wikipedia
 =================
 
-Anoop Sarkar, Maryam Siahbani, Ravikiran Vadlapudi, and Max Whitney
+For information about the developers for this project, see the AUTHORS file.
 
 Simon Fraser University, School of Computing Science  
 Burnaby, BC V5A 1S6, Canada

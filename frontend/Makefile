@@ -36,9 +36,9 @@ LIBCSS=$(addprefix $(SRC)/, lib/bootstrap/css/bootstrap.min.css lib/bootstrap/cs
 # Site-specific CSS files to add to the build.
 OWNCSS=$(addprefix $(SRC)/, loadingindicator.css constraintslist.css eventdescriptionslist.css facet.css timeline.css compare.css map.css tsne.css textsearch.css storyline.css main.css)
 # Library JS file to add to the build; each should include appropriate credits and licence information.
-LIBJS=$(addprefix $(SRC)/, lib/jquery.min.js lib/jquery.cookie.min.js lib/d3/d3.v3.min.js lib/d3/topojson.v1.min.js lib/d3/d3.geo.projection.v0.min.js lib/d3/d3.geo.polyhedron.v0.min.js lib/d3/d3.sankey.min.js lib/bootstrap/js/bootstrap.min.js)
+LIBJS=$(addprefix $(SRC)/, lib/jquery.min.js lib/jquery.cookie.min.js lib/d3/d3.v3.min.js lib/d3/topojson.v1.min.js lib/d3/d3.geo.projection.v0.min.js lib/d3/d3.geo.polyhedron.v0.min.js lib/bootstrap/js/bootstrap.min.js)
 # Project Javascript files to add to the build.
-OWNJS=$(addprefix $(SRC)/, utils.js layoututils.js d3utils.js timeaxisutils.js loadingindicator.js queries.js constraintslist.js eventdescriptionslist.js facet.js timeline.js compare.js map.js tsne.js textsearch.js storylinelayout.js storyline.js descriptions.js)
+OWNJS=$(addprefix $(SRC)/, utils.js layoututils.js d3utils.js timeaxis.js loadingindicator.js queries.js constraintslist.js eventdescriptionslist.js facet.js timeline.js compare.js map.js tsne.js textsearch.js storylinelayout.js storyline.js textreplacements.js)
 # HTML fragment to use in the HTML head section (adding to any fixed lines).
 HEADFILE=
 # HTML fragment file to use as the header in the page layout.

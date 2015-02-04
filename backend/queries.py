@@ -187,7 +187,6 @@ class Querier:
     }
   
   def _handle_tsnecoordinates_view(self, view, whoosh_query):
-    print >> sys.stderr, whoosh_query
     coordinates = {}
     with self.whoosh_index.searcher() as searcher:
       hits = searcher.search(whoosh_query, limit=None)
@@ -212,18 +211,32 @@ class Querier:
       rel_query = op([whoosh.query.Term(ef, ev) for ef, evs in entities.iteritems() for ev in evs])
       with self.whoosh_index.searcher() as searcher:
         hits = searcher.search(whoosh.query.And([whoosh_query, rel_query]), limit=None)
-        cooc_entities = dict((ef, set()) for ef in cooc_fields)
+        cooc_counts = {}
         for hit in hits:
           if need_field in hit:
             for cooc_field in cooc_fields:
-              cooc_entities[cooc_field].update(whooshutils.split_keywords(hit[cooc_field]))
-      return cooc_entities
+              known_field = cooc_field in entities
+              for value in whooshutils.split_keywords(hit[cooc_field]):
+                if not (known_field and value in entities[cooc_field]):
+                  cooc_counts.setdefault((cooc_field, value), 0)
+                  cooc_counts[cooc_field, value] += 1
+
+        cooc_counts = sorted(cooc_counts.iteritems(), key=lambda (e, c): c, reverse=True)
+        return cooc_counts[:self.plottimeline_max_cooccurring_entities], len(cooc_counts)
+
+    result = {}
 
     cluster_field = view['clusterField']
     entities = view['entities']
     if 'cooccurrences' in view:
       is_disjunctive = { 'and': False, 'or': True }[view['cooccurrences']]
-      entities = find_cooccurrences(entities, set(view['cooccurrenceFields']), cluster_field, is_disjunctive)
+      cooc_entities, num_total_coocs = find_cooccurrences(entities, set(view['cooccurrenceFields']), cluster_field, is_disjunctive)
+      entities = dict((ef, set(evs)) for ef, evs in entities.iteritems())
+      for (entity_field, entity_value), entity_count in cooc_entities:
+        entities.setdefault(entity_field, set())
+        entities[entity_field].add(entity_value)
+      result['numCooccurringEntities'] = num_total_coocs
+      result['numIncludedCooccurringEntities'] = len(cooc_entities)
 
     # Checking for cluster_field per hit below seems to be slightly faster (empirically) than including Every(cluster_field) in the query
     rel_query = whoosh.query.Or([whoosh.query.Term(ef, ev) for ef, evs in entities.iteritems() for ev in evs])
@@ -244,9 +257,9 @@ class Querier:
       field_timeline = timeline[entity_field]
       for entity_value in entity_values:
         field_timeline[entity_value] = dict((y, list(cvs)) for y, cvs in field_timeline[entity_value].iteritems())
-    return {
-      'timeline': timeline
-    }
+
+    result['timeline'] = timeline
+    return result
 
   def handle_independent_view(self, view, whoosh_query):
     """

@@ -18,23 +18,6 @@
 		{JS}
 
 		<script>
-			function makeTabs(tabBar, tabContents, tabs, defaultTabId) {
-				var foundDefault = false;
-				$.each(tabs, function (tabI, tab) {
-					var barElt = $('<li><a href="#' + tab.id + '" data-toggle="tab" title="' + tab.longname + '">' + tab.name + '</a></li>').appendTo(tabBar);
-					var container = $('<div class="tab-pane" id="' + tab.id + '"></div>').appendTo(tabContents);
-					fillElement($('.tab-content'), container, 'vertical');
-					tab.make(container);
-					if (tab.id == defaultTabId) {
-						barElt.addClass('active');
-						container.addClass('active');
-						foundDefault = true;
-					}
-				});
-				if (!foundDefault)
-					console.log("warning: unknown default tab");
-			}
-
 			$('<div class="contentarea"> \
 				<div class="sidebar"> \
 					<div class="constraintslistbox"></div> \
@@ -42,50 +25,67 @@
 				</div> \
 				<div class="selectorsarea"> \
 					<ul class="nav nav-pills" id="tabbar"> \
+						<li class="active"><a href="#facetstab" data-toggle="tab" title="Facets view">Facets</a></li> \
+						<li><a href="#storyline" data-toggle="tab" title="Storyline">Storyline</a></li> \
+						<li><a href="#timelinetab" data-toggle="tab" title="Timeline view">Timeline</a></li> \
+						<li><a href="#comparetab" data-toggle="tab" title="Comparison view">Comparison</a></li> \
+						<li><a href="#maptab" data-toggle="tab" title="Map view">Map</a></li> \
+						<li><a href="#tsnetab" data-toggle="tab" title="Cluster view">Cluster</a></li> \
+						<li><a href="#textsearchtab" data-toggle="tab" title="Text search">Text search</a></li> \
 					</ul> \
 					<div class="tab-content" id="tabcontents"> \
+						<div class="tab-pane active" id="facetstab"></div> \
+						<div class="tab-pane" id="storyline"></div> \
+						<div class="tab-pane" id="timelinetab"></div> \
+						<div class="tab-pane" id="comparetab"></div> \
+						<div class="tab-pane" id="maptab"></div> \
+						<div class="tab-pane" id="tsnetab"></div> \
+						<div class="tab-pane" id="textsearchtab"></div> \
 					</div> \
 				</div> \
 			</div>').appendTo($('body'));
 
-			setupPanelled($('body'), $('.header'), $('.contentarea'), 'vertical', 4);
-			setupPanelled($('.selectorsarea'), $('#tabbar'), $('.tab-content'), 'vertical');
+			LayoutUtils.setupPanelled($('body'), $('.header'), $('.contentarea'), 'vertical', 4);
+			LayoutUtils.setupPanelled($('.selectorsarea'), $('#tabbar'), $('.tab-content'), 'vertical');
 
-			var initialQuery = new Query(backendUrl);
-			var globalQuery = new Query(backendUrl);
+			var initialQuery = new Queries.Query(FrontendConfig.backendUrl);
+			var globalQuery = new Queries.Query(FrontendConfig.backendUrl);
 
 			function setupSidebar(container, globalQuery) {
 				var cnstrBoxElt = $(".constraintslistbox");
 				var eventDescBoxElt = $(".eventdescriptionslistbox");
 
-				setupConstraintList(cnstrBoxElt, globalQuery);
-				setupEventDescriptionsList(eventDescBoxElt, globalQuery);
+				ConstraintsList.setup(cnstrBoxElt, globalQuery);
+				EventDescriptionsList.setup(eventDescBoxElt, globalQuery);
 
-				setupPanelled(container, cnstrBoxElt, eventDescBoxElt, 'vertical', 0, true);
+				LayoutUtils.setupPanelled(container, cnstrBoxElt, eventDescBoxElt, 'vertical', 0, true);
 			}
 			setupSidebar($(".sidebar"), globalQuery);
 
-			// TODO there will be a merge conflict with the xkcd branch
-			var facetsInfo = [];
-			var facetMakers = $.map(facets, function (title, field) {
+			var facetsExpanded = [];
+			var facetMakers = $.map(FrontendConfig.facets, function (facet) {
 				return function (container) {
-					var constraintsQuery = setupFacet(container, globalQuery, title, field);
-					facetsInfo.push({
-						title: title,
-						field: field,
-						constraintsQuery: constraintsQuery
-					});
+					facetsExpanded.push(Utils.extendObject([facet], {
+						constraintsQuery: Facet.setup(container, globalQuery, facet.title, facet.field)
+					}));
 				}
 			});
+			LayoutUtils.setupSplitMakeElements($('#facetstab'), 'horizontal', facetMakers);
+			Storyline.setup($('#storyline'), globalQuery, facetsExpanded);
+			Timeline.setup($('#timelinetab'), initialQuery, globalQuery);
+			Compare.setup($('#comparetab'), globalQuery, facetsExpanded);
+			Map.setup($('#maptab'), initialQuery, globalQuery, mapDataUrl, FrontendConfig.minMapZoom, FrontendConfig.maxMapZoom);
+			Tsne.setup($('#tsnetab'), initialQuery, globalQuery, FrontendConfig.minMapZoom, FrontendConfig.maxMapZoom);
+			TextSearch.setup($('#textsearchtab'), globalQuery);
 
-			makeTabs($('#tabbar'), $('#tabcontents'), [
-				{ id: "facetstab", name: "Facets", longname: "Facets view", make: function(elt) { setupSplitMakeElements(elt, 'horizontal', facetMakers) } },
-				{ id: "timelinetab", name: "Timeline", longname: "Timeline view", make: function(elt) { setupTimeline(elt, initialQuery, globalQuery) } },
-				{ id: "comparetab", name: "Comparison", longname: "Comparison view", make: function(elt) { setupCompare(elt, globalQuery, facetsInfo) } },
-				{ id: "maptab", name: "Map", longname: "Map view", make: function(elt) { setupMap(elt, initialQuery, globalQuery, mapDataUrl, minMapZoom, maxMapZoom) } },
-				{ id: 'tsnetab', name: 'Cluster', longname: 'Cluster view', make: function(elt) { setupTSNE($('#tsnetab'), initialQuery, globalQuery, minMapZoom, maxMapZoom); } },
-				{ id: "textsearchtab", name: "Text Search", longname: "Text Search", make: function(elt) { setupTextSearch(elt, globalQuery) } }
-			], 'facetstab');
+			LayoutUtils.fillElement($('.tab-content'), $('#facetstab'), 'vertical');
+			LayoutUtils.fillElement($('.tab-content'), $('#storyline'), 'vertical');
+			LayoutUtils.fillElement($('.tab-content'), $('#timelinetab'), 'vertical');
+			LayoutUtils.fillElement($('.tab-content'), $('#comparetab'), 'vertical');
+			LayoutUtils.fillElement($('.tab-content'), $('#maptab'), 'vertical');
+			LayoutUtils.fillElement($('.tab-content'), $('#tsnetab'), 'vertical');
+			LayoutUtils.fillElement($('.tab-content'), $('#textsearchtab'), 'vertical');
+			LayoutUtils.fillElement($('.tab-content'), $('#abouttab'), 'vertical');
 
 			// Update the queries only after setting up all the controls
 			initialQuery.update();

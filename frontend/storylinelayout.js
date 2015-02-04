@@ -465,6 +465,8 @@ function normalizeEntityLineFillerVisNodes(layout) {
 		    newLinePoints = [entityLine.points[0]],
 			  lastUsedLinePoint = entityLine.points[0],
 		    lastUnusedFillerLinePoint = null;
+		if (entityLine.points.length == 1)
+			continue;
 		for (var linePointI = 1; linePointI < entityLine.points.length; linePointI++) {
 			var linePoint = entityLine.points[linePointI];
 			// We want to keep all line points for non-filler vis nodes or which represent a change of slot
@@ -519,21 +521,32 @@ function normalizeEntityLineFillerVisNodes(layout) {
  *	target: the ending line point
  */
 function makeEntityLineLinks(entityLines) {
-	var links = [];
+	var links = [],
+	    singletons = [];
 	for (var entityLineI = 0; entityLineI < entityLines.length; entityLineI++) {
-		var entityLine = entityLines[entityLineI],
-		    lastLinePoint = entityLine.points[0];
-		for (var linePointI = 1; linePointI < entityLine.points.length; linePointI++) {
-			var linePoint = entityLine.points[linePointI];
-			links.push({
+		var entityLine = entityLines[entityLineI];
+		if (entityLine.points.length > 1) {
+		  var lastLinePoint = entityLine.points[0];
+			for (var linePointI = 1; linePointI < entityLine.points.length; linePointI++) {
+				var linePoint = entityLine.points[linePointI];
+				links.push({
+					entityLine: entityLine,
+					source: lastLinePoint,
+					target: linePoint
+				});
+				lastLinePoint = linePoint;
+			}
+		} else if (entityLine.points.length == 1) {
+			singletons.push({
 				entityLine: entityLine,
-				source: lastLinePoint,
-				target: linePoint
+				linePoint: entityLine.points[0]
 			});
-			lastLinePoint = linePoint;
 		}
 	}
-	return links;
+	return {
+		links: links,
+		singletons: singletons
+	};
 }
 
 /*

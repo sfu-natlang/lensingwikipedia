@@ -28,29 +28,34 @@ class eventSpider(BaseSpider):
 		try:
 			self.outDir=kwargs['outDir']
 			if self.outDir[-1]!= '/': self.outDir += '/'
-			self.endYear=int(kwargs['endYear'])
+			startYear=int(kwargs['startYear'])
+			endYear=int(kwargs['endYear'])
+			assert startYear <= endYear 
 		except:
-			print >>sys.stderr, "eventSpider needs 3 arguments: outDir, outFile, endYear"
+			print >>sys.stderr, "eventSpider needs 3 arguments: outDir, startYear, endYear"
 			exit(1)
 		startingAdd = "http://en.wikipedia.org/wiki/"
 		self.start_urls = []
-#		self.start_urls = [startingAdd+"2011"]
-#  		if not os.path.exists(self.outDir+"2011"):   os.makedirs(self.outDir+"2011")
-		for i in range(1500, 499, -10):
-			add = startingAdd+str(i)+"_BC"
-			self.start_urls.append(add)
-			path = self.outDir+str(i)+"_BC/"
-    			if not os.path.exists(path):   os.makedirs(path)
-		for i in range(499, 0, -1):
-			add = startingAdd+str(i)+"_BC"
-			self.start_urls.append(add)
-			path = self.outDir+str(i)+"_BC/"
-    			if not os.path.exists(path):   os.makedirs(path)
-		for i in range(1, self.endYear+1):
-			add = startingAdd+str(i)
-			self.start_urls.append(add)
-			path = self.outDir+str(i)+"/"
-   			if not os.path.exists(path):   os.makedirs(path)
+                if startYear < -500:
+		    	for i in range(startYear, min(-499, endYear), 10):
+				add = startingAdd+str(-i)+"_BC"
+				self.start_urls.append(add)
+				path = self.outDir+str(-i)+"_BC/"
+    				if not os.path.exists(path):   os.makedirs(path)
+			if endYear > -500: startYear = -499
+		if startYear >-500 and startYear < 0:
+			for i in range(max(startYear,-499), min(0,endYear), 1):
+				add = startingAdd+str(-i)+"_BC"
+				self.start_urls.append(add)
+				path = self.outDir+str(-i)+"_BC/"
+	    			if not os.path.exists(path):   os.makedirs(path)
+			if endYear > 0: startYear = 1
+		if startYear > 0:
+			for i in range(startYear, endYear+1):
+				add = startingAdd+str(i)
+				self.start_urls.append(add)
+				path = self.outDir+str(i)+"/"
+	   			if not os.path.exists(path):   os.makedirs(path)
 		
 
 	def parse(self,response):

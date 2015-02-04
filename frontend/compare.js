@@ -1,3 +1,5 @@
+var Compare = (function () {
+
 var currentFacet;
 var topCount = 5;
 var smooth_k = 5;
@@ -16,7 +18,7 @@ var current_domain = null;
  * initialQuery: the initial (empty) query
  * globalQuery: the global query
  */
-function setupCompare(container, globalQuery, facets) {
+function setup(container, globalQuery, facets) {
 	/************************** CONSTANTS *****************************/
 	// The view space for SVG; this doesn't have to correspond to screen units.
 	var viewBox = { x: 0, y : 0, width: 1024, height: 768 };
@@ -75,7 +77,7 @@ function setupCompare(container, globalQuery, facets) {
 	var svgElt = $('<svg id="comparesvg"</svg>').appendTo(outerSvgElt);
 
 
-	var loadingIndicator = new LoadingIndicator(outerElt);
+	var loadingIndicator = new LoadingIndicator.LoadingIndicator(outerElt);
 
 	function setLoadingIndicator(enabled) {
 		//svgElt.css('display', !enabled ? '' : 'none');
@@ -86,9 +88,9 @@ function setupCompare(container, globalQuery, facets) {
 		$('<option value="' + idx + '">' + facet.title + ' facet</option>').appendTo(modeElt);
 	});
 
-	fillElement(container, outerElt, 'vertical');
-	setupPanelled(outerElt, controlsElt, outerSvgElt, 'vertical', 0, false);
-	var scaleSvg = dontScaleSvgParts(outerSvgElt, 'text,.tick');
+	LayoutUtils.fillElement(container, outerElt, 'vertical');
+	LayoutUtils.setupPanelled(outerElt, controlsElt, outerSvgElt, 'vertical', 0, false);
+	var scaleSvg = D3Utils.dontScaleSvgParts(outerSvgElt, 'text,.tick');
 
 	/************************* END BUILD UI **************************/
 
@@ -174,8 +176,8 @@ function setupCompare(container, globalQuery, facets) {
 
 /****************** HELPERS *****************************************/
 function getYearlyCountsForName(field, name, callback) {
-	var query = new Query(globalQuery.backendUrl());
-	var nameConstraint = new Constraint();
+	var query = new Queries.Query(globalQuery.backendUrl());
+	var nameConstraint = new Queries.Constraint();
 
 	query.addConstraint(nameConstraint);
 
@@ -691,3 +693,8 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 
 
 }
+
+return {
+	setup: setup
+};
+}());

@@ -2,7 +2,9 @@
  * Facet control.
  */
 
-facetDefaultIsConjunctive = true;
+var Facet = (function () {
+
+var facetDefaultIsConjunctive = true;
 
 /*
  * Setup the control in some container element.
@@ -11,7 +13,7 @@ facetDefaultIsConjunctive = true;
  * name: name for the facet, to show the user
  * field: field name to use in requesting views from the backend
  */
-function setupFacet(container, globalQuery, name, field, isConjunctive) {
+function setup(container, globalQuery, name, field, isConjunctive) {
 	function useIsConjunctive() {
 		return isConjunctive == null ? facetDefaultIsConjunctive : isConjunctive;
 	}
@@ -27,13 +29,13 @@ function setupFacet(container, globalQuery, name, field, isConjunctive) {
 	var search = searchInputElt.typeahead();
 
 	var listBoxElt = $("<div class=\"listbox\"></div>").appendTo(facetElt);
-	var loadingIndicator = new LoadingIndicator(listBoxElt);
+	var loadingIndicator = new LoadingIndicator.LoadingIndicator(listBoxElt);
 	var listElt = $("<ul></ul>").appendTo(listBoxElt);
 	var moreBoxElt = $("<div class=\"buttonbox\"></div>").appendTo(listBoxElt);
 	var moreElt = $("<button type=\"button\" class=\"btn\" disabled=\"true\">More</button>").appendTo(moreBoxElt);
 
-	fillElement(container, facetElt, 'vertical');
-	setupPanelled(facetElt, topBoxElt, listBoxElt, 'vertical', 0, false);
+	LayoutUtils.fillElement(container, facetElt, 'vertical');
+	LayoutUtils.setupPanelled(facetElt, topBoxElt, listBoxElt, 'vertical', 0, false);
 
 	loadingIndicator.enabled(true);
 
@@ -69,11 +71,11 @@ function setupFacet(container, globalQuery, name, field, isConjunctive) {
 			}
 		};
 	var constraints = {};
-	var globalQueryResultWatcher = new ResultWatcher(function () {});
+	var globalQueryResultWatcher = new Queries.ResultWatcher(function () {});
 	globalQuery.addResultWatcher(globalQueryResultWatcher);
-	var ownCnstrQuery = new Query(globalQuery.backendUrl());
-	var contextQuery = new Query(globalQuery.backendUrl(), 'setminus', globalQuery, ownCnstrQuery);
-	var contextQueryResultWatcher = new ResultWatcher(function () {});
+	var ownCnstrQuery = new Queries.Query(globalQuery.backendUrl());
+	var contextQuery = new Queries.Query(globalQuery.backendUrl(), 'setminus', globalQuery, ownCnstrQuery);
+	var contextQueryResultWatcher = new Queries.ResultWatcher(function () {});
 	contextQuery.addResultWatcher(contextQueryResultWatcher);
 	function clearConstraints() {
 		var oldConstraints = constraints;
@@ -100,7 +102,7 @@ function setupFacet(container, globalQuery, name, field, isConjunctive) {
 		setClearEnabled(value != null);
 		contextQueryResultWatcher.enabled(value != null);
 
-		var constraint = new Constraint();
+		var constraint = new Queries.Constraint();
 		constraint.name(name + ": " + value);
 		constraint.set({
 			type: 'fieldvalue',
@@ -287,3 +289,8 @@ function setupFacet(container, globalQuery, name, field, isConjunctive) {
 
 	return ownCnstrQuery;
 }
+
+return {
+	setup: setup
+};
+}());

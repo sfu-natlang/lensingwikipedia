@@ -1,0 +1,12 @@
+AUTHORS
+-------
+
+* Rohit Dholakia. Crawl of Aviation Herald.
+* Jasneet Sabharwal. t-distributed Stochastic Neighbour Embedding (t-SNE) based clustering in backend and Cluster view in frontend.
+* Anoop Sarkar. Principal investigator.
+* Ramtin Mehdizadeh Seraj. Various bug fixes on frontend JS code.
+* Maryam Siahbani. Data crawl and NLP pipeline. Wikification. Created JSON for input to backend.
+* Andrei Vacariu. Smoothing in timeline view. Timeline comparison between entities. Save/load of queries.
+* Ravikiran Vadlapudi. Semantic parsing and verbose labels for semantic roles.
+* Max Whitney. Frontend and backend server design and implementation. Facets, Storyline, Timeline, Map and Text Search.
+

@@ -396,7 +396,7 @@ def read_frames(fileName):
 			frameLabel[pred] = {}
 		frameLabel[pred][arg] = role
 	inFile.close
-	inFile = open(script_dir+"def_roles.txt", "r")
+	inFile = open(script_dir+"data/def_roles.txt", "r")
 	frameLabel["defPred"] = {}
 	for line in inFile:
 		items = line[:-1].split("\t")
@@ -524,14 +524,14 @@ def read_url(fileName):
 if __name__ == '__main__':
 	if len(sys.argv) < 8 or len(sys.argv) > 9:
 		print "usage:  python  %s <srl-data-file> <location-json-file> <organization-json-file> <person-json-file> <urlInfo-json-file> <crawled-json-file> <json-output-name> [flag for computing spans]" %(sys.argv[0])
-		print "'frame_labels.txt' and 'def_roles.txt' are supposed to be in local directory."
+		print "'frame_labels.txt' and 'def_roles.txt' are supposed to be in local directory 'data/'."
 		exit(1)
 	if len(sys.argv) == 9:
 		COMP_SPAN_FLAG = int(sys.argv[8])
 	full_path = os.path.realpath(__file__)
 	global script_dir, finalJsonFile, perDict, orgDict
 	script_dir = "/".join(full_path.split("/")[:-1]) + "/"
-	read_frames(script_dir+"frame_labels.txt")
+	read_frames(script_dir+"data/frame_labels.txt")
 	read_location(sys.argv[2])
 	read_organization(sys.argv[3])
 	read_person(sys.argv[4])
