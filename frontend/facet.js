@@ -21,13 +21,14 @@ function FacetListBox(container, query, field) {
 	this.handlers = {};
 
 	this.loadingIndicator.enabled(true);
-	this.clearData();
+	this._clearList();
 	this._watchQuery(query, this.viewValue);
+
+	this.dataCounts = null;
 }
 
 FacetListBox.prototype._watchQuery = function (query, viewValue) {
 	var listBox = this,
-	    dataCounts = null,
 	    continuer = null;
 
 	var resultWatcher = new Queries.ResultWatcher(function () {});
@@ -35,7 +36,7 @@ FacetListBox.prototype._watchQuery = function (query, viewValue) {
 	query.addResultWatcher(resultWatcher);
 
 	resultWatcher.setCallback(function(result, getContinuer) {
-		dataCounts = [];
+		listBox.dataCounts = [];
 		if (result.counts.hasOwnProperty('error')) {
 			listBox.loadingIndicator.error('counts', true);
 			listBox.loadingIndicator.enabled(true);
@@ -45,17 +46,17 @@ FacetListBox.prototype._watchQuery = function (query, viewValue) {
 			listBox.loadingIndicator.enabled(false);
 			continuer = getContinuer();
 			listBox._setMoreEnabled(continuer.hasMore());
-			dataCounts = dataCounts.concat(result.counts.counts);
+			listBox.dataCounts = listBox.dataCounts.concat(result.counts.counts);
 		}
-		listBox._setData(dataCounts);
+		listBox._setData(listBox.dataCounts);
 	});
 
 	listBox.moreElt.click(function(fromEvent) {
 		listBox._trigger('more', null, fromEvent, listBox.moreElt);
 		if (continuer != null)
 			continuer.fetchNext(function(result) {
-				dataCounts = dataCounts.concat(result.counts.counts);
-				listBox._setData(dataCounts);
+				listBox.dataCounts = listBox.dataCounts.concat(result.counts.counts);
+				listBox._setData(listBox.dataCounts);
 			});
 	});
 
@@ -101,9 +102,10 @@ FacetListBox.prototype._clearList = function () {
 	this.listElt.find('li').remove();
 }
 
-FacetListBox.prototype.clearData = function () {
+FacetListBox.prototype.clearSelection = function () {
+	this._trigger('clear-selection');
 	this.selected = {};
-	this._clearList();
+	this._setData(this.dataCounts);
 }
 
 FacetListBox.prototype._setData = function (dataCounts) {

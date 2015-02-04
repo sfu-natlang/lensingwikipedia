@@ -619,13 +619,27 @@ function setup(container, globalQuery) {
 	contextQuery.addResultWatcher(resultWatcher);
 
 	var entityLists = $.map(storylineFields, function (fieldInfo, fieldI) {
+		// This is a bit messy since we rely on the structure of the FacetListBox elements
 		var entityList = new Facet.FacetListBox(entityListMenuElts[fieldI], globalQuery, fieldInfo.field);
 		entityList.outerElt.addClass('dropdown-menu');
+		var btnBox = $('<div class="clearbuttonbox"></div>').prependTo(entityList.outerElt);
+		var clearEntitiesBtn = $('<button type="button" class="btn btn-mini btn-warning clearviewentities" title="Clear view entities.">Clear</button>').prependTo(btnBox);
 		LayoutUtils.fillElement(container, entityList.outerElt, 'vertical', 100);
+		clearEntitiesBtn.bind('click', function (fromEvent) {
+			fromEvent.stopPropagation();
+			entityList.clearSelection();
+		});
 		return entityList;
 	});
 	var entityList = entityLists[0];
 	entityListMenuElts[0].show();
+	function setClearEntitiesEnabled(enabled) {
+		var elts = topBoxElt.find('.clearviewentities');
+		if (!enabled)
+			elts.attr('disabled', 'disabled');
+		else
+			elts.removeAttr('disabled');
+	}
 
 	function setLoadingIndicator(enabled) {
 		svgElt.css('display', !enabled ? '' : 'none');
@@ -679,6 +693,7 @@ function setup(container, globalQuery) {
 			updateHelp(false);
 			setLoadingIndicator(true);
 			clearQueryElt.removeAttr('disabled');
+			setClearEntitiesEnabled(true);
 		} else {
 			resultWatcher.clear();
 			setLoadingIndicator(false);
@@ -687,6 +702,7 @@ function setup(container, globalQuery) {
 			updateHelp(true);
 			statusElt.html("");
 			outerSvgElt.hide();
+			setClearEntitiesEnabled(false);
 		}
 	}
 
@@ -986,6 +1002,10 @@ function setup(container, globalQuery) {
 		});
 		entityList.on('more', function (value, fromEvent) {
 			fromEvent.stopPropagation();
+		});
+		entityList.on('clear-selection', function () {
+			queryEntities = [];
+			updateQuery();
 		});
 	});
 
