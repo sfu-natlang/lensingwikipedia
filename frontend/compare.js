@@ -51,6 +51,8 @@ function setupCompare(container, globalQuery, facets) {
 										<option value="2">Top 2</option> \
 										<option value="3">Top 3</option> \
 										<option value="5" selected>Top 5</option> \
+										<option value="10">Top 10</option> \
+										<option value="20" >Top 20</option> \
 										<option value="-1">All</option> \
 								 </select>').appendTo(controlsElt);
 	var updateBtn = $('<button type="submit" class="btn btn-warning" title="Update the visualization">Update</button></ul>').appendTo(controlsElt);
