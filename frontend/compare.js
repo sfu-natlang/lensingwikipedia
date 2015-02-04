@@ -19,7 +19,7 @@ var current_domain = null;
 function setupCompare(container, globalQuery, facets) {
 	/************************** CONSTANTS *****************************/
 	// The view space for SVG; this doesn't have to correspond to screen units.
-	var viewBox = { x: 0, y : 0, width: 1024-150, height: 768 };
+	var viewBox = { x: 0, y : 0, width: 1024, height: 768 };
 	// Margins for the main graphs (but not for the axes and axes labels, which go in the margin space).
 	var margins = { left: 50, right: 40, top: 0, bottom: 35, between: 40 };
 	var split = 0.8;
@@ -388,7 +388,7 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 
 	var svg = d3.select("#comparesvg")
 			.attr("viewBox", [viewBox.x, viewBox.y, viewBox.width, viewBox.height].join(" "))
-			.attr("preserveAspectRatio", "none")
+			.attr("preserveAspectRatio", "none");
 
 	svg.append("defs").append("clipPath")
 			.attr("id", "clip")
@@ -397,7 +397,6 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 			.attr('height', detailBox.height)
 			.attr('x', 0)
 			.attr('y', 0);
-
 
 	var legend = d3.select(".legend > ul");
 
@@ -429,9 +428,6 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 	var yAxis = d3.svg.axis()
 		.scale(y)
 		.orient("left");
-
-	hoverLineXOffset = margins.left+$(container).offset().left;
-	hoverLineYOffset = margins.top+$(container).offset().top;
 
 	hoverLineGroup = focus.append("g")
 		.attr("class", "hover-line");
@@ -497,6 +493,19 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 			.style("text-anchor", "end")
 			.text("Count");
 
+	focus.append("rect")
+		.attr('width', detailBox.width)
+		.attr('height', detailBox.height)
+		.attr('x', 0)
+		.attr('y', 0)
+		.style('opacity', '0')
+		.on("mouseleave", function() {
+			var coords = d3.mouse(this);
+			handleMouseOutGraph(coords);
+		}).on("mousemove", function() {
+			handleMouseOverGraph(d3.mouse(this));
+		});
+
 	focus.selectAll()
 			.data(persons)
 		.enter()
@@ -507,15 +516,20 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 				.attr("name", function(d) { return d.name; })
 				.style("stroke", function(d) { return color(d.name); })
 				.on("mouseover", function(d) {
+					handleMouseOverGraph(d3.mouse(this));
 					$('path.line').css("stroke-opacity", "0.5");
 					$('path.line[name="' + d.name + '"]').css("stroke-opacity", "1");
 					$('path.line[name="' + d.name + '"]').css("stroke-width", "3.5px");
 					$('.legend ul li[name="' + d.name + '"]').css("font-weight", "bold");
 				})
 				.on("mouseout", function(d) {
+					handleMouseOutGraph(d3.mouse(this));
 					$('path.line').css("stroke-opacity", "1");
 					$('path.line[name="' + d.name + '"]').css("stroke-width", "1.5px");
 					$('.legend ul li[name="' + d.name + '"]').css("font-weight", "normal");
+				})
+				.on("mousemove", function(d) {
+					handleMouseOverGraph(d3.mouse(this));
 				});
 
 	context.selectAll()
@@ -630,9 +644,10 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 
 	var currentUserPositionX = 0;
 
-	var handleMouseOverGraph = function(event) {
-		var mouseX = (event.pageX - hoverLineXOffset);
-		var mouseY = (event.pageY - hoverLineYOffset);
+	var handleMouseOverGraph = function(coords) {
+		// we should get the event be passed in a d3.event
+		var mouseX = coords[0];
+		var mouseY = coords[1];
 
 		if(mouseX >= 0 && mouseX <= detailBox.width && mouseY >= detailBox.y && mouseY <= detailBox.height + detailBox.y) {
 			// show the hover line
@@ -646,15 +661,14 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 			var year = x.invert(mouseX).getFullYear();
 			updateLegendValues(year);
 
-			d3.select("#legend-year").attr("transform", function(d, i) {
-				return "translate(" + (mouseX) + "," + (detailBox.height + detailBox.y + margins.between/2 + 5) + ")"; })
+			d3.select("#legend-year").attr("transform", "translate(" + (mouseX + margins.left) + "," + (detailBox.height + detailBox.y + margins.between/2 + 5) + ")");
 		} else {
 			// proactively act as if we've left the area since we're out of the bounds we want
-			handleMouseOutGraph(event)
+			handleMouseOutGraph(coords)
 		}
 	}
 
-	var handleMouseOutGraph = function(event) {
+	var handleMouseOutGraph = function(coords) {
 		// hide the hover-line
 		hoverLine.classed("hide", true);
 
@@ -662,13 +676,6 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 		d3.select("#legend-year").text("");
 	}
 
-	$(container).mouseleave(function(event) {
-		handleMouseOutGraph(event);
-	});
-
-	$(container).mousemove(function(event) {
-		handleMouseOverGraph(event);
-	});
 
 	var updateLegendValues = function(year) {
 		// find element with the right year.
@@ -679,4 +686,6 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 
 		d3.select("#legend-year").text(year);
 	};
+
+
 }
