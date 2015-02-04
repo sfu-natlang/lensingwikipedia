@@ -505,7 +505,18 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 				.attr("clip-path", "url(#clip)")
 				.attr("d", function(d) { return line(d.values); })
 				.attr("name", function(d) { return d.name; })
-				.style("stroke", function(d) { return color(d.name); });
+				.style("stroke", function(d) { return color(d.name); })
+				.on("mouseover", function(d) {
+					$('path.line').css("stroke-opacity", "0.5");
+					$('path.line[name="' + d.name + '"]').css("stroke-opacity", "1");
+					$('path.line[name="' + d.name + '"]').css("stroke-width", "3.5px");
+					$('.legend ul li[name="' + d.name + '"]').css("font-weight", "bold");
+				})
+				.on("mouseout", function(d) {
+					$('path.line').css("stroke-opacity", "1");
+					$('path.line[name="' + d.name + '"]').css("stroke-width", "1.5px");
+					$('.legend ul li[name="' + d.name + '"]').css("font-weight", "normal");
+				});
 
 	context.selectAll()
 			.data(persons)
@@ -522,6 +533,7 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 			.style("color", function(d) {
 				return color(d.name);
 			})
+			.attr("name", function(d, i) { return d.name; })
 			.text(function(d) { return d.name; })
 			.on("click", function(d) {
 				$('path.line[name="' + d.name + '"]').toggle();
@@ -544,14 +556,15 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 				}
 			})
 			.on("mouseover", function(d) {
-				console.log(d);
+				$('path.line').css("stroke-opacity", "0.5");
+				$('path.line[name="' + d.name + '"]').css("stroke-opacity", "1");
 				$('path.line[name="' + d.name + '"]').css("stroke-width", "3.5px");
-				$this.style.fontWeight = "bold";
+				this.style.fontWeight = "bold";
 			})
 			.on("mouseout", function(d) {
-				console.log(d);
+				$('path.line').css("stroke-opacity", "1");
 				$('path.line[name="' + d.name + '"]').css("stroke-width", "1.5px");
-				$this.style.fontWeight = "normal";
+				this.style.fontWeight = "normal";
 			});
 
 	svg.append("text")
