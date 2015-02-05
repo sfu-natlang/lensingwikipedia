@@ -551,7 +551,15 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 				.attr("class", "line")
 				.attr("d", function(d) { return line2(d.values); })
 				.attr("name", function(d) { return d.name; })
-				.style("stroke", function(d) { return color(d.name); });
+				.style("stroke", function(d) { return color(d.name); })
+				.style("display", function(d) {
+					var index = hidden_names.indexOf(d.name);
+					if (index >= 0) {
+						return "none";
+					} else {
+						return "initial";
+					}
+				});
 
 	legend.selectAll()
 			.data(persons)
