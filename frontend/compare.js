@@ -519,6 +519,14 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 				.attr("d", function(d) { return line(d.values); })
 				.attr("name", function(d) { return d.name; })
 				.style("stroke", function(d) { return color(d.name); })
+				.style("display", function(d) {
+					var index = hidden_names.indexOf(d.name);
+					if (index >= 0) {
+						return "none";
+					} else {
+						return "initial";
+					}
+				})
 				.on("mouseover", function(d) {
 					handleMouseOverGraph(d3.mouse(this));
 					$('path.line').css("stroke-opacity", "0.5");
@@ -543,13 +551,29 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 				.attr("class", "line")
 				.attr("d", function(d) { return line2(d.values); })
 				.attr("name", function(d) { return d.name; })
-				.style("stroke", function(d) { return color(d.name); });
+				.style("stroke", function(d) { return color(d.name); })
+				.style("display", function(d) {
+					var index = hidden_names.indexOf(d.name);
+					if (index >= 0) {
+						return "none";
+					} else {
+						return "initial";
+					}
+				});
 
 	legend.selectAll()
 			.data(persons)
 		.enter().append("li")
 			.style("color", function(d) {
 				return color(d.name);
+			})
+			.style("text-decoration", function(d) {
+				var index = hidden_names.indexOf(d.name);
+				if (index >= 0) {
+					return "line-through";
+				} else {
+					return "";
+				}
 			})
 			.attr("name", function(d, i) { return d.name; })
 			.text(function(d) { return d.name; })
