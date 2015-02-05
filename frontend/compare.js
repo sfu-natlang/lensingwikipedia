@@ -120,7 +120,7 @@ function setup(container, globalQuery, facets) {
 
 		}
 
-		currentFacet.constraintsQuery.onResult({
+		globalQuery.onResult({
 			counts: {
 				type: 'countbyfieldvalue',
 				field: currentFacet.field
@@ -130,6 +130,8 @@ function setup(container, globalQuery, facets) {
 			//		 It might be a good idea to check if it was already
 			//		 executed so we don't reload too many times.
 			var topNames = [];
+			current_domain = null;
+			hidden_names = [];
 
 			if (topCount < 0) {
 				topCount = result.counts.counts.length;
@@ -168,7 +170,7 @@ function setup(container, globalQuery, facets) {
 				});
 			});
 		});
-		currentFacet.constraintsQuery.update();
+		globalQuery.update();
 	});
 
 	/********************* END CALLBACKS ****************************/
