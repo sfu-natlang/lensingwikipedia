@@ -167,7 +167,7 @@ If Apache is not available and you only want to execute the frontend for testing
     cd /var/www/html/lensingwikipedia.cs.sfu.ca/
     python -c "import SimpleHTTPServer; m = SimpleHTTPServer.SimpleHTTPRequestHandler.extensions_map; m[''] = 'text/plain'; m.update(dict([(k, v + ';charset=UTF-8') for k, v in m.items()])); SimpleHTTPServer.test();"
 
-Or one can copy `SimpleHTTPServerUTF8` from the frontend directory into the release site or productioon scenario and then run:
+Or one can copy `SimpleHTTPServerUTF8` from the frontend directory into the release site or production scenario and then run:
 
     python SimpleHTTPServerUTF8
     
