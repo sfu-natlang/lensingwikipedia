@@ -186,3 +186,20 @@ Note that you do not always need to restart the backend to change to new data; s
     git pull
     make release
     cp release/*.* /var/www/html/lensingwikipedia.cs.sfu.ca/.
+
+# Using upstart to start backend
+
+You can use `upstart` to restart the backend server on crash. Make sure you have `upstart` installed and checking for jobs in `/etc/init`. You can check by running `initctl list` and comparing to `/etc/init`.
+
+    cd /var/www/html/checkouts/20131017/domains/wikipediahistory/backend
+    cp /var/www/html/checkouts/20131017/backend/lensing-backend.conf
+
+Edit the `lensing-backend.conf` file to set `LOC=/var/www/html/checkouts/20131017/domains/wikipediahistory/backend`.
+
+    sudo cp lensing-backend.conf /etc/init/lensing-backend.conf
+    initctl list # check to see: lensing-backend stop/waiting
+    sudo initctl start lensing-backend
+    
+The last command will print out the process id. You might want to save it to `upstart.pid` to check on the running process later.
+
+    
