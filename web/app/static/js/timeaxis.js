@@ -1,8 +1,10 @@
-function timeAxisTickFormater(date) {
+var TimeAxis = (function () {
+
+function tickFormater(date) {
 	var year = date.getFullYear();
 	return year <= 0 ?  1 - year + "BCE" : year + "CE";
 }
-function timeAxisTickValues(xScale) {
+function tickValues(xScale) {
 	// For any BCE tick that is aligned to a round five years and is at least five years from the next tick, we bump it up one year to produce ticks at rounder-looking dates. This is a bit of a hack but seems to work ok.
 	var ticks = xScale.ticks();
 	var n = ticks.length - 1;
@@ -29,3 +31,10 @@ function jsDateOfYear(year) {
 	date.setFullYear(jsYear);
 	return date;
 }
+
+return {
+	tickFormater: tickFormater,
+	tickValues: tickValues,
+	jsDateOfYear: jsDateOfYear
+};
+}());

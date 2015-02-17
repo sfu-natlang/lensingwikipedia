@@ -47,33 +47,33 @@
 	background-repeat: no-repeat;
 }
 
-.facet .listbox {
+.facet .facetlistbox {
 	height: 100%;
 	margin: 0;
 	padding: 0;
 	overflow-y: auto;
 }
-.facet .listbox.selected {
+.facet .facetlistbox.selected {
 	background-color: rgba(58, 135, 173, 0.5);
 }
 
-.facet .listbox ul {
+.facet .facetlistbox ul {
 	margin: 1em;
 	padding: 0;
 }
-.facet .listbox ul li {
+.facet .facetlistbox ul li {
 	margin: 0;
 	padding: 0;
 	list-style: none;
 	white-space: nowrap;
 }
-.facet .listbox ul li.selected {
+.facet .facetlistbox ul li.selected {
 	background-color: #3a87ad;
 }
-.facet .listbox ul li:hover {
+.facet .facetlistbox ul li:hover {
 	background-color: lightgray;
 }
-.facet .listbox ul li.selected:hover {
+.facet .facetlistbox ul li.selected:hover {
 	background-color: gray;
 }
 
@@ -82,6 +82,6 @@
 	margin: 0;
 	padding: 0;
 }
-.facet .listbox button {
+.facet .facetlistbox button {
 	margin: 0em auto 1em auto;
 }

@@ -2,12 +2,14 @@
  * Text search control.
  */
 
+var TextSearch = (function () {
+
 /*
  * Setup the control in some container element.
  * container: container element as a jquery selection
  * globalQuery: the global query
  */
-function setupTextSearch(container, globalQuery) {
+function setup(container, globalQuery) {
 	var outerElt = $('<div class="textsearch"></div>').appendTo(container);
 
 	var formElt = $('<form></form>').appendTo(outerElt);
@@ -36,13 +38,13 @@ function setupTextSearch(container, globalQuery) {
 	');
 
 	var fieldExElt = helpTextElt.find('.fieldexamples');
-	$.each(helpFieldsList, function (fieldI, field) {
+	$.each(FrontendConfig.helpFieldsList, function (fieldI, field) {
 		$("<li>" + field + "</li>").appendTo(fieldExElt);
 	});
 
-	fillElement(container, outerElt, 'vertical');
+	LayoutUtils.fillElement(container, outerElt, 'vertical');
 
-	var constraint = new Constraint();
+	var constraint = new Queries.Constraint();
 	globalQuery.addConstraint(constraint);
 
 	var currentSearchTerm = null;
@@ -80,3 +82,8 @@ function setupTextSearch(container, globalQuery) {
 		return false;
 	});
 }
+
+return {
+	setup: setup
+}
+}());

@@ -2,40 +2,36 @@
 
 {% block head %}
 
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/loadingindicator.css') }}">
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/constraintslist.css') }}">
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/eventdescriptionslist.css') }}">
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/facet.css') }}">
-  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/loadingindicator.css') }}">
-  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/main.css') }}">
-  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/map.css') }}">
-  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/oursheader.css') }}">
-  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/storyline.css') }}">
-  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/textsearch.css') }}">
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/timeline.css') }}">
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/compare.css') }}">
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/map.css') }}">
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/tsne.css') }}">
-
-  <script>
-    backendUrl = "http://localhost:1500";
-  </script>
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/textsearch.css') }}">
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/storyline.css') }}">
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/main.css') }}">
 
   <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
   <script src="{{ url_for('static', filename='js/layoututils.js') }}"></script>
   <script src="{{ url_for('static', filename='js/d3utils.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/timeaxisutils.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/timeaxis.js') }}"></script>
   <script src="{{ url_for('static', filename='js/loadingindicator.js') }}"></script>
   <script src="{{ url_for('static', filename='js/queries.js') }}"></script>
   <script src="{{ url_for('static', filename='js/constraintslist.js') }}"></script>
   <script src="{{ url_for('static', filename='js/eventdescriptionslist.js') }}"></script>
   <script src="{{ url_for('static', filename='js/facet.js') }}"></script>
   <script src="{{ url_for('static', filename='js/timeline.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/compare.js') }}"></script>
   <script src="{{ url_for('static', filename='js/map.js') }}"></script>
   <script src="{{ url_for('static', filename='js/tsne.js') }}"></script>
   <script src="{{ url_for('static', filename='js/textsearch.js') }}"></script>
   <script src="{{ url_for('static', filename='js/storylinelayout.js') }}"></script>
   <script src="{{ url_for('static', filename='js/storyline.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/descriptions.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/textreplacements.js') }}"></script>
 
-  <script src="{{ url_for('static', filename='js/oursheader.js') }}"></script>
 
   {% if config.DOMAIN == "wikipediahistory" %}
 
@@ -53,11 +49,16 @@
 
   {% endif %}
 
+  <script>
+    FrontendConfig.backendUrl = "http://localhost:1500";
+  </script>
+
 {% endblock %}
 
 
 {% block content %}
 
+{#
 {% if g.user.is_authenticated() %}
 
 Welcome back, {{ g.user.email }}!
@@ -74,87 +75,89 @@ Welcome back, {{ g.user.email }}!
 </form>
 
 {% endif %}
+#}
 
 <div class="header">
 </div>
 
-<script>
-    $('<div class="contentarea"> \
-        <div class="sidebar"> \
-            <div class="constraintslistbox"></div> \
-            <div class="eventdescriptionslistbox"></div> \
-        </div> \
-        <div class="selectorsarea"> \
-            <ul class="nav nav-pills" id="tabbar"> \
-                <li class="active"><a href="#facetstab" data-toggle="tab" title="Facets view">Facets</a></li> \
-                <li><a href="#storyline" data-toggle="tab" title="Storyline">Storyline</a></li> \
-                <li><a href="#timelinetab" data-toggle="tab" title="Timeline view">Timeline</a></li> \
-                <li><a href="#maptab" data-toggle="tab" title="Map view">Map</a></li> \
-                <li><a href="#tsnetab" data-toggle="tab" title="Cluster view">Cluster</a></li> \
-                <li><a href="#textsearchtab" data-toggle="tab" title="Text search">Text search</a></li> \
-            </ul> \
-            <div class="tab-content" id="tabcontents"> \
-                <div class="tab-pane active" id="facetstab"></div> \
-                <div class="tab-pane" id="storyline"></div> \
-                <div class="tab-pane" id="timelinetab"></div> \
-                <div class="tab-pane" id="maptab"></div> \
-                <div class="tab-pane" id="tsnetab"></div> \
-                <div class="tab-pane" id="textsearchtab"></div> \
-            </div> \
-        </div> \
-    </div>').appendTo($('body'));
+		<script>
+			$('<div class="contentarea"> \
+				<div class="sidebar"> \
+					<div class="constraintslistbox"></div> \
+					<div class="eventdescriptionslistbox"></div> \
+				</div> \
+				<div class="selectorsarea"> \
+					<ul class="nav nav-pills" id="tabbar"> \
+						<li class="active"><a href="#facetstab" data-toggle="tab" title="Facets view">Facets</a></li> \
+						<li><a href="#storyline" data-toggle="tab" title="Storyline">Storyline</a></li> \
+						<li><a href="#timelinetab" data-toggle="tab" title="Timeline view">Timeline</a></li> \
+						<li><a href="#comparetab" data-toggle="tab" title="Comparison view">Comparison</a></li> \
+						<li><a href="#maptab" data-toggle="tab" title="Map view">Map</a></li> \
+						<li><a href="#tsnetab" data-toggle="tab" title="Cluster view">Cluster</a></li> \
+						<li><a href="#textsearchtab" data-toggle="tab" title="Text search">Text search</a></li> \
+					</ul> \
+					<div class="tab-content" id="tabcontents"> \
+						<div class="tab-pane active" id="facetstab"></div> \
+						<div class="tab-pane" id="storyline"></div> \
+						<div class="tab-pane" id="timelinetab"></div> \
+						<div class="tab-pane" id="comparetab"></div> \
+						<div class="tab-pane" id="maptab"></div> \
+						<div class="tab-pane" id="tsnetab"></div> \
+						<div class="tab-pane" id="textsearchtab"></div> \
+					</div> \
+				</div> \
+			</div>').appendTo($('body'));
 
-    setupPanelled($('body'), $('.header'), $('.contentarea'), 'vertical', 4);
-    setupPanelled($('.selectorsarea'), $('#tabbar'), $('.tab-content'), 'vertical');
+			LayoutUtils.setupPanelled($('body'), $('.header'), $('.contentarea'), 'vertical', 4);
+			LayoutUtils.setupPanelled($('.selectorsarea'), $('#tabbar'), $('.tab-content'), 'vertical');
 
-    var initialQuery = new Query(backendUrl);
-    var globalQuery = new Query(backendUrl);
+			var initialQuery = new Queries.Query(FrontendConfig.backendUrl);
+			var globalQuery = new Queries.Query(FrontendConfig.backendUrl);
 
-    function setupSidebar(container, globalQuery) {
-        var cnstrBoxElt = $(".constraintslistbox");
-        var eventDescBoxElt = $(".eventdescriptionslistbox");
+			function setupSidebar(container, globalQuery) {
+				var cnstrBoxElt = $(".constraintslistbox");
+				var eventDescBoxElt = $(".eventdescriptionslistbox");
 
-        setupConstraintList(cnstrBoxElt, globalQuery);
-        setupEventDescriptionsList(eventDescBoxElt, globalQuery);
+				ConstraintsList.setup(cnstrBoxElt, globalQuery);
+				EventDescriptionsList.setup(eventDescBoxElt, globalQuery);
 
-        setupPanelled(container, cnstrBoxElt, eventDescBoxElt, 'vertical', 0, true);
-    }
-    setupSidebar($(".sidebar"), globalQuery);
+				LayoutUtils.setupPanelled(container, cnstrBoxElt, eventDescBoxElt, 'vertical', 0, true);
+			}
+			setupSidebar($(".sidebar"), globalQuery);
 
-    var facetsInfo = [];
-    var facetMakers = $.map(facets, function (title, field) {
-        return function (container) {
-            var constraintsQuery = setupFacet(container, globalQuery, title, field);
-            facetsInfo.push({
-                title: title,
-                field: field,
-                constraintsQuery: constraintsQuery
-            });
-        }
-    });
-    setupSplitMakeElements($('#facetstab'), 'horizontal', facetMakers);
-    setupStoryline($('#storyline'), globalQuery, facetsInfo);
-    setupTimeline($('#timelinetab'), initialQuery, globalQuery);
-    setupMap($('#maptab'), initialQuery, globalQuery, mapDataUrl, minMapZoom, maxMapZoom);
-    setupTSNE($('#tsnetab'), initialQuery, globalQuery, minMapZoom, maxMapZoom);
-    setupTextSearch($('#textsearchtab'), globalQuery);
+			var facetsExpanded = [];
+			var facetMakers = $.map(FrontendConfig.facets, function (facet) {
+				return function (container) {
+					facetsExpanded.push(Utils.extendObject([facet], {
+						constraintsQuery: Facet.setup(container, globalQuery, facet.title, facet.field)
+					}));
+				}
+			});
+			LayoutUtils.setupSplitMakeElements($('#facetstab'), 'horizontal', facetMakers);
+			Storyline.setup($('#storyline'), globalQuery, facetsExpanded);
+			Timeline.setup($('#timelinetab'), initialQuery, globalQuery);
+			Compare.setup($('#comparetab'), globalQuery, facetsExpanded);
+			Map.setup($('#maptab'), initialQuery, globalQuery, mapDataUrl, FrontendConfig.minMapZoom, FrontendConfig.maxMapZoom);
+			Tsne.setup($('#tsnetab'), initialQuery, globalQuery, FrontendConfig.minMapZoom, FrontendConfig.maxMapZoom);
+			TextSearch.setup($('#textsearchtab'), globalQuery);
 
-    fillElement($('.tab-content'), $('#facetstab'), 'vertical');
-    fillElement($('.tab-content'), $('#storyline'), 'vertical');
-    fillElement($('.tab-content'), $('#timelinetab'), 'vertical');
-    fillElement($('.tab-content'), $('#maptab'), 'vertical');
-    fillElement($('.tab-content'), $('#tsnetab'), 'vertical');
-    fillElement($('.tab-content'), $('#textsearchtab'), 'vertical');
-    fillElement($('.tab-content'), $('#abouttab'), 'vertical');
+			LayoutUtils.fillElement($('.tab-content'), $('#facetstab'), 'vertical');
+			LayoutUtils.fillElement($('.tab-content'), $('#storyline'), 'vertical');
+			LayoutUtils.fillElement($('.tab-content'), $('#timelinetab'), 'vertical');
+			LayoutUtils.fillElement($('.tab-content'), $('#comparetab'), 'vertical');
+			LayoutUtils.fillElement($('.tab-content'), $('#maptab'), 'vertical');
+			LayoutUtils.fillElement($('.tab-content'), $('#tsnetab'), 'vertical');
+			LayoutUtils.fillElement($('.tab-content'), $('#textsearchtab'), 'vertical');
+			LayoutUtils.fillElement($('.tab-content'), $('#abouttab'), 'vertical');
 
-    // Update the queries only after setting up all the controls
-    initialQuery.update();
-    globalQuery.update();
+			// Update the queries only after setting up all the controls
+			initialQuery.update();
+			globalQuery.update();
 
-    // Fake a window resize on changing tabs, so ensure that the contents are sized properly
-    $('a[data-toggle="tab"]').on('shown', function () {
-        $(window).trigger('resize');
-    });
-</script>
+			// Fake a window resize on changing tabs, so ensure that the contents are sized properly
+			$('a[data-toggle="tab"]').on('shown', function () {
+				$(window).trigger('resize');
+			});
+		</script>
 
 {% endblock %}
