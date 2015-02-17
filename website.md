@@ -103,6 +103,17 @@ To use the backend we first need to build the domain-specific programs.
 
 Now the appropriate programs are in `/var/www/html/checkouts/20131017/domains/wikipediahistory/backend`
 
+## Get the data from the nightly crawl
+
+These are instructions for the wikipedia crawl. The avherald and other domains will be similar.
+
+    cd /var/www/html/data/wikipedia
+    scp linux.cs.sfu.ca:/cs/natlang-projects/users/maryam/wikiCrawler/Crawl_20150202/fullData.json . # (use the correct date)
+    mkdir Crawl_20150202
+    mv fullData.json Crawl_20150202
+    rm -f latest
+    ln -s Crawl_20150202 latest
+    
 ## Set up data files for backend
 
     cd /var/www/html
@@ -112,10 +123,10 @@ Now the appropriate programs are in `/var/www/html/checkouts/20131017/domains/wi
     chmod g+w data
     chmod g+s data
     cd data
-    # create full.index in data/20131017 (use current date) using instructions in the backend README
-    python2.7 buildindex /var/www/html/data/20131017/fullData.20131017.index /var/www/html/data/20131017/fullData.20131017.json
-    python2.7 cluster /var/www/html/data/20131017/fullData.20131017.index
-    python2.7 tsne /var/www/html/data/20131017/fullData.20131017.index
+    # create full.index in data/wikipedia/latest (use current date) using instructions in the backend README
+    python2.7 buildindex /var/www/html/data/wikipedia/latest/fullData.index /var/www/html/data/wikipedia/latest/fullData.json
+    python2.7 cluster /var/www/html/data/wikipedia/latest/fullData.index
+    python2.7 tsne /var/www/html/data/wikipedia/latest/fullData.index
 
 ## Run backend
 
@@ -127,7 +138,7 @@ Now the appropriate programs are in `/var/www/html/checkouts/20131017/domains/wi
 
     {
       'server': {
-        'index_dir_path': '/var/www/html/data/20131003/full.index'
+        'index_dir_path': '/var/www/html/data/wikipedia/latest/fullData.index'
       },
       'querier': {
       }
@@ -151,12 +162,15 @@ The make command above creates default settings files. If you already have your 
 
 
 ## Deploying frontend without Apache
-If Apache is not available and you only want to execute the frontend for testing, execute the following command (Works and tested with devel build of frontend and not release):
+If Apache is not available and you only want to execute the frontend for testing, execute the following command:
 
     cd /var/www/html/lensingwikipedia.cs.sfu.ca/
     python -c "import SimpleHTTPServer; m = SimpleHTTPServer.SimpleHTTPRequestHandler.extensions_map; m[''] = 'text/plain'; m.update(dict([(k, v + ';charset=UTF-8') for k, v in m.items()])); SimpleHTTPServer.test();"
 
+Or one can copy `SimpleHTTPServerUTF8` from the frontend directory into the release site or production scenario and then run:
 
+    python SimpleHTTPServerUTF8
+    
 # Update the website
 
 ## Restart backend
@@ -172,3 +186,20 @@ Note that you do not always need to restart the backend to change to new data; s
     git pull
     make release
     cp release/*.* /var/www/html/lensingwikipedia.cs.sfu.ca/.
+
+# Using upstart to start backend
+
+You can use `upstart` to restart the backend server on crash. Make sure you have `upstart` installed and checking for jobs in `/etc/init`. You can check by running `initctl list` and comparing to `/etc/init`.
+
+    cd /var/www/html/checkouts/20131017/domains/wikipediahistory/backend
+    cp /var/www/html/checkouts/20131017/backend/lensing-backend.conf
+
+Edit the `lensing-backend.conf` file to set `LOC=/var/www/html/checkouts/20131017/domains/wikipediahistory/backend`.
+
+    sudo cp lensing-backend.conf /etc/init/lensing-backend.conf
+    initctl list # check to see: lensing-backend stop/waiting
+    sudo initctl start lensing-backend
+    
+The last command will print out the process id. You might want to save it to `upstart.pid` to check on the running process later.
+
+    

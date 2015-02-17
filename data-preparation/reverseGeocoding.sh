@@ -1,7 +1,7 @@
 #!/bin/bash
 
 PYPATH=/cs/natlang-sw/Linux-x86_64/NL/LANG/PYTHON/2.7.3/bin/python
-SCRIPTS=/cs/natlang-projects/users/maryam/wikiCrawler
+SCRIPTS=/home/msiahban/testSVN/lensingwikipedia/data-preparation
 
 fileName=$1
 
@@ -12,7 +12,7 @@ nday=`echo "$nloc / $nquery" | bc`
 
 log=locFilesLog
 mkdir -p $log
-rm $log/*
+#rm $log/*
 for (( i=0; i<$nday; i++ )); do
      let s="i * $nquery + 1"
      let t="( i + 1 ) * $nquery"

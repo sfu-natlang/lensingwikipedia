@@ -2,6 +2,8 @@
  * Timeline control.
  */
 
+var Timeline = (function () {
+
 // Number for generating unique clipping element IDs
 var timelineClipNum = 0;
 var smooth_k = 5;
@@ -32,7 +34,7 @@ function resultToPlotData(initialCounts, contextCounts) {
 	for (year in allYears) {
 		sample = {
 			year: +year,
-			date: jsDateOfYear(year),
+			date: TimeAxis.jsDateOfYear(year),
 			// TODO smooth data here. It's too slow to loop over the entire
 			// array afterwards
 			initialCount: +initialCounts[year] || 0,
@@ -146,7 +148,7 @@ function drawPlot(svg, box, data, classStr, matchScales, fitY, logY, clipId, sho
 	var zeroDate = new Date(0, 0, 1);
 	zeroDate.setFullYear(1);
 	var axes = {
-		x: d3.svg.axis().scale(scales.x).orient('bottom').tickFormat(timeAxisTickFormater).tickValues(timeAxisTickValues(scales.x)),
+		x: d3.svg.axis().scale(scales.x).orient('bottom').tickFormat(TimeAxis.tickFormater).tickValues(TimeAxis.tickValues(scales.x)),
 		y: d3.svg.axis().scale(scales.y).orient('left').tickFormat(yTickFormater)
 	};
 	function fitYScale() {
@@ -195,7 +197,7 @@ function drawPlot(svg, box, data, classStr, matchScales, fitY, logY, clipId, sho
 /*
  * Draw the whole timeline visualization.
  */
-function drawTimeline(svg, detailBox, selectBox, data, initialBrushExtent, brushCallback) {
+function drawAll(svg, detailBox, selectBox, data, initialBrushExtent, brushCallback) {
 	var clipId = "timelineclip" + timelineClipNum;
 	timelineClipNum++;
 	svg.append('defs')
@@ -248,7 +250,7 @@ function drawTimeline(svg, detailBox, selectBox, data, initialBrushExtent, brush
  * initialQuery: the initial (empty) query
  * globalQuery: the global query
  */
-function setupTimeline(container, initialQuery, globalQuery) {
+function setup(container, initialQuery, globalQuery) {
 	// The view space for SVG; this doesn't have to correspond to screen units.
 	var viewBox = { x: 0, y : 0, width: 1024, height: 768 };
 	// Margins for the main graphs (but not for the axes and axes labels, which go in the margin space).
@@ -273,13 +275,13 @@ function setupTimeline(container, initialQuery, globalQuery) {
 							<option value="500">500</option>            \
 							</select>').val("5").appendTo(topBoxElt);
 	var smoothElt = $('<button type="button" class="btn btn-mini btn-warning" title="Select smoothing">Smooth</button>').appendTo(topBoxElt);
-	var loadingIndicator = new LoadingIndicator(outerElt);
+	var loadingIndicator = new LoadingIndicator.LoadingIndicator(outerElt);
 	var outerSvgElt = $('<svg class="outersvg"></svg>').appendTo(outerElt);
 	var svgElt = $('<svg class="innersvg" viewBox="' + viewBox.x + " " + viewBox.y + " " + viewBox.width + " " + viewBox.height + '" preserveAspectRatio="none"></svg>').appendTo(outerSvgElt);
 
-	fillElement(container, outerElt, 'vertical');
-	setupPanelled(outerElt, topBoxElt, outerSvgElt, 'vertical', 0, false);
-	var scaleSvg = dontScaleSvgParts(outerSvgElt, 'text,.tick');
+	LayoutUtils.fillElement(container, outerElt, 'vertical');
+	LayoutUtils.setupPanelled(outerElt, topBoxElt, outerSvgElt, 'vertical', 0, false);
+	var scaleSvg = D3Utils.dontScaleSvgParts(outerSvgElt, 'text,.tick');
 
 	var width = viewBox.width - margins.left - margins.right;
 	var height = viewBox.height - margins.top - margins.bottom - margins.between;
@@ -300,11 +302,11 @@ function setupTimeline(container, initialQuery, globalQuery) {
 	}
 	setClearEnabled(false);
 
-	var constraint = new Constraint();
+	var constraint = new Queries.Constraint();
 	globalQuery.addConstraint(constraint);
-	var ownCnstrQuery = new Query(globalQuery.backendUrl());
+	var ownCnstrQuery = new Queries.Query(globalQuery.backendUrl());
 	ownCnstrQuery.addConstraint(constraint);
-	var contextQuery = new Query(globalQuery.backendUrl(), 'setminus', globalQuery, ownCnstrQuery);
+	var contextQuery = new Queries.Query(globalQuery.backendUrl(), 'setminus', globalQuery, ownCnstrQuery);
 	var updateTimer = null;
 	var isSelection = true;
 	var lastSelection = null;
@@ -382,10 +384,10 @@ function setupTimeline(container, initialQuery, globalQuery) {
 	function draw() {
 		if (initialData != null && contextData != null) {
 			svgElt.children().remove();
-			var svg = jqueryToD3(svgElt);
+			var svg = D3Utils.jqueryToD3(svgElt);
 			var plotData = smoothData(resultToPlotData(initialData, contextData), smooth_k);
 			setLoadingIndicator(false);
-			clearBrush = drawTimeline(svg, detailBox, selectBox, plotData, lastSelection, function (selection) {
+			clearBrush = drawAll(svg, detailBox, selectBox, plotData, lastSelection, function (selection) {
 				if (selection == null)
 					globalQuery.update();
 				setSelection(selection);
@@ -408,7 +410,7 @@ function setupTimeline(container, initialQuery, globalQuery) {
 			setLoadingIndicator(true);
 		} else {
 			loadingIndicator.error('counts', false);
-			initialData = pairListToDict(result.counts.counts);
+			initialData = Utils.pairListToDict(result.counts.counts);
 			draw();
 		}
 	});
@@ -425,9 +427,14 @@ function setupTimeline(container, initialQuery, globalQuery) {
 			setLoadingIndicator(true);
 		} else {
 			loadingIndicator.error('counts', false);
-			contextData = pairListToDict(result.counts.counts);
+			contextData = Utils.pairListToDict(result.counts.counts);
 			draw();
 		}
 	});
 	contextData = {};
 }
+
+return {
+	setup: setup
+};
+}());

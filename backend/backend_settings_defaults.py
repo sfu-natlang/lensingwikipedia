@@ -36,6 +36,8 @@ settings = {
     'count_by_year_page_size': 50,
     # Number of events on a page of reference point links results
     'referencepointlinks_page_size': 50,
+    # Maximum number of co-occurring entities to include in plottimeline results
+    'plottimeline_max_cooccurring_entities': 10,
     # Verbose logging output to standard error
     'verbose': False
   }
