@@ -9,6 +9,8 @@ SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'app.db')
 # override this in the local_config, but we need a default
 DOMAIN = "wikipediahistory"
 
+BACKEND_URL = "http://localhost:1500"
+
 try:
     from local_config import *
 except ImportError:
