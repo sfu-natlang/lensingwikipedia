@@ -70,20 +70,40 @@ instead, and adjust local paths and URLs as needed.
     create file /etc/httpd/sites-available/lensingwikipedia.cs.sfu.ca.conf # see below
     symlink above file to /etc/httpd/sites-enabled/lensingwikipedia.cs.sfu.ca.conf
 
+### Install mod\_wsgi to run the Flask code
+
+    yum install mod_wsgi
+
+### Install all requirements
+
+This is going to be the requirements.txt in the web/ directory
+
+    pip install -r requirements.txt
+    pip install argparse
+
+`argparse` might not be required depending on how you've set up the system
+Python. The module is shipped with Python 2.7, but not with 2.6. If the error
+shows up in the error logs, install it.
+
+If "`flask` is not found" shows up in the error logs, edit web/app.wsgi with
+the correct location of site-packages. If you go to that directory, you should
+find a bunch of "flask", "jinja2", "werkzeug", etc. directories.
+
 ### sites-available/lensingwikipedia.cs.sfu.ca.conf
 
     <VirtualHost lensingwikipedia.cs.sfu.ca:80>
       ServerName lensingwikipedia.cs.sfu.ca
       ServerAdmin gripe@fas.sfu.ca
 
-      ## Vhost docroot
-      DocumentRoot /var/www/html/lensingwikipedia.cs.sfu.ca
-      <Directory /var/www/html/lensingwikipedia.cs.sfu.ca>
-        Options -Indexes FollowSymLinks MultiViews
-        AddDefaultCharset utf-8
-        AllowOverride None
-        Order allow,deny
-        allow from all
+      # change user to the user which has access to this directory
+      WSGIDaemonProcess app user=www-data group=www-data threads=1
+      WSGIScriptAlias / /var/www/lensingwikipedia/web/app.wsgi
+
+      <Directory /var/www/lensingwikipedia/web>
+        WSGIProcessGroup app
+        WSGIApplicationGroup %{GLOBAL}
+        Order deny,allow
+        Allow from all
       </Directory>
 
       ## Logging
@@ -144,33 +164,13 @@ These are instructions for the wikipedia crawl. The avherald and other domains w
       }
     }
 
-## Configure frontend and deploy
-
-    cd /var/www/html/checkouts/20131017/domains/wikipediahistory
-    make frontendsettings.mk frontendsettings.js
-    # edit frontendsettings.js to match the sample below
-
-### Sample frontendsettings.js
-
-    // URL for the backend.
-    backendUrl = "http://natlang-web.cs.sfu.ca:1510";
-
-The make command above creates default settings files. If you already have your own use them instead. If you want to do any Javascript or CSS minimization set commands in frontendsettings.mk. See the frontend README for more details on settings.
-
-    make release
-    cp release/*.* /var/www/html/lensingwikipedia.cs.sfu.ca/.
-
 
 ## Deploying frontend without Apache
 If Apache is not available and you only want to execute the frontend for testing, execute the following command:
 
-    cd /var/www/html/lensingwikipedia.cs.sfu.ca/
-    python -c "import SimpleHTTPServer; m = SimpleHTTPServer.SimpleHTTPRequestHandler.extensions_map; m[''] = 'text/plain'; m.update(dict([(k, v + ';charset=UTF-8') for k, v in m.items()])); SimpleHTTPServer.test();"
+    cd /var/www/html/lensingwikipedia.cs.sfu.ca/web
+    python ./run.py runserver -d
 
-Or one can copy `SimpleHTTPServerUTF8` from the frontend directory into the release site or production scenario and then run:
-
-    python SimpleHTTPServerUTF8
-    
 # Update the website
 
 ## Restart backend
@@ -182,10 +182,8 @@ Note that you do not always need to restart the backend to change to new data; s
 
 ## Pull new frontend and deploy
 
-    cd /var/www/html/checkouts/20131017/domains/wikipediahistory
+    cd /var/www/html/checkouts/20131017/
     git pull
-    make release
-    cp release/*.* /var/www/html/lensingwikipedia.cs.sfu.ca/.
 
 # Using upstart to start backend
 
