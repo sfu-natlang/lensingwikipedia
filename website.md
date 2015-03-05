@@ -76,10 +76,10 @@ instead, and adjust local paths and URLs as needed.
 
 ### Install all requirements
 
-This is going to be the requirements.txt in the web/ directory
+This is going to be the requirements.txt in the web/ directory (assuming pip for python2.7 is in `/usr/local/bin/`)
 
-    pip install -r requirements.txt
-    pip install argparse
+    sudo /usr/local/bin/pip install -r requirements.txt
+    sudo /usr/local/bin/pip install argparse
 
 `argparse` might not be required depending on how you've set up the system
 Python. The module is shipped with Python 2.7, but not with 2.6. If the error
