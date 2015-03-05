@@ -1,0 +1,87 @@
+.facet {
+	margin: 0 5px 0 5px;
+	padding: 0;
+}
+
+.facet .topbox {
+	margin: 0;
+	padding: 0;
+}
+
+.facet .topbox h1 {
+	text-align: center;
+	font-size: 18px;
+	padding: 0 0 5px 0;
+	margin: 0;
+	line-height: 20px;
+}
+
+.facet .searchbox {
+	margin: 0;
+	padding: 5px 0 5px 0;
+}
+.facet .searchbox .inputbox {
+	overflow: hidden;
+	margin: 0;
+	padding: 0 20px 0 0;
+}
+.facet .searchbox input {
+	overflow: hidden;
+	width: 100%;
+	margin: 0;
+	padding: 2px 8px 2px 8px;
+}
+.facet .searchbox input.error {
+	border-style: solid;
+	border-width: 4;
+	border-color: red;
+}
+.facet .searchbox button {
+	float: right;
+	width: 20px;
+	min-height: 25px;
+	margin: 0;
+	padding: 2px 8px 2px 8px;
+	background-image: url("/static/img/search.png");
+	background-position: center center;
+	background-repeat: no-repeat;
+}
+
+.facet .facetlistbox {
+	height: 100%;
+	margin: 0;
+	padding: 0;
+	overflow-y: auto;
+}
+.facet .facetlistbox.selected {
+	background-color: rgba(58, 135, 173, 0.5);
+}
+
+.facet .facetlistbox ul {
+	margin: 1em;
+	padding: 0;
+}
+.facet .facetlistbox ul li {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	white-space: nowrap;
+}
+.facet .facetlistbox ul li.selected {
+	background-color: #3a87ad;
+}
+.facet .facetlistbox ul li:hover {
+	background-color: lightgray;
+}
+.facet .facetlistbox ul li.selected:hover {
+	background-color: gray;
+}
+
+.facet .buttonbox {
+	text-align: center;
+	margin: 0;
+	padding: 0;
+}
+.facet .facetlistbox button {
+	margin: 0em auto 1em auto;
+}
