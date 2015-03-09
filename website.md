@@ -91,6 +91,8 @@ find a bunch of "flask", "jinja2", "werkzeug", etc. directories.
 
 ### sites-available/lensingwikipedia.cs.sfu.ca.conf
 
+Go to `/etc/httpd/sites-available`
+
     <VirtualHost lensingwikipedia.cs.sfu.ca:80>
       ServerName lensingwikipedia.cs.sfu.ca
       ServerAdmin gripe@fas.sfu.ca
