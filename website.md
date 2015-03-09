@@ -91,14 +91,14 @@ find a bunch of "flask", "jinja2", "werkzeug", etc. directories.
 
 ### sites-available/lensingwikipedia.cs.sfu.ca.conf
 
-Go to `/etc/httpd/sites-available`
+Go to `/etc/httpd/sites-available`. Edit the file `combined-namevirtualhost.conf`.
 
     <VirtualHost lensingwikipedia.cs.sfu.ca:80>
       ServerName lensingwikipedia.cs.sfu.ca
       ServerAdmin gripe@fas.sfu.ca
 
       # change user to the user which has access to this directory
-      WSGIDaemonProcess app user=www-data group=www-data threads=1
+      WSGIDaemonProcess app user=apache group=apache threads=1
       WSGIScriptAlias / /var/www/lensingwikipedia/web/app.wsgi
 
       <Directory /var/www/lensingwikipedia/web>
