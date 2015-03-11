@@ -60,7 +60,6 @@
 
 {% block content %}
 
-{#
 {% if g.user.is_authenticated() %}
 
 Welcome back, {{ g.user.email }}!
@@ -68,16 +67,73 @@ Welcome back, {{ g.user.email }}!
 
 {% else %}
 
-<form action="" method="POST" name="login_form">
-  {{ login_form.hidden_tag() }}
-  {{ login_form.email(id="inputEmail", placeholder="Email") }}
-  {{ login_form.password(id="inputPassword", placeholder="Password") }}
-  <button type="submit" class="btn">Sign in</button>
-  <a href="{{ url_for("register") }}">Register?</a>
-</form>
+<!-- Button to trigger modal -->
+<a href="#loginForm" role="button" class="btn" data-toggle="modal">Log in</a>
+
+<!-- Modal -->
+<div id="loginForm" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+    <h3 id="myModalLabel">Log in</h3>
+  </div>
+  <div class="modal-body">
+
+    <div class="tabbable"> <!-- Only required for left/right tabs -->
+      <ul class="nav nav-tabs">
+        <li class="active"><a href="#tab1" data-toggle="tab">Log in</a></li>
+        <li><a href="#tab2" data-toggle="tab">Register</a></li>
+      </ul>
+      <div class="tab-content">
+        <div class="tab-pane active" id="tab1">
+          <form class="form-horizontal" action="" method="POST" name="login_form">
+            {{ login_form.hidden_tag() }}
+            <div class="control-group">
+              <label class="control-label" for="inputEmail">Email</label>
+              <div class="controls">
+                {{ login_form.email(id="inputEmail", placeholder="Email") }}
+              </div>
+            </div>
+            <div class="control-group">
+              <label class="control-label" for="inputPassword">Password</label>
+              <div class="controls">
+                {{ login_form.password(id="inputPassword", placeholder="Password") }}
+              </div>
+            </div>
+            <div class="control-group">
+              <div class="controls">
+                <button type="submit" class="btn btn-primary">Sign in</button>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="tab-pane" id="tab2">
+          <form class="form-horizontal" action="" method="POST" name="register_form">
+            {{ register_form.hidden_tag() }}
+            <div class="control-group">
+              <label class="control-label" for="inputEmail">Email</label>
+              <div class="controls">
+                {{ register_form.email(id="inputEmail", placeholder="Email") }}
+              </div>
+            </div>
+            <div class="control-group">
+              <label class="control-label" for="inputPassword">Password</label>
+              <div class="controls">
+                {{ register_form.password(id="inputPassword", placeholder="Password") }}
+              </div>
+            </div>
+            <div class="control-group">
+              <div class="controls">
+                <button type="submit" class="btn btn-primary">Register</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 {% endif %}
-#}
 
 <div class="header">
 </div>

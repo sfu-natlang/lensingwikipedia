@@ -20,26 +20,15 @@ def before_request():
 @app.route('/', methods=['GET', 'POST'])
 def index():
     login_form = forms.Login()
+    register_form = forms.Register()
 
     if login_form.validate_on_submit():
         login_user(login_form.user)
         return redirect(url_for("index"))
 
-    return render_template("index.html",
-            title="index",
-            login_form=login_form)
-
-
-@app.route("/register", methods=["GET", "POST"])
-def register():
-    if g.user is not None and g.user.is_authenticated():
-        return redirect(url_for("index"))
-
-    form = forms.Register()
-
-    if form.validate_on_submit():
-        user = User(email=form.email.data,
-                    password=form.password.data)
+    elif register_form.validate_on_submit():
+        user = User(email=register_form.email.data,
+                    password=register_form.password.data)
 
         db.session.add(user)
         db.session.commit()
@@ -49,9 +38,10 @@ def register():
         login_user(user)
         return redirect(url_for("index"))
 
-    return render_template("register.html",
-            title="register in",
-            form=form)
+    return render_template("index.html",
+            title="index",
+            login_form=login_form,
+            register_form=register_form)
 
 @app.route("/logout")
 def logout():
