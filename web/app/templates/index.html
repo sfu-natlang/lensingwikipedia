@@ -62,20 +62,21 @@
 
 {% if g.user.is_authenticated() %}
 
-Welcome back, {{ g.user.email }}!
-<a href="{{ url_for("logout") }}">Log out</a>
+<div id="login">
+  Welcome back, {{ g.user.email }}!
+  <a href="{{ url_for("logout") }}">Log out</a>
+</div>
 
 {% else %}
 
-<!-- Button to trigger modal -->
-<a href="#loginForm" role="button" class="btn" data-toggle="modal">Log in</a>
+<div id="login">
+  <!-- Button to trigger modal -->
+  <a href="#loginForm" role="button" class="btn btn-link" data-toggle="modal">Log in</a>
+</div>
 
 <!-- Modal -->
 <div id="loginForm" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-  <div class="modal-header">
     <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-    <h3 id="myModalLabel">Log in</h3>
-  </div>
   <div class="modal-body">
 
     <div class="tabbable"> <!-- Only required for left/right tabs -->
