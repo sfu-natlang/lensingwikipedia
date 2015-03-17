@@ -1,0 +1,33 @@
+.constraintslist {
+	padding: 10px;
+	border-width: 0;
+	border-style: none;
+}
+.constraintslist ul {
+	margin: 10px 5px 10px 5px;
+	padding: 0;
+}
+.constraintslist ul li {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.constraintslist div {
+	padding: 4px 25px 4px 7px;
+	margin: 10px 0 10px 0;
+	overflow: hidden;
+}
+.alert-constraint {
+	color: black;
+	background-color: rgba(58, 135, 173, 0.5);
+	border-color: rgba(58, 135, 173, 1.0);
+	text-shadow: none;
+}
+.constraintslist .buttonbox {
+	text-align: center;
+	margin: 0;
+	padding: 0;
+}
+.constraintslist .listbox button {
+	margin: 0em auto 1em auto;
+}

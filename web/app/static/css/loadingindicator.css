@@ -1,0 +1,6 @@
+.loadingindicator {
+	display: block;
+	color: red;
+	font-size: large;
+	margin: 1em;
+}

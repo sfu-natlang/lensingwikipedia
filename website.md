@@ -70,20 +70,42 @@ instead, and adjust local paths and URLs as needed.
     create file /etc/httpd/sites-available/lensingwikipedia.cs.sfu.ca.conf # see below
     symlink above file to /etc/httpd/sites-enabled/lensingwikipedia.cs.sfu.ca.conf
 
+### Install mod\_wsgi to run the Flask code
+
+    yum install mod_wsgi
+
+### Install all requirements
+
+This is going to be the requirements.txt in the web/ directory (assuming pip for python2.7 is in `/usr/local/bin/`)
+
+    sudo /usr/local/bin/pip install -r requirements.txt
+    sudo /usr/local/bin/pip install argparse
+
+`argparse` might not be required depending on how you've set up the system
+Python. The module is shipped with Python 2.7, but not with 2.6. If the error
+shows up in the error logs, install it.
+
+If "`flask` is not found" shows up in the error logs, edit web/app.wsgi with
+the correct location of site-packages. If you go to that directory, you should
+find a bunch of "flask", "jinja2", "werkzeug", etc. directories.
+
 ### sites-available/lensingwikipedia.cs.sfu.ca.conf
+
+Go to `/etc/httpd/sites-available`. Edit the file `combined-namevirtualhost.conf`.
 
     <VirtualHost lensingwikipedia.cs.sfu.ca:80>
       ServerName lensingwikipedia.cs.sfu.ca
       ServerAdmin gripe@fas.sfu.ca
 
-      ## Vhost docroot
-      DocumentRoot /var/www/html/lensingwikipedia.cs.sfu.ca
-      <Directory /var/www/html/lensingwikipedia.cs.sfu.ca>
-        Options -Indexes FollowSymLinks MultiViews
-        AddDefaultCharset utf-8
-        AllowOverride None
-        Order allow,deny
-        allow from all
+      # change user to the user which has access to this directory
+      WSGIDaemonProcess app user=apache group=apache threads=1
+      WSGIScriptAlias / /var/www/lensingwikipedia/web/app.wsgi
+
+      <Directory /var/www/lensingwikipedia/web>
+        WSGIProcessGroup app
+        WSGIApplicationGroup %{GLOBAL}
+        Order deny,allow
+        Allow from all
       </Directory>
 
       ## Logging
@@ -103,6 +125,17 @@ To use the backend we first need to build the domain-specific programs.
 
 Now the appropriate programs are in `/var/www/html/checkouts/20131017/domains/wikipediahistory/backend`
 
+## Get the data from the nightly crawl
+
+These are instructions for the wikipedia crawl. The avherald and other domains will be similar.
+
+    cd /var/www/html/data/wikipedia
+    scp linux.cs.sfu.ca:/cs/natlang-projects/users/maryam/wikiCrawler/Crawl_20150202/fullData.json . # (use the correct date)
+    mkdir Crawl_20150202
+    mv fullData.json Crawl_20150202
+    rm -f latest
+    ln -s Crawl_20150202 latest
+    
 ## Set up data files for backend
 
     cd /var/www/html
@@ -112,10 +145,10 @@ Now the appropriate programs are in `/var/www/html/checkouts/20131017/domains/wi
     chmod g+w data
     chmod g+s data
     cd data
-    # create full.index in data/20131017 (use current date) using instructions in the backend README
-    python2.7 buildindex /var/www/html/data/20131017/fullData.20131017.index /var/www/html/data/20131017/fullData.20131017.json
-    python2.7 cluster /var/www/html/data/20131017/fullData.20131017.index
-    python2.7 tsne /var/www/html/data/20131017/fullData.20131017.index
+    # create full.index in data/wikipedia/latest (use current date) using instructions in the backend README
+    python2.7 buildindex /var/www/html/data/wikipedia/latest/fullData.index /var/www/html/data/wikipedia/latest/fullData.json
+    python2.7 cluster /var/www/html/data/wikipedia/latest/fullData.index
+    python2.7 tsne /var/www/html/data/wikipedia/latest/fullData.index
 
 ## Run backend
 
@@ -127,35 +160,18 @@ Now the appropriate programs are in `/var/www/html/checkouts/20131017/domains/wi
 
     {
       'server': {
-        'index_dir_path': '/var/www/html/data/20131003/full.index'
+        'index_dir_path': '/var/www/html/data/wikipedia/latest/fullData.index'
       },
       'querier': {
       }
     }
 
-## Configure frontend and deploy
-
-    cd /var/www/html/checkouts/20131017/domains/wikipediahistory
-    make frontendsettings.mk frontendsettings.js
-    # edit frontendsettings.js to match the sample below
-
-### Sample frontendsettings.js
-
-    // URL for the backend.
-    backendUrl = "http://natlang-web.cs.sfu.ca:1510";
-
-The make command above creates default settings files. If you already have your own use them instead. If you want to do any Javascript or CSS minimization set commands in frontendsettings.mk. See the frontend README for more details on settings.
-
-    make release
-    cp release/*.* /var/www/html/lensingwikipedia.cs.sfu.ca/.
-
 
 ## Deploying frontend without Apache
-If Apache is not available and you only want to execute the frontend for testing, execute the following command (Works and tested with devel build of frontend and not release):
+If Apache is not available and you only want to execute the frontend for testing, execute the following command:
 
-    cd /var/www/html/lensingwikipedia.cs.sfu.ca/
-    python -c "import SimpleHTTPServer; m = SimpleHTTPServer.SimpleHTTPRequestHandler.extensions_map; m[''] = 'text/plain'; m.update(dict([(k, v + ';charset=UTF-8') for k, v in m.items()])); SimpleHTTPServer.test();"
-
+    cd /var/www/html/lensingwikipedia.cs.sfu.ca/web
+    python ./run.py runserver -d
 
 # Update the website
 
@@ -168,7 +184,22 @@ Note that you do not always need to restart the backend to change to new data; s
 
 ## Pull new frontend and deploy
 
-    cd /var/www/html/checkouts/20131017/domains/wikipediahistory
+    cd /var/www/html/checkouts/20131017/
     git pull
-    make release
-    cp release/*.* /var/www/html/lensingwikipedia.cs.sfu.ca/.
+
+# Using upstart to start backend
+
+You can use `upstart` to restart the backend server on crash. Make sure you have `upstart` installed and checking for jobs in `/etc/init`. You can check by running `initctl list` and comparing to `/etc/init`.
+
+    cd /var/www/html/checkouts/20131017/domains/wikipediahistory/backend
+    cp /var/www/html/checkouts/20131017/backend/lensing-backend.conf .
+
+Edit the `lensing-backend.conf` file to set `LOC=/var/www/html/checkouts/20131017/domains/wikipediahistory/backend`.
+
+    sudo cp lensing-backend.conf /etc/init/lensing-backend.conf
+    initctl list # check to see: lensing-backend stop/waiting
+    sudo initctl start lensing-backend
+    
+The last command will print out the process id. You might want to save it to `upstart.pid` to check on the running process later.
+
+    
