@@ -1,3 +1,0 @@
-This directory is the source files used to build the map for the frontend. Run ./gen to create a topojson file suitable for the frontend.
-
-The data (*.sh{p,x}) is from Natural Earth.
