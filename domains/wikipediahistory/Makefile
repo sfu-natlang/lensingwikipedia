@@ -4,7 +4,6 @@
 
 ROOTPATH=../..
 BACKENDPATH=$(ROOTPATH)/backend
-FRONTENDPATH=$(ROOTPATH)/frontend
 BACKENDOUTPUT=backend
 
 all: backend release devel
@@ -14,7 +13,3 @@ backend: $(BACKENDPATH)
 
 clean:
 	OUT=$(BACKENDOUTPUT) make -f "$(BACKENDPATH)"/Makefile $@
-	SRC=$(FRONTENDPATH) make -f "$(FRONTENDPATH)"/Makefile $@
-
-%:
-	SRC=$(FRONTENDPATH) make -f "$(FRONTENDPATH)"/Makefile $@
