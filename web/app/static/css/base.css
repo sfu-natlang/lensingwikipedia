@@ -10,3 +10,7 @@ button.btn {
 #loginModal button.close {
     margin: 5px 10px 0 0;
 }
+
+#loginModal .tab-content {
+    height: auto !important;
+}
