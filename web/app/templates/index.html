@@ -85,6 +85,12 @@
 <script type="text/javascript">
     $(window).load(function(){
         $('#loginModal').modal('show');
+
+        {% if login_form.email.errors or login_form.password.errors %}
+        $("#account-tabs a:first").tab('show');
+        {% else %}
+        $("#account-tabs a:last").tab('show');
+        {% endif %}
     });
 </script>
 {% endif %}
@@ -103,7 +109,7 @@
   <div class="modal-body">
 
     <div class="tabbable"> <!-- Only required for left/right tabs -->
-      <ul class="nav nav-tabs">
+      <ul class="nav nav-tabs" id="account-tabs">
         <li class="active"><a href="#tab1" data-toggle="tab">Log in</a></li>
         <li><a href="#tab2" data-toggle="tab">Register</a></li>
       </ul>
