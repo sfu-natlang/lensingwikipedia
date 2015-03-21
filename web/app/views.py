@@ -19,24 +19,31 @@ def before_request():
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    login_form = forms.Login()
-    register_form = forms.Register()
+    # prefixes are needed so that there's no conflict between the two forms
+    login_form = forms.Login(prefix="login_form")
+    register_form = forms.Register(prefix="register_form")
 
-    if login_form.validate_on_submit():
-        login_user(login_form.user)
-        return redirect(url_for("index"))
+    if request.method == "POST":
+        login_form_submitted = (request.form.get('submit-btn', '') == "Sign in")
+        register_form_submitted = (request.form.get('submit-btn', '') == "Register")
 
-    elif register_form.validate_on_submit():
-        user = User(email=register_form.email.data,
-                    password=register_form.password.data)
+        if login_form_submitted and login_form.validate_on_submit():
+            login_user(login_form.user)
+            print("logged in a user")
+            return redirect(url_for("index"))
 
-        db.session.add(user)
-        db.session.commit()
+        if register_form_submitted and register_form.validate_on_submit():
+            user = User(email=register_form.email.data,
+                        password=register_form.password.data)
 
-        flash("Registered!")
+            db.session.add(user)
+            db.session.commit()
+            print("registered a new user")
 
-        login_user(user)
-        return redirect(url_for("index"))
+            flash("Registered!")
+
+            login_user(user)
+            return redirect(url_for("index"))
 
     return render_template("index.html",
             title="index",

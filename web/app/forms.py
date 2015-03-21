@@ -16,7 +16,7 @@ class Login(Form):
         user = User.query.filter_by(email=self.email.data).first()
 
         if user is None:
-            self.password.errors.append("Email doesn't exist")
+            self.email.errors.append("Email doesn't exist")
             return False
 
         if not user.check_password(self.password.data):
@@ -29,3 +29,18 @@ class Login(Form):
 class Register(Form):
     email = TextField("email", validators=[Required()])
     password = PasswordField("password", validators=[Required()])
+
+    def validate(self):
+        self.user = None
+        rv = Form.validate(self)
+        if not rv:
+            return False
+
+        user = User.query.filter_by(email=self.email.data).first()
+
+        if user is not None:
+            self.email.errors.append("Email is already registered")
+            self.user = user
+            return False
+
+        return True
