@@ -118,6 +118,7 @@
           <form class="form-horizontal" action="" method="POST" name="login_form">
             {{ login_form.hidden_tag() }}
             <input type="hidden" name="form-type" value="login">
+
             <div class="control-group {% if login_form.email.errors %}error{% endif %}">
               <label class="control-label" for="inputEmail">Email</label>
               <div class="controls">
@@ -127,6 +128,7 @@
                 {% endif %}
               </div>
             </div>
+
             <div class="control-group {% if login_form.password.errors %}error{% endif %}">
               <label class="control-label" for="inputError">Password</label>
               <div class="controls">
@@ -136,6 +138,7 @@
                 {% endif %}
               </div>
             </div>
+
             <div class="control-group">
               <div class="controls">
                 <input type="submit" class="btn btn-primary" name="submit-btn" value="Sign in">
@@ -147,6 +150,17 @@
           <form class="form-horizontal" action="" method="POST" name="register_form">
             {{ register_form.hidden_tag() }}
             <input type="hidden" name="form-type" value="register">
+
+            <div class="control-group {% if register_form.username.errors %}error{% endif %}">
+              <label class="control-label" for="inputUsername">Username</label>
+              <div class="controls">
+                {{ register_form.username(id="inputUsername", placeholder="Username") }}
+                {% if register_form.username.errors %}
+                <span class="help-block">{{ register_form.username.errors[0] }}</span>
+                {% endif %}
+              </div>
+            </div>
+
             <div class="control-group {% if register_form.email.errors %}error{% endif %}">
               <label class="control-label" for="inputEmail">Email</label>
               <div class="controls">
@@ -156,6 +170,7 @@
                 {% endif %}
               </div>
             </div>
+
             <div class="control-group {% if register_form.password.errors %}error{% endif %}">
               <label class="control-label" for="inputPassword">Password</label>
               <div class="controls">
@@ -165,6 +180,17 @@
                 {% endif %}
               </div>
             </div>
+
+            <div class="control-group {% if register_form.confirm.errors %}error{% endif %}">
+              <label class="control-label" for="inputPasswordConfirm">Repeat password</label>
+              <div class="controls">
+                {{ register_form.confirm(id="inputPasswordConfirm", placeholder="Repat password") }}
+                {% if register_form.confirm.errors %}
+                <span class="help-block">{{ register_form.confirm.errors[0] }}</span>
+                {% endif %}
+              </div>
+            </div>
+
             <div class="control-group">
               <div class="controls">
                 <input type="submit" class="btn btn-primary" name="submit-btn" value="Register">

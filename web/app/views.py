@@ -34,7 +34,8 @@ def index():
 
         if register_form_submitted and register_form.validate_on_submit():
             user = User(email=register_form.email.data,
-                        password=register_form.password.data)
+                        password=register_form.password.data,
+                        username=register_form.username.data)
 
             db.session.add(user)
             db.session.commit()
