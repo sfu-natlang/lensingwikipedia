@@ -1,9 +1,18 @@
 from flask import request, url_for, render_template, g, session, redirect, \
-        flash
+        flash, abort
 from flask.ext.login import login_required, login_user, logout_user, \
-        current_user
+        current_user, user_unauthorized
+from functools import wraps
 from . import app, db, lm, forms
 from .models import User
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_view(*args, **kwargs):
+        if not current_user.is_authenticated() and current_user.is_admin():
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated_view
 
 @lm.user_loader
 def load_user(userid):
@@ -56,3 +65,29 @@ def logout():
     logout_user()
     flash("You were logged out")
     return redirect(url_for("index"))
+
+@app.route('/user')
+@login_required
+@admin_required
+def users():
+    users = User.query.all()
+    return render_template("users.html",
+            users=users)
+
+@app.route("/user/<int:id>", methods=['GET', 'POST'])
+@login_required
+@admin_required
+def user(id):
+    user = User.query.get_or_404(id)
+    delete_form = forms.DeleteUser()
+
+    if delete_form.validate_on_submit():
+        print "delte user %s" % user.email
+        db.session.delete(user)
+        db.session.commit()
+
+        return redirect(url_for("users"))
+
+    return render_template("user.html",
+            title="User %d = %s" % (id, user.username),
+            user=user, delete_form=delete_form)

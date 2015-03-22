@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+  <h1>User {{ user.email }}</h1>
+</div>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Username</th>
+      <th>Email</th>
+    </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td>{{ user.username }}</td>
+    <td>{{ user.email }}</td>
+  </tr>
+  </tbody>
+</table>
+
+{#
+<form action="" method="POST" class="form-horizontal" name="reset_password_form">
+  {{form.hidden_tag()}}
+  <legend>New password</legend>
+  {% if form.pass2.errors %}
+  <div class="control-group error">
+    <label class="control-label" for="inputError">Password</label>
+    <div class="controls control-row">
+      {{form.pass1(onFocus="this.select()", id="inputError", placeholder="Password")}}
+      {{form.pass2(onFocus="this.select()", placeholder="Password, again")}}
+      <span class="help-block">{{ form.pass2.errors[0] }}</span>
+    </div>
+  </div>
+  {% else %}
+  <div class="control-group">
+    <label class="control-label" for="inputPassword">Password</label>
+    <div class="controls control-row">
+      {{form.pass1(onFocus="this.select()", id="inputPassword", placeholder="Password")}}
+      {{form.pass2(onFocus="this.select()", placeholder="Password, again")}}
+    </div>
+  </div>
+  {% endif %}
+  <div class="form-actions">
+    <button class="btn btn-primary" type="submit">Reset</button>
+  </div>
+</form>
+#}
+
+{% if not user.is_admin() %}
+<form action="{{ url_for('user', id=user.id) }}" method="POST" name="delete-user">
+  {{delete_form.hidden_tag()}}
+  <div class="form-actions">
+    {{ delete_form.confirm() }} Confirm deletion of user
+    <button class="btn btn-danger" type="submit" name="button" value="delete">Delete user</button>
+  </div>
+</form>
+{% endif %}
+
+{% endblock content %}
