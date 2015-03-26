@@ -93,15 +93,15 @@ find a bunch of "flask", "jinja2", "werkzeug", etc. directories.
 
 Go to `/etc/httpd/sites-available`. Edit the file `combined-namevirtualhost.conf`.
 
-    <VirtualHost lensingwikipedia.cs.sfu.ca:80>
+    <VirtualHost *:80>
       ServerName lensingwikipedia.cs.sfu.ca
       ServerAdmin gripe@fas.sfu.ca
 
       # change user to the user which has access to this directory
       WSGIDaemonProcess app user=apache group=apache threads=1
-      WSGIScriptAlias / /var/www/lensingwikipedia/web/app.wsgi
+      WSGIScriptAlias / /var/www/html/lensingwikipedia/web/app.wsgi
 
-      <Directory /var/www/lensingwikipedia/web>
+      <Directory /var/www/html/lensingwikipedia/web>
         WSGIProcessGroup app
         WSGIApplicationGroup %{GLOBAL}
         Order deny,allow
@@ -115,6 +115,29 @@ Go to `/etc/httpd/sites-available`. Edit the file `combined-namevirtualhost.conf
       CustomLog /var/log/httpd/lensingwikipedia.cs.sfu.ca_access.log combined
 
     </VirtualHost>
+
+The WSGI socket will be stored in `/var/log/httpd/` so we'll need to make sure
+the `apache` user has access to that location.
+
+    chown -R apache /var/log/httpd
+
+### Symlink your checkout of lensingwikipedia
+
+    ln -s /var/www/html/checkouts/$DATE /var/www/html/lensingwikipedia
+    chown -R apache /var/www/html/lensingwikipedia
+
+### Reload apache
+
+    apachectl restart
+
+### Troubleshooting
+
+* If you're trying to run this code on a port other than 80, make sure you have
+  the `Listen` directive for that port in your `httpd.conf` file.
+* Make sure you've got `*:80` in your `VirtualHost`. Use `ServerName` to tell
+  Apache which virtual host to choose.
+* Check that the `sys.path.append` code in `app.wsgi` has the correct paths for
+  your setup.
 
 ## Build backend
 
