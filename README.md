@@ -12,7 +12,7 @@ There are four main parts:
 - Data preparation (`data-preparation/`). Creates a data file.
 - Backend (`backend/`). Uploads the data file to a database and serves a query
   system against this data.
-- Frontend (`frontend/`). Web interface which visualizes the data, querying the
+- Frontend (`frontend/`) or more recently Web (`web/`). Web interface which visualizes the data, querying the
   backend.
 - Domain code (`domains/*`). Domain-specific code which uses the above.
 
