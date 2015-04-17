@@ -129,7 +129,7 @@ Welcome back, {{ g.user.email }}!
 			var facetMakers = $.map(FrontendConfig.facets, function (facet) {
 				return function (container) {
 					facetsExpanded.push(Utils.extendObject([facet], {
-						constraintsQuery: Facet.setup(container, globalQuery, facet.title, facet.field)
+						queries: Facet.setup(container, globalQuery, facet.title, facet.field)
 					}));
 				}
 			});

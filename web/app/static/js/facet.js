@@ -4,14 +4,20 @@
 
 var Facet = (function () {
 
-function FacetListBox(container, query, field) {
-	this.query = query;
+function FacetListBox(container, field) {
+	var listBox = this;
 
 	this.outerElt = $('<div class="facetlistbox"></div>').appendTo(container);
 	this.loadingIndicator = new LoadingIndicator.LoadingIndicator(this.outerElt);
 	this.listElt = $('<ul></ul>').appendTo(this.outerElt);
 	var moreBoxElt = $('<div class="buttonbox"></div>').appendTo(this.outerElt);
 	this.moreElt = $('<button type="button" class="btn" disabled="true">More</button>').appendTo(moreBoxElt);
+
+	this.onMore = function () {};
+	listBox.moreElt.click(function(fromEvent) {
+		listBox._trigger('more', null, fromEvent, listBox.moreElt);
+		listBox.onMore();
+	});
 
 	this.selected = {};
 	this.viewValue = {
@@ -22,22 +28,25 @@ function FacetListBox(container, query, field) {
 	};
 	this.handlers = {};
 
-	this.loadingIndicator.enabled(true);
-	this._clearList();
-	this._watchQuery(query, this.viewValue);
+	this.watchQueryResultWatcher = null;
 
-	this.dataCounts = null;
+	this._reset();
 }
 
-FacetListBox.prototype._watchQuery = function (query, viewValue) {
+FacetListBox.prototype.setupWatchQuery = function (query) {
 	var listBox = this,
 	    continuer = null;
 
-	var resultWatcher = new Queries.ResultWatcher(function () {});
-	resultWatcher.set(viewValue);
-	query.addResultWatcher(resultWatcher);
+	this._reset();
 
-	resultWatcher.setCallback(function(result, getContinuer) {
+	if (this.watchQueryResultWatcher != null)
+		this.watchQueryResultWatcher.enabled(false);
+
+	this.watchQueryResultWatcher = new Queries.ResultWatcher(function () {});
+	this.watchQueryResultWatcher.set(this.viewValue);
+	query.addResultWatcher(this.watchQueryResultWatcher);
+
+	this.watchQueryResultWatcher.setCallback(function(result, getContinuer) {
 		listBox.dataCounts = [];
 		if (result.counts.hasOwnProperty('error')) {
 			listBox.loadingIndicator.error('counts', true);
@@ -53,14 +62,13 @@ FacetListBox.prototype._watchQuery = function (query, viewValue) {
 		listBox._setData(listBox.dataCounts);
 	});
 
-	listBox.moreElt.click(function(fromEvent) {
-		listBox._trigger('more', null, fromEvent, listBox.moreElt);
+	this.onMore = function () {
 		if (continuer != null)
 			continuer.fetchNext(function(result) {
 				listBox.dataCounts = listBox.dataCounts.concat(result.counts.counts);
 				listBox._setData(listBox.dataCounts);
 			});
-	});
+	};
 
 	query.onChange(function () {
 		listBox.loadingIndicator.enabled(true);
@@ -104,6 +112,12 @@ FacetListBox.prototype._select = function (value, elt, fromEvent, selected) {
 		elt.addClass('selected');
 		this._trigger('select', value, fromEvent, elt);
 	}
+}
+
+FacetListBox.prototype._reset = function () {
+	this.loadingIndicator.enabled(true);
+	this._clearList();
+	this.dataCounts = null;
 }
 
 FacetListBox.prototype._clearList = function () {
@@ -179,7 +193,6 @@ FacetListBox.prototype.makeSearchElement = function () {
 		if (listBox._dataElts.hasOwnProperty(value)) {
 			setSearchErrorStatus(false);
 			listBox.select(value, true);
-			listBox.query.update();
 		} else
 			setSearchErrorStatus(true);
 		return false;
@@ -239,7 +252,8 @@ function setup(container, globalQuery, name, field) {
 	var topBoxElt = $("<div class=\"topbox\"></div>").appendTo(facetElt);
 	$("<h1>" + name + "</h1>").appendTo(topBoxElt);
 	var clearElt = $("<button type=\"button\" class=\"btn btn-block btn-mini btn-warning\" title=\"Clear the facet selection.\">Clear selection</button></ul>").appendTo(topBoxElt);
-	var listBox = new FacetListBox(facetElt, contextQuery, field);
+	var listBox = new FacetListBox(facetElt, field);
+	listBox.setupWatchQuery(contextQuery);
 	var searchElt = listBox.makeSearchElement();
 	searchElt.appendTo(topBoxElt);
 
@@ -326,7 +340,10 @@ function setup(container, globalQuery, name, field) {
 		globalQuery.update();
 	});
 
-	return ownCnstrQuery;
+	return {
+		context: contextQuery,
+		ownConstraints: ownCnstrQuery
+	}
 }
 
 return {
