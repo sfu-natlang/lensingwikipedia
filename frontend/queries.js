@@ -422,6 +422,8 @@ function Query(backendUrl, type, arg1, arg2) {
 
 	if (type == 'base')
 		this._setupBase();
+	else if (type == 'copy')
+		this._copy(arg1);
 	else if (type == 'setminus')
 		this._setupSetminus(arg1, arg2);
 	else
@@ -433,6 +435,15 @@ function Query(backendUrl, type, arg1, arg2) {
  */
 Query.prototype._setupBase = function () {
 	this._parents = [];
+}
+
+Query.prototype._copy = function (copyQuery) {
+	this._parents = [];
+	this._constraints = {};
+	var query = this;
+	$.each(copyQuery._constraints, function (cnstrKey, cnstr) {
+		query._constraints[cnstrKey] = cnstr;
+	});
 }
 
 /*

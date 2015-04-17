@@ -5,11 +5,19 @@
 var Facet = (function () {
 
 function FacetListBox(container, field) {
+	var listBox = this;
+
 	this.outerElt = $('<div class="facetlistbox"></div>').appendTo(container);
 	this.loadingIndicator = new LoadingIndicator.LoadingIndicator(this.outerElt);
 	this.listElt = $('<ul></ul>').appendTo(this.outerElt);
 	var moreBoxElt = $('<div class="buttonbox"></div>').appendTo(this.outerElt);
 	this.moreElt = $('<button type="button" class="btn" disabled="true">More</button>').appendTo(moreBoxElt);
+
+	this.onMore = function () {};
+	listBox.moreElt.click(function(fromEvent) {
+		listBox._trigger('more', null, fromEvent, listBox.moreElt);
+		listBox.onMore();
+	});
 
 	this.selected = {};
 	this.viewValue = {
@@ -20,6 +28,8 @@ function FacetListBox(container, field) {
 	};
 	this.handlers = {};
 
+	this.watchQueryResultWatcher = null;
+
 	this._reset();
 }
 
@@ -29,11 +39,14 @@ FacetListBox.prototype.setupWatchQuery = function (query) {
 
 	this._reset();
 
-	var resultWatcher = new Queries.ResultWatcher(function () {});
-	resultWatcher.set(this.viewValue);
-	query.addResultWatcher(resultWatcher);
+	if (this.watchQueryResultWatcher != null)
+		this.watchQueryResultWatcher.enabled(false);
 
-	resultWatcher.setCallback(function(result, getContinuer) {
+	this.watchQueryResultWatcher = new Queries.ResultWatcher(function () {});
+	this.watchQueryResultWatcher.set(this.viewValue);
+	query.addResultWatcher(this.watchQueryResultWatcher);
+
+	this.watchQueryResultWatcher.setCallback(function(result, getContinuer) {
 		listBox.dataCounts = [];
 		if (result.counts.hasOwnProperty('error')) {
 			listBox.loadingIndicator.error('counts', true);
@@ -49,14 +62,13 @@ FacetListBox.prototype.setupWatchQuery = function (query) {
 		listBox._setData(listBox.dataCounts);
 	});
 
-	listBox.moreElt.click(function(fromEvent) {
-		listBox._trigger('more', null, fromEvent, listBox.moreElt);
+	this.onMore = function () {
 		if (continuer != null)
 			continuer.fetchNext(function(result) {
 				listBox.dataCounts = listBox.dataCounts.concat(result.counts.counts);
 				listBox._setData(listBox.dataCounts);
 			});
-	});
+	};
 
 	query.onChange(function () {
 		listBox.loadingIndicator.enabled(true);

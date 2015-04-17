@@ -627,15 +627,25 @@ function setup(container, globalQuery, facets) {
 		// This is a bit messy since we rely on the structure of the FacetListBox elements
 		var entityList = new Facet.FacetListBox(entityListMenuElts[fieldI], fieldInfo.field);
 		var facet = facetTable[fieldInfo.field];
-		entityList.setupWatchQuery(facet.queries.context);
+		function updateMenu() {
+			var menuQuery = new Queries.Query(globalQuery.backendUrl(), 'copy', facet.queries.context);
+			entityList.setupWatchQuery(menuQuery);
+			menuQuery.update();
+		}
 		entityList.outerElt.addClass('dropdown-menu');
 		var btnBox = $('<div class="clearbuttonbox"></div>').prependTo(entityList.outerElt);
-		var clearEntitiesBtn = $('<button type="button" class="btn btn-mini btn-warning clearviewentities" title="Clear view entities.">Clear</button>').appendTo(btnBox);
+		var updateBtn = $('<button type="button" class="btn btn-mini btn-primary" title="Update menu to match facet.">Update</button>').appendTo(btnBox);
+		var clearEntitiesBtn = $('<button type="button" class="btn btn-mini btn-warning" title="Clear view entities.">Clear</button>').appendTo(btnBox);
 		LayoutUtils.fillElement(container, entityList.outerElt, 'vertical', 100);
+		updateBtn.bind('click', function (fromEvent) {
+			fromEvent.stopPropagation();
+			updateMenu();
+		});
 		clearEntitiesBtn.bind('click', function (fromEvent) {
 			fromEvent.stopPropagation();
 			entityList.clearSelection();
 		});
+		updateMenu();
 		return entityList;
 	});
 	var entityList = entityLists[0];
