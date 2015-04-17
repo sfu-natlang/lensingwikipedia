@@ -4,9 +4,7 @@
 
 var Facet = (function () {
 
-function FacetListBox(container, query, field) {
-	this.query = query;
-
+function FacetListBox(container, field) {
 	this.outerElt = $('<div class="facetlistbox"></div>').appendTo(container);
 	this.loadingIndicator = new LoadingIndicator.LoadingIndicator(this.outerElt);
 	this.listElt = $('<ul></ul>').appendTo(this.outerElt);
@@ -22,19 +20,17 @@ function FacetListBox(container, query, field) {
 	};
 	this.handlers = {};
 
-	this.loadingIndicator.enabled(true);
-	this._clearList();
-	this._watchQuery(query, this.viewValue);
-
-	this.dataCounts = null;
+	this._reset();
 }
 
-FacetListBox.prototype._watchQuery = function (query, viewValue) {
+FacetListBox.prototype.setupWatchQuery = function (query) {
 	var listBox = this,
 	    continuer = null;
 
+	this._reset();
+
 	var resultWatcher = new Queries.ResultWatcher(function () {});
-	resultWatcher.set(viewValue);
+	resultWatcher.set(this.viewValue);
 	query.addResultWatcher(resultWatcher);
 
 	resultWatcher.setCallback(function(result, getContinuer) {
@@ -104,6 +100,12 @@ FacetListBox.prototype._select = function (value, elt, fromEvent, selected) {
 		elt.addClass('selected');
 		this._trigger('select', value, fromEvent, elt);
 	}
+}
+
+FacetListBox.prototype._reset = function () {
+	this.loadingIndicator.enabled(true);
+	this._clearList();
+	this.dataCounts = null;
 }
 
 FacetListBox.prototype._clearList = function () {
@@ -179,7 +181,6 @@ FacetListBox.prototype.makeSearchElement = function () {
 		if (listBox._dataElts.hasOwnProperty(value)) {
 			setSearchErrorStatus(false);
 			listBox.select(value, true);
-			listBox.query.update();
 		} else
 			setSearchErrorStatus(true);
 		return false;
@@ -239,7 +240,8 @@ function setup(container, globalQuery, name, field) {
 	var topBoxElt = $("<div class=\"topbox\"></div>").appendTo(facetElt);
 	$("<h1>" + name + "</h1>").appendTo(topBoxElt);
 	var clearElt = $("<button type=\"button\" class=\"btn btn-block btn-mini btn-warning\" title=\"Clear the facet selection.\">Clear selection</button></ul>").appendTo(topBoxElt);
-	var listBox = new FacetListBox(facetElt, contextQuery, field);
+	var listBox = new FacetListBox(facetElt, field);
+	listBox.setupWatchQuery(contextQuery);
 	var searchElt = listBox.makeSearchElement();
 	searchElt.appendTo(topBoxElt);
 
