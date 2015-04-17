@@ -41,3 +41,6 @@ and put your parameters in there. The names should match the ones in
 `config.py`. If you want to add *new* parameters, create a default one in
 `config.py` first so that anyone running the code is guaranteed to have it
 execute successfully.
+
+The parameters in `config.py` are available as `config.PARAMETER` in the Python
+code and in the templates.
