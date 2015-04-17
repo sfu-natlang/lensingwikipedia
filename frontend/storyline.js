@@ -627,8 +627,7 @@ function setup(container, globalQuery, facets) {
 		// This is a bit messy since we rely on the structure of the FacetListBox elements
 		var entityList = new Facet.FacetListBox(entityListMenuElts[fieldI], fieldInfo.field);
 		var facet = facetTable[fieldInfo.field];
-		var facetContextQuery = new Queries.Query(globalQuery.backendUrl(), 'setminus', globalQuery, facet.constraintsQuery);
-		entityList.setupWatchQuery(facetContextQuery);
+		entityList.setupWatchQuery(facet.queries.context);
 		entityList.outerElt.addClass('dropdown-menu');
 		var btnBox = $('<div class="clearbuttonbox"></div>').prependTo(entityList.outerElt);
 		var clearEntitiesBtn = $('<button type="button" class="btn btn-mini btn-warning clearviewentities" title="Clear view entities.">Clear</button>').appendTo(btnBox);

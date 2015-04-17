@@ -328,7 +328,10 @@ function setup(container, globalQuery, name, field) {
 		globalQuery.update();
 	});
 
-	return ownCnstrQuery;
+	return {
+		context: contextQuery,
+		ownConstraints: ownCnstrQuery
+	}
 }
 
 return {
