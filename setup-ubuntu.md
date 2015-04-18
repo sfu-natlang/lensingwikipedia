@@ -71,3 +71,14 @@ reload the configs:
 You can navigate to the website and you should see it work! We don't have the
 query backend running yet, however, so it'll say "Loading..." everywhere
 indefinitely.
+
+### Setting up the query backend
+
+To display data in the frontend, we need to set up a backend to handle the
+queries. The query backend responds with domain-specific information, so the
+relevant Makefiles are in `domains/`
+
+#### Build domain-specific programs
+
+    $ cd domains/wikipediahistory
+    $ make backend
