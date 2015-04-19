@@ -38,12 +38,14 @@
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/wikipediahistory.css') }}">
   <script src="{{ url_for('static', filename='js/wikipediahistory.js') }}"></script>
   <script src="{{ url_for('static', filename='js/wikipediahistory_config_defaults.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/wikipediahistory_config_local.js') }}"></script>
 
   {% elif config.DOMAIN == "avherald" %}
 
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/avherald.css') }}">
   <script src="{{ url_for('static', filename='js/avherald.js') }}"></script>
   <script src="{{ url_for('static', filename='js/avherald_config_defaults.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/avherald_config_local.js') }}"></script>
 
   {% else %}
 
