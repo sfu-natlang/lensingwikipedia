@@ -48,15 +48,31 @@
 </form>
 
 {% if not user.is_admin() %}
-<h3>Delete user</h3>
 <form action="{{ url_for('user', id=user.id) }}" method="POST" name="delete-user">
   {{delete_form.hidden_tag()}}
-  <label class="checkbox" for="inputConfirm">
-    {{ delete_form.confirm(id="inputConfirm") }} Confirm deletion
-  </label>
-  <button class="btn btn-danger" type="submit" name="submit-btn" value="delete">Delete user</button>
+  <legend>Delete user</legend>
+  <div class="control-group {% if modify_form.confirm.errors %}error{% endif %}">
+    <label class="checkbox" for="deleteConfirm">
+      {{ delete_form.confirm(id="deleteConfirm") }} Confirm deletion
+    </label>
+  </div>
+  <div class="form-actions">
+    <button class="btn btn-danger" type="submit" name="submit-btn" value="delete">Delete user</button>
+  </div>
 </form>
 {% endif %}
 {% endif %}
 
 {% endblock content %}
+
+{% block bottom_scripts %}
+<script>
+  $(document).ready(function() {
+      $("button[value=delete]").attr('disabled', 'disabled');
+      $("#deleteConfirm").removeAttr('checked');
+      $("#deleteConfirm").click(function(e) {
+        $("button[value=delete]").removeAttr('disabled');
+      });
+  });
+</script>
+{% endblock %}
