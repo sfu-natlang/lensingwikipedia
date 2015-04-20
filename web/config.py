@@ -1,3 +1,7 @@
+# XXX DON'T PUT LOCAL SETTINGS IN HERE.
+# THIS FILE IS ONLY FOR DEFAULTS SO THAT THE CODE RUNS.
+# PUT LOCAL SETTINGS IN local_config.py!
+
 import os
 basedir = os.path.abspath(os.path.dirname(__file__))
 

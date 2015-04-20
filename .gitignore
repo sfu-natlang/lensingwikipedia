@@ -7,3 +7,6 @@
 web/app.db
 web/local_config.py
 venv/
+
+web/app/static/js/avherald_config_local.js
+web/app/static/js/wikipediahistory_config_local.js
