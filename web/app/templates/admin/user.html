@@ -68,10 +68,18 @@
 {% block bottom_scripts %}
 <script>
   $(document).ready(function() {
-      $("button[value=delete]").attr('disabled', 'disabled');
-      $("#deleteConfirm").removeAttr('checked');
-      $("#deleteConfirm").click(function(e) {
-        $("button[value=delete]").removeAttr('disabled');
+      delete_check = $("#deleteConfirm");
+      delete_submit = $("button[value=delete]");
+
+      delete_submit.attr('disabled', 'disabled');
+      delete_check.removeAttr('checked');
+
+      delete_check.click(function(e) {
+        if (this.checked) {
+          delete_submit.removeAttr('disabled');
+        } else {
+          delete_submit.attr('disabled', 'disabled');
+        }
       });
   });
 </script>
