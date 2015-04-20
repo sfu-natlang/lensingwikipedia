@@ -1,0 +1,62 @@
+{% extends "admin/base.html" %}
+{% block content %}
+<div class="page-header">
+  <h1>User {{ user.username }}</h1>
+</div>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Username</th>
+      <th>Email</th>
+    </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td>{{ user.username }}</td>
+    <td>{{ user.email }}</td>
+  </tr>
+  </tbody>
+</table>
+
+
+{% if g.user.is_admin() %}
+<form action="" method="POST" class="form-horizontal" name="reset_password_form">
+  {{modify_form.hidden_tag()}}
+  <legend>New password</legend>
+  <div class="control-group {% if modify_form.password.errors %}error{% endif %}">
+    <label class="control-label" for="inputPassword">Password</label>
+    <div class="controls">
+      {{ modify_form.password(id="inputPassword", placeholder="Password") }}
+      {% if modify_form.password.errors %}
+      <span class="help-block">{{ modify_form.password.errors[0] }}</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="control-group {% if modify_form.confirm.errors %}error{% endif %}">
+    <label class="control-label" for="inputPasswordConfirm">Repeat password</label>
+    <div class="controls">
+      {{ modify_form.confirm(id="inputPasswordConfirm", placeholder="Repat password") }}
+      {% if modify_form.confirm.errors %}
+      <span class="help-block">{{ modify_form.confirm.errors[0] }}</span>
+      {% endif %}
+    </div>
+  </div>
+  <div class="form-actions">
+    <input type="submit" class="btn btn-primary" name="submit-btn" value="Save">
+  </div>
+</form>
+
+{% if not user.is_admin() %}
+<h3>Delete user</h3>
+<form action="{{ url_for('user', id=user.id) }}" method="POST" name="delete-user">
+  {{delete_form.hidden_tag()}}
+  <label class="checkbox" for="inputConfirm">
+    {{ delete_form.confirm(id="inputConfirm") }} Confirm deletion
+  </label>
+  <button class="btn btn-danger" type="submit" name="submit-btn" value="delete">Delete user</button>
+</form>
+{% endif %}
+{% endif %}
+
+{% endblock content %}

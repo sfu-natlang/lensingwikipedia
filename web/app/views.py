@@ -71,7 +71,7 @@ def logout():
 @admin_required
 def users():
     users = User.query.all()
-    return render_template("users.html",
+    return render_template("admin/users.html",
             users=users)
 
 @app.route("/user/<int:id>", methods=['GET', 'POST'])
@@ -79,15 +79,23 @@ def users():
 @admin_required
 def user(id):
     user = User.query.get_or_404(id)
-    delete_form = forms.DeleteUser()
+    delete_form = forms.DeleteUser(prefix='delete_form')
+    modify_form = forms.ModifyUser(prefix='modify_form');
 
-    if delete_form.validate_on_submit():
-        print "delte user %s" % user.email
-        db.session.delete(user)
-        db.session.commit()
+    if request.method == "POST":
+        modify_form_submitted = (request.form.get('submit-btn', '') == "Save")
+        delete_form_submitted = (request.form.get('submit-btn', '') == "delete")
 
-        return redirect(url_for("users"))
+        if modify_form_submitted and modify_form.validate_on_submit():
+            user.set_password(modify_form.password.data)
+            db.session.commit();
+            return redirect(url_for("users"))
 
-    return render_template("user.html",
+        if delete_form_submitted and delete_form.validate_on_submit():
+            db.session.delete(user)
+            db.session.commit()
+            return redirect(url_for("users"))
+
+    return render_template("admin/user.html",
             title="User %d = %s" % (id, user.username),
-            user=user, delete_form=delete_form)
+            user=user, delete_form=delete_form, modify_form=modify_form)

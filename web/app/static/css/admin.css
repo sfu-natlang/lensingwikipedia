@@ -1,0 +1,14 @@
+body {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+.page-header {
+    margin-top: 50px;
+}
+
+.navbar .brand {
+    margin-left: 0;
+}

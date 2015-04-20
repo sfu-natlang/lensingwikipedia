@@ -76,7 +76,10 @@
 
 <div id="login">
   Welcome back, {{ g.user.email }}!
-  <a href="{{ url_for("logout") }}">Log out</a>
+  {% if g.user.is_admin() %}
+  <a class="btn" href="{{ url_for('users') }}">Admin panel</a>
+  {% endif %}
+  <a class="btn" href="{{ url_for('logout') }}">Log out</a>
 </div>
 
 {% else %}

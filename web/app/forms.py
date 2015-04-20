@@ -51,7 +51,5 @@ class DeleteUser(Form):
     confirm = BooleanField("delete", validators=[Required()])
 
 class ModifyUser(Form):
-    username = TextField("username", validators=[Required()])
-    email = TextField("email", validators=[Required(), Email()])
     password = PasswordField("Password", validators=[Required(), EqualTo("confirm", message="Passwords must match")])
     confirm = PasswordField("Repeat password", validators=[Required()])
