@@ -6,7 +6,7 @@ ROOTPATH=../..
 BACKENDPATH=$(ROOTPATH)/backend
 BACKENDOUTPUT=backend
 
-all: backend release devel
+all: backend
 
 backend: $(BACKENDPATH)
 	SRC=$(BACKENDPATH) CONFIG=. OUT=$(BACKENDOUTPUT) make -f $(BACKENDPATH)/Makefile build
