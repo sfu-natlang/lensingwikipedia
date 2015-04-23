@@ -12,3 +12,10 @@ body {
 .navbar .brand {
     margin-left: 0;
 }
+
+.form-actions {
+    margin-top: auto;
+    background-color: inherit;
+    border: none;
+    padding-top: 0;
+}

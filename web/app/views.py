@@ -83,7 +83,7 @@ def user(id):
     modify_form = forms.ModifyUser(prefix='modify_form');
 
     if request.method == "POST":
-        modify_form_submitted = (request.form.get('submit-btn', '') == "Save")
+        modify_form_submitted = (request.form.get('submit-btn', '') == "save")
         delete_form_submitted = (request.form.get('submit-btn', '') == "delete")
 
         if modify_form_submitted and modify_form.validate_on_submit():

@@ -19,8 +19,9 @@
 </table>
 
 
+<div class="row-fluid">
 {% if g.user.is_admin() %}
-<form action="" method="POST" class="form-horizontal" name="reset_password_form">
+<form action="" method="POST" class="form-horizontal span6" name="reset_password_form">
   {{modify_form.hidden_tag()}}
   <legend>New password</legend>
   <div class="control-group {% if modify_form.password.errors %}error{% endif %}">
@@ -43,12 +44,12 @@
     </div>
   </div>
   <div class="form-actions">
-    <input type="submit" class="btn btn-primary" name="submit-btn" value="Save">
+    <button type="submit" class="btn btn-primary" name="submit-btn" value="save">Reset</button>
   </div>
 </form>
 
 {% if not user.is_admin() %}
-<form action="{{ url_for('user', id=user.id) }}" method="POST" name="delete-user">
+<form class="span6" action="{{ url_for('user', id=user.id) }}" method="POST" name="delete-user">
   {{delete_form.hidden_tag()}}
   <legend>Delete user</legend>
   <div class="control-group {% if modify_form.confirm.errors %}error{% endif %}">
@@ -62,6 +63,7 @@
 </form>
 {% endif %}
 {% endif %}
+</div>
 
 {% endblock content %}
 
