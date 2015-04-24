@@ -20,7 +20,6 @@
 
 
 <div class="row-fluid">
-{% if g.user.is_admin() %}
 <form action="" method="POST" class="form-horizontal span6" name="reset_password_form">
   {{modify_form.hidden_tag()}}
   <legend>New password</legend>
@@ -61,7 +60,6 @@
     <button class="btn btn-danger" type="submit" name="submit-btn" value="delete">Delete user</button>
   </div>
 </form>
-{% endif %}
 {% endif %}
 </div>
 

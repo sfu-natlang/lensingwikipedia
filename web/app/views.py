@@ -76,8 +76,10 @@ def users():
 
 @app.route("/user/<int:id>", methods=['GET', 'POST'])
 @login_required
-@admin_required
 def user(id):
+    if not g.user.is_admin() and g.user.id != id:
+        abort(403)
+
     user = User.query.get_or_404(id)
     delete_form = forms.DeleteUser(prefix='delete_form')
     modify_form = forms.ModifyUser(prefix='modify_form');

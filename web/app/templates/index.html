@@ -72,17 +72,7 @@
   {% endif %}
 {% endwith %}
 
-{% if g.user.is_authenticated() %}
-
-<div id="login">
-  Welcome back, {{ g.user.email }}!
-  {% if g.user.is_admin() %}
-  <a class="btn" href="{{ url_for('users') }}">Admin panel</a>
-  {% endif %}
-  <a class="btn" href="{{ url_for('logout') }}">Log out</a>
-</div>
-
-{% else %}
+{% if not g.user.is_authenticated() %}
 
 {% if login_form.email.errors or login_form.password.errors or register_form.email.errors or register_form.password.errors %}
 <script type="text/javascript">
@@ -97,11 +87,6 @@
     });
 </script>
 {% endif %}
-
-<div id="login">
-  <!-- Button to trigger modal -->
-  <a href="#loginModal" role="button" class="btn btn-link" data-toggle="modal">Log in / Register</a>
-</div>
 
 <!-- Modal -->
 <div id="loginModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">

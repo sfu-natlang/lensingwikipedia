@@ -14,3 +14,16 @@ button.btn {
 #loginModal .tab-content {
     height: auto !important;
 }
+
+.navbar-inner {
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.navbar .brand {
+    margin-left: 0;
+}
+
+.navbar {
+    margin-bottom: 0;
+}

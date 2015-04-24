@@ -16,17 +16,7 @@
   </head>
   <body>
 
-  <div class="navbar navbar-fixed-top">
-    <div class="navbar-inner">
-      <a class="brand" href="{{ url_for('index') }}">Lensing</a>
-      <ul class="nav">
-        <li><a href="{{ url_for('users') }}">Users</a></li>
-      </ul>
-      <ul class="nav pull-right">
-        <li><a href="{{ url_for('logout') }}">Log out</a></li>
-      </ul>
-    </div>
-  </div>
+  {% include "components/top-bar.html" %}
 
   {% block content %}
   {% endblock content %}
