@@ -30,6 +30,13 @@ TABS = [
     ("textsearch", "Text Search")
 ]
 
+MAIL_SERVER = 'mailgate.sfu.ca'
+MAIL_PORT = 465
+MAIL_USE_SSL = True
+MAIL_USERNAME = 'computing_id'
+MAIL_PASSWORD = 'XXX'
+MAIL_DEFAULT_SENDER = 'computing_id@sfu.ca'
+
 try:
     from local_config import *
 except ImportError:

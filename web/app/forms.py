@@ -53,3 +53,20 @@ class DeleteUser(Form):
 class ModifyUser(Form):
     password = PasswordField("Password", validators=[Required(), EqualTo("confirm", message="Passwords must match")])
     confirm = PasswordField("Repeat password", validators=[Required()])
+
+class ForgotPassword(Form):
+    email = TextField("email", validators=[Required(), Email()])
+
+    def validate(self):
+        rv = Form.validate(self)
+        if not rv:
+            return False
+
+        user = User.query.filter_by(email=self.email.data).first()
+
+        if user is None:
+            self.email.errors.append("Email doesn't exist")
+            return False
+
+        self.user = user
+        return True

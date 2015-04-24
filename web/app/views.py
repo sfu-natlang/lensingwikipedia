@@ -2,9 +2,10 @@ from flask import request, url_for, render_template, g, session, redirect, \
         flash, abort
 from flask.ext.login import login_required, login_user, logout_user, \
         current_user, user_unauthorized
+from flask.ext.mail import Message
 from functools import wraps
-from . import app, db, lm, forms
-from .models import User
+from . import app, db, lm, forms, mail
+from .models import User, ForgotPasswordUrl
 
 def admin_required(f):
     @wraps(f)
@@ -65,6 +66,68 @@ def logout():
     logout_user()
     flash("You were logged out")
     return redirect(url_for("index"))
+
+@app.route("/forgot-password", methods=['GET', 'POST'])
+@app.route("/forgot-password/<uuid>", methods=['GET', 'POST'])
+def forgot_password(uuid=None):
+
+    if uuid is not None:
+        url = ForgotPasswordUrl.query.filter_by(uuid=uuid).first()
+        if url is None:
+            flash("That URL doesn't exist")
+            return redirect(url_for('forgot_password'))
+
+        login_user(url.user)
+
+        flash("Reset your password here!")
+
+        db.session.delete(url)
+        db.session.commit()
+
+        return redirect(url_for('user', id=url.user.id))
+
+    form = forms.ForgotPassword()
+
+    if form.validate_on_submit():
+        email = form.email.data
+        reset_path = ForgotPasswordUrl()
+
+        form.user.forgot_password_urls.append(reset_path)
+        db.session.commit()
+
+        reset_path = url_for('forgot_password', uuid=reset_path.uuid)
+        site_url = '/'.join(request.url.split('/')[:3])
+
+        reset_url = site_url + reset_path
+
+        msg = Message("Reset your password", recipients=[email])
+        msg.body = """
+        Hi {name},
+
+        Looks like asked for a link to reset your password, so here it is!
+
+        {reset_url}
+
+        The URL will expire in the next 24 hours.
+
+        If you didn't request this, just ignore the message.
+
+
+        Cheers,
+
+        The Lensing Team
+        """.format(name=form.user.username, reset_url=reset_url)
+
+        print(msg.body)
+
+        mail.send(msg)
+
+        flash("Password reset email sent!")
+
+        return redirect(url_for("index"))
+
+    return render_template("forgot_password.html", form=form)
+
 
 @app.route('/user')
 @login_required

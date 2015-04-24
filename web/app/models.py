@@ -1,6 +1,8 @@
 from app import db
 from flask.ext.login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+import uuid
+import datetime
 
 ROLE_USER = 0
 ROLE_ADMIN = 1
@@ -13,6 +15,7 @@ class User(db.Model, UserMixin):
     role = db.Column(db.SmallInteger, default=ROLE_USER)
 
     queries = db.relationship("Query", backref="user", lazy="dynamic")
+    forgot_password_urls = db.relationship("ForgotPasswordUrl", backref="user", lazy="dynamic")
 
     def __init__(self, email, password, *args, **kwargs):
         super(User, self).__init__(*args, **kwargs)
@@ -33,6 +36,18 @@ class User(db.Model, UserMixin):
 
     def __repr__(self):
         return '<User %r>' % self.email
+
+class ForgotPasswordUrl(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    uuid = db.Column(db.String(36), unique=True)
+    date = db.Column(db.DateTime)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+
+    def __init__(self, *args, **kwargs):
+        super(ForgotPasswordUrl, self).__init__(*args, **kwargs)
+        self.uuid = str(uuid.uuid4())
+        self.date = datetime.datetime.utcnow()
+
 
 class Query(db.Model):
     id = db.Column(db.Integer, primary_key=True)

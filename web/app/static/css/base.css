@@ -27,3 +27,15 @@ button.btn {
 .navbar {
     margin-bottom: 0;
 }
+
+section#page-content {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+.flashes .alert {
+    width: 500px;
+    margin: 0 auto;
+}

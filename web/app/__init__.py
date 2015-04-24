@@ -4,6 +4,7 @@ from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.login import LoginManager
 from flask.ext.script import Manager
 from flask.ext.migrate import Migrate, MigrateCommand
+from flask.ext.mail import Mail
 
 app = Flask(__name__)
 app.config.from_object('config')
@@ -31,6 +32,7 @@ lm.init_app(app)
 app.jinja_env.trim_blocks = True
 app.jinja_env.lstrip_blocks = True
 
+mail = Mail(app)
 from app import views, models, forms
 
 def create_admin():

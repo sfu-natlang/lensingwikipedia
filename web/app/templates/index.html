@@ -59,18 +59,6 @@
 
 
 {% block content %}
-{% with messages = get_flashed_messages() %}
-  {% if messages %}
-    <ul class=flashes>
-    {% for message in messages %}
-    <div class="alert fade in">
-    <button class="close" data-dismiss="alert">×</button>
-      {{ message }}
-    </div>
-    {% endfor %}
-    </ul>
-  {% endif %}
-{% endwith %}
 
 {% if not g.user.is_authenticated() %}
 
@@ -130,6 +118,7 @@
             <div class="control-group">
               <div class="controls">
                 <input type="submit" class="btn btn-primary" name="submit-btn" value="Sign in">
+                <a href="{{ url_for('forgot_password') }}">Forgot password?</a>
               </div>
             </div>
           </form>
