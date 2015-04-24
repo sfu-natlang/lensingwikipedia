@@ -77,7 +77,7 @@ def users():
 @app.route("/user/<int:id>", methods=['GET', 'POST'])
 @login_required
 def user(id):
-    if not g.user.is_admin() and g.user.id != id:
+    if not (g.user.is_admin() or g.user.id == id):
         abort(403)
 
     user = User.query.get_or_404(id)
@@ -94,9 +94,15 @@ def user(id):
             return redirect(url_for("users"))
 
         if delete_form_submitted and delete_form.validate_on_submit():
+            redirect_location = "users"
+            if g.user.id == id:
+                redirect_location = "index"
+                logout_user()
+
             db.session.delete(user)
             db.session.commit()
-            return redirect(url_for("users"))
+
+            return redirect(url_for(redirect_location))
 
     return render_template("admin/user.html",
             title="User %d = %s" % (id, user.username),
