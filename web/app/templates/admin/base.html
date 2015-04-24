@@ -18,8 +18,10 @@
 
   {% include "components/top-bar.html" %}
 
-  {% block content %}
-  {% endblock content %}
+  <section id="page-content">
+    {% block content %}
+    {% endblock content %}
+  </section>
 
   {% block bottom_scripts %}
   {% endblock %}
