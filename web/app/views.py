@@ -4,6 +4,7 @@ from flask.ext.login import login_required, login_user, logout_user, \
         current_user, user_unauthorized
 from flask.ext.mail import Message
 from functools import wraps
+import textwrap
 from . import app, db, lm, forms, mail
 from .models import User, ForgotPasswordUrl
 
@@ -101,22 +102,22 @@ def forgot_password(uuid=None):
         reset_url = site_url + reset_path
 
         msg = Message("Reset your password", recipients=[email])
-        msg.body = """
-        Hi {name},
+        msg.body = textwrap.dedent("""\
+                Hi {name},
 
-        Looks like asked for a link to reset your password, so here it is!
+                Looks like asked for a link to reset your password, so here it is!
 
-        {reset_url}
+                {reset_url}
 
-        The URL will expire in the next 24 hours.
+                The URL will expire in the next 24 hours.
 
-        If you didn't request this, just ignore the message.
+                If you didn't request this, just ignore the message.
 
 
-        Cheers,
+                Cheers,
 
-        The Lensing Team
-        """.format(name=form.user.username, reset_url=reset_url)
+                The Lensing Team
+                """).format(name=form.user.username, reset_url=reset_url)
 
         print(msg.body)
 
