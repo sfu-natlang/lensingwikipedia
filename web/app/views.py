@@ -6,12 +6,12 @@ from flask.ext.mail import Message
 from functools import wraps
 import textwrap
 from . import app, db, lm, forms, mail
-from .models import User, ForgotPasswordUrl
+from .models import User, ForgotPasswordUrl, ConfirmationUrl
 
 def admin_required(f):
     @wraps(f)
     def decorated_view(*args, **kwargs):
-        if not current_user.is_authenticated() and current_user.is_admin():
+        if not (current_user.is_authenticated() and current_user.is_admin()):
             abort(403)
         return f(*args, **kwargs)
     return decorated_view
@@ -50,11 +50,13 @@ def index():
 
             db.session.add(user)
             db.session.commit()
+
             print("registered a new user")
 
-            flash("Registered!")
+            _send_confirmation_email(user)
 
-            login_user(user)
+            flash("Registered! Check your email for a confirmation!")
+
             return redirect(url_for("index"))
 
     return render_template("index.html",
@@ -78,6 +80,11 @@ def forgot_password(uuid=None):
             flash("That URL doesn't exist")
             return redirect(url_for('forgot_password'))
 
+        # if the user clicked "forgot password" before confirming his email
+        # address, we can consider this as confirmation.
+        if not url.user.confirmed:
+            url.user.confirmed = True
+
         login_user(url.user)
 
         flash("Reset your password here!")
@@ -90,44 +97,44 @@ def forgot_password(uuid=None):
     form = forms.ForgotPassword()
 
     if form.validate_on_submit():
-        email = form.email.data
-        reset_path = ForgotPasswordUrl()
-
-        form.user.forgot_password_urls.append(reset_path)
-        db.session.commit()
-
-        reset_path = url_for('forgot_password', uuid=reset_path.uuid)
-        site_url = '/'.join(request.url.split('/')[:3])
-
-        reset_url = site_url + reset_path
-
-        msg = Message("Reset your password", recipients=[email])
-        msg.body = textwrap.dedent("""\
-                Hi {name},
-
-                Looks like asked for a link to reset your password, so here it is!
-
-                {reset_url}
-
-                The URL will expire in the next 24 hours.
-
-                If you didn't request this, just ignore the message.
-
-
-                Cheers,
-
-                The Lensing Team
-                """).format(name=form.user.username, reset_url=reset_url)
-
-        print(msg.body)
-
-        mail.send(msg)
-
+        _send_reset_email(form.user)
         flash("Password reset email sent!")
 
         return redirect(url_for("index"))
 
     return render_template("forgot_password.html", form=form)
+
+@app.route("/confirm-email", methods=['GET', 'POST'])
+@app.route("/confirm-email/<uuid>", methods=['GET', 'POST'])
+def confirm_email(uuid=None):
+
+    if uuid is not None:
+        confirm_url = ConfirmationUrl.query.filter_by(uuid=uuid).first()
+
+        if confirm_url is None:
+            flash("That URL doesn't exist")
+            abort(404)
+
+        confirm_url.user.confirmed = True
+        db.session.commit()
+
+        login_user(confirm_url.user)
+
+        db.session.delete(confirm_url)
+        db.session.commit()
+
+        flash("Welcome to Lensing!")
+        return redirect(url_for('index'))
+
+    form = forms.ResendConfirmation()
+
+    if form.validate_on_submit():
+        _send_confirmation_email(form.user)
+        flash("Confirmation email sent!")
+
+        return redirect(url_for('index'))
+
+    return render_template("confirm_email.html", form=form)
 
 
 @app.route('/user')
@@ -155,7 +162,8 @@ def user(id):
         if modify_form_submitted and modify_form.validate_on_submit():
             user.set_password(modify_form.password.data)
             db.session.commit();
-            return redirect(url_for("users"))
+            flash("Reset password")
+            return redirect(url_for("user", id=g.user.id))
 
         if delete_form_submitted and delete_form.validate_on_submit():
             redirect_location = "users"
@@ -171,3 +179,57 @@ def user(id):
     return render_template("admin/user.html",
             title="User %d = %s" % (id, user.username),
             user=user, delete_form=delete_form, modify_form=modify_form)
+
+
+def _send_confirmation_email(user):
+    confirmation_path = ConfirmationUrl()
+    user.confirmation_urls.append(confirmation_path)
+    db.session.commit()
+
+    confirm_url = url_for('confirm_email', uuid=confirmation_path.uuid, _external=True)
+
+    msg = Message("Confirm your email address", recipients=[user.email])
+    msg.body = textwrap.dedent("""\
+            Hi {name},
+
+            Thanks for registering! Click this link to confirm your email address:
+
+            {confirm_url}
+
+            If you didn't request this, just ignore the message.
+
+
+            Cheers,
+
+            The Lensing Team
+            """).format(name=user.username, confirm_url=confirm_url)
+
+    mail.send(msg)
+
+def _send_reset_email(user):
+    reset_path = ForgotPasswordUrl()
+
+    user.forgot_password_urls.append(reset_path)
+    db.session.commit()
+
+    reset_url = url_for('forgot_password', uuid=reset_path.uuid, _external=True)
+
+    msg = Message("Reset your password", recipients=[user.email])
+    msg.body = textwrap.dedent("""\
+            Hi {name},
+
+            Looks like asked for a link to reset your password, so here it is!
+
+            {reset_url}
+
+            The URL will expire in the next 24 hours.
+
+            If you didn't request this, just ignore the message.
+
+
+            Cheers,
+
+            The Lensing Team
+            """).format(name=user.username, reset_url=reset_url)
+
+    mail.send(msg)

@@ -161,7 +161,7 @@
             <div class="control-group {% if register_form.confirm.errors %}error{% endif %}">
               <label class="control-label" for="inputPasswordConfirm">Repeat password</label>
               <div class="controls">
-                {{ register_form.confirm(id="inputPasswordConfirm", placeholder="Repat password") }}
+                {{ register_form.confirm(id="inputPasswordConfirm", placeholder="Repeat password") }}
                 {% if register_form.confirm.errors %}
                 <span class="help-block">{{ register_form.confirm.errors[0] }}</span>
                 {% endif %}
@@ -171,6 +171,7 @@
             <div class="control-group">
               <div class="controls">
                 <input type="submit" class="btn btn-primary" name="submit-btn" value="Register">
+                <a href="{{ url_for('confirm_email') }}">Resend confirmation?</a>
               </div>
             </div>
           </form>

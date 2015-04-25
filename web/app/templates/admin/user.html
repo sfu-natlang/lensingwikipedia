@@ -36,7 +36,7 @@
   <div class="control-group {% if modify_form.confirm.errors %}error{% endif %}">
     <label class="control-label" for="inputPasswordConfirm">Repeat password</label>
     <div class="controls">
-      {{ modify_form.confirm(id="inputPasswordConfirm", placeholder="Repat password") }}
+      {{ modify_form.confirm(id="inputPasswordConfirm", placeholder="Repeat password") }}
       {% if modify_form.confirm.errors %}
       <span class="help-block">{{ modify_form.confirm.errors[0] }}</span>
       {% endif %}

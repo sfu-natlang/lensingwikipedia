@@ -13,9 +13,11 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String, index=True, unique=True)
     pw_hash = db.Column(db.String)
     role = db.Column(db.SmallInteger, default=ROLE_USER)
+    confirmed = db.Column(db.Boolean, default=False)
 
     queries = db.relationship("Query", backref="user", lazy="dynamic")
     forgot_password_urls = db.relationship("ForgotPasswordUrl", backref="user", lazy="dynamic")
+    confirmation_urls = db.relationship("ConfirmationUrl", backref="user", lazy="dynamic")
 
     def __init__(self, email, password, *args, **kwargs):
         super(User, self).__init__(*args, **kwargs)
@@ -37,6 +39,19 @@ class User(db.Model, UserMixin):
     def __repr__(self):
         return '<User %r>' % self.email
 
+
+class ConfirmationUrl(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    uuid = db.Column(db.String(36), unique=True)
+    date = db.Column(db.DateTime)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+
+    def __init__(self, *args, **kwargs):
+        super(ConfirmationUrl, self).__init__(*args, **kwargs)
+        self.uuid = str(uuid.uuid4())
+        self.date = datetime.datetime.utcnow()
+
+
 class ForgotPasswordUrl(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     uuid = db.Column(db.String(36), unique=True)
@@ -47,7 +62,6 @@ class ForgotPasswordUrl(db.Model):
         super(ForgotPasswordUrl, self).__init__(*args, **kwargs)
         self.uuid = str(uuid.uuid4())
         self.date = datetime.datetime.utcnow()
-
 
 class Query(db.Model):
     id = db.Column(db.Integer, primary_key=True)

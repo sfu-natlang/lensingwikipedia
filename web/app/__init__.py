@@ -42,6 +42,7 @@ def create_admin():
             user = models.User(email="admin@lensingwikipedia.cs.sfu.ca",
                                password="password", username="admin",
                                role=models.ROLE_ADMIN)
+            user.confirmed = True
             db.session.add(user)
             db.session.commit()
     except Exception, e:
