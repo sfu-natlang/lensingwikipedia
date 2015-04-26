@@ -1,7 +1,7 @@
 from flask import request, url_for, render_template, g, session, redirect, \
         flash, abort
 from flask.ext.login import login_required, login_user, logout_user, \
-        current_user, user_unauthorized
+        current_user
 from flask.ext.mail import Message
 from functools import wraps
 import textwrap
