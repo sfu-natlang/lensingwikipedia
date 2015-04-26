@@ -71,29 +71,7 @@ def logout():
     return redirect(url_for("index"))
 
 @app.route("/forgot-password", methods=['GET', 'POST'])
-@app.route("/forgot-password/<uuid>", methods=['GET', 'POST'])
-def forgot_password(uuid=None):
-
-    if uuid is not None:
-        url = ForgotPasswordUrl.query.filter_by(uuid=uuid).first()
-        if url is None:
-            flash("That URL doesn't exist")
-            return redirect(url_for('forgot_password'))
-
-        # if the user clicked "forgot password" before confirming his email
-        # address, we can consider this as confirmation.
-        if not url.user.confirmed:
-            url.user.confirmed = True
-
-        login_user(url.user)
-
-        flash("Reset your password here!")
-
-        db.session.delete(url)
-        db.session.commit()
-
-        return redirect(url_for('user', id=url.user.id))
-
+def forgot_password():
     form = forms.ForgotPassword()
 
     if form.validate_on_submit():
@@ -153,17 +131,17 @@ def user(id):
 
     user = User.query.get_or_404(id)
     delete_form = forms.DeleteUser(prefix='delete_form')
-    modify_form = forms.ModifyUser(prefix='modify_form');
+    change_pass_form = forms.ChangeUserPassword(user, prefix='change_pass_form');
 
     if request.method == "POST":
-        modify_form_submitted = (request.form.get('submit-btn', '') == "save")
+        change_pass_form_submitted = (request.form.get('submit-btn', '') == "save")
         delete_form_submitted = (request.form.get('submit-btn', '') == "delete")
 
-        if modify_form_submitted and modify_form.validate_on_submit():
-            user.set_password(modify_form.password.data)
+        if change_pass_form_submitted and change_pass_form.validate_on_submit():
+            user.set_password(change_pass_form.password.data)
             db.session.commit();
-            flash("Reset password")
-            return redirect(url_for("user", id=g.user.id))
+            flash("Password has been reset")
+            return redirect(url_for("user", id=id))
 
         if delete_form_submitted and delete_form.validate_on_submit():
             redirect_location = "users"
@@ -178,7 +156,35 @@ def user(id):
 
     return render_template("admin/user.html",
             title="User %d = %s" % (id, user.username),
-            user=user, delete_form=delete_form, modify_form=modify_form)
+            user=user, delete_form=delete_form,
+            change_pass_form=change_pass_form)
+
+@app.route("/reset-password/<uuid>", methods=['GET', 'POST'])
+def reset_password(uuid):
+    url = ForgotPasswordUrl.query.filter_by(uuid=uuid).first()
+    if url is None:
+        flash("That URL doesn't exist")
+        return redirect(url_for('forgot_password'))
+
+    # if the user clicked "forgot password" before confirming his email
+    # address, we can consider this as confirmation.
+    if not url.user.confirmed:
+        url.user.confirmed = True
+
+    form = forms.ResetPassword()
+
+    if form.validate_on_submit():
+        db.session.delete(url)
+        url.user.set_password(form.password.data)
+        db.session.commit()
+
+        flash("Your password has been changed!")
+        login_user(url.user)
+
+        return redirect(url_for('user', id=url.user.id))
+
+
+    return render_template("reset_password.html", form=form)
 
 
 def _send_confirmation_email(user):
@@ -212,7 +218,7 @@ def _send_reset_email(user):
     user.forgot_password_urls.append(reset_path)
     db.session.commit()
 
-    reset_url = url_for('forgot_password', uuid=reset_path.uuid, _external=True)
+    reset_url = url_for('reset_password', uuid=reset_path.uuid, _external=True)
 
     msg = Message("Reset your password", recipients=[user.email])
     msg.body = textwrap.dedent("""\
