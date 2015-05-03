@@ -36,6 +36,8 @@ SOCIAL_AUTH_USER_MODEL = 'app.models.User'
 SOCIAL_AUTH_AUTHENTICATION_BACKENDS = ('social.backends.google.GoogleOAuth2',)
 SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/'
 
+MAIN_ADMIN = '***'
+
 SITE_URL = "lensingwikipedia.cs.sfu.ca"
 
 try:

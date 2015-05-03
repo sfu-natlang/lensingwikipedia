@@ -1,4 +1,4 @@
-from app import db
+from app import app, db
 from flask.ext.login import UserMixin
 from social.apps.flask_app.default import models
 import datetime
@@ -15,7 +15,8 @@ class User(db.Model, UserMixin):
     last_seen = db.Column(db.DateTime)
 
     def is_admin(self):
-        return self.role == ROLE['admin']
+        return (self.role == ROLE['admin'] or
+                self.email == app.config['MAIN_ADMIN'])
 
     def is_active(self):
         return self.status == STATUS['regular']
