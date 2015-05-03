@@ -1,5 +1,7 @@
 {% extends "admin/base.html" %}
+
 {% block content %}
+
 <div class="page-header">
   <h1>User {{ user.username }}</h1>
 </div>
@@ -18,82 +20,4 @@
   </tbody>
 </table>
 
-
-<div class="row-fluid">
-<form action="" method="POST" class="form-horizontal span6" name="reset_password_form">
-  {{change_pass_form.hidden_tag()}}
-  <legend>Change password</legend>
-
-  {% if not g.user.is_admin() %}
-  <div class="control-group {% if change_pass_form.old_password.errors %}error{% endif %}">
-    <label class="control-label" for="inputPassword">Old password</label>
-    <div class="controls">
-      {{ change_pass_form.old_password(id="inputOldPassword", placeholder="Old Password") }}
-      {% if change_pass_form.old_password.errors %}
-      <span class="help-block">{{ change_pass_form.old_password.errors[0] }}</span>
-      {% endif %}
-    </div>
-  </div>
-  {% endif %}
-
-  <div class="control-group {% if change_pass_form.password.errors %}error{% endif %}">
-    <label class="control-label" for="inputPassword">Password</label>
-    <div class="controls">
-      {{ change_pass_form.password(id="inputPassword", placeholder="Password") }}
-      {% if change_pass_form.password.errors %}
-      <span class="help-block">{{ change_pass_form.password.errors[0] }}</span>
-      {% endif %}
-    </div>
-  </div>
-
-  <div class="control-group {% if change_pass_form.confirm.errors %}error{% endif %}">
-    <label class="control-label" for="inputPasswordConfirm">Repeat password</label>
-    <div class="controls">
-      {{ change_pass_form.confirm(id="inputPasswordConfirm", placeholder="Repeat password") }}
-      {% if change_pass_form.confirm.errors %}
-      <span class="help-block">{{ change_pass_form.confirm.errors[0] }}</span>
-      {% endif %}
-    </div>
-  </div>
-  <div class="form-actions">
-    <button type="submit" class="btn btn-primary" name="submit-btn" value="save">Reset</button>
-  </div>
-</form>
-
-{% if not user.is_admin() %}
-<form class="span6" action="{{ url_for('user', id=user.id) }}" method="POST" name="delete-user">
-  {{delete_form.hidden_tag()}}
-  <legend>Delete user</legend>
-  <div class="control-group {% if change_pass_form.confirm.errors %}error{% endif %}">
-    <label class="checkbox" for="deleteConfirm">
-      {{ delete_form.confirm(id="deleteConfirm") }} Confirm deletion
-    </label>
-  </div>
-  <div class="form-actions">
-    <button class="btn btn-danger" type="submit" name="submit-btn" value="delete">Delete user</button>
-  </div>
-</form>
-{% endif %}
-</div>
-
 {% endblock content %}
-
-{% block bottom_scripts %}
-<script>
-  $(document).ready(function() {
-      delete_check = $("#deleteConfirm");
-      delete_submit = $("button[value=delete]");
-
-      delete_submit.attr('disabled', 'disabled');
-      delete_check.removeAttr('checked');
-
-      delete_check.click(function(e) {
-        if (this.checked) {
-          delete_submit.removeAttr('disabled');
-        } else {
-          delete_submit.attr('disabled', 'disabled');
-        }
-      });
-  });
-</script>
-{% endblock %}

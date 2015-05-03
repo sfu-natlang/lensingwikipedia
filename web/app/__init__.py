@@ -2,9 +2,13 @@ from flask import Flask
 
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.login import LoginManager
+
 from flask.ext.script import Manager
 from flask.ext.migrate import Migrate, MigrateCommand
-from flask.ext.mail import Mail
+
+from social.apps.flask_app.routes import social_auth
+from social.apps.flask_app.template_filters import backends
+from social.apps.flask_app.default.models import init_social
 
 app = Flask(__name__)
 app.config.from_object('config')
@@ -23,6 +27,9 @@ migrate = Migrate(app, db)
 manager = Manager(app)
 manager.add_command('db', MigrateCommand)
 
+app.register_blueprint(social_auth)
+init_social(app, db.session)
+
 lm = LoginManager()
 lm.init_app(app)
 
@@ -32,18 +39,4 @@ lm.init_app(app)
 app.jinja_env.trim_blocks = True
 app.jinja_env.lstrip_blocks = True
 
-mail = Mail(app)
 from app import views, models, forms
-
-def create_admin():
-    """Creates a default admin account. Will be run from within db_create.py"""
-    try:
-        if models.User.query.filter_by(email="admin@lensingwikpedia.cs.sfu.ca").first() is None:
-            user = models.User(email="admin@lensingwikipedia.cs.sfu.ca",
-                               password="password", username="admin",
-                               role=models.ROLE_ADMIN)
-            user.confirmed = True
-            db.session.add(user)
-            db.session.commit()
-    except Exception, e:
-        print "DATABASE: USER CREATION FAILED WITH %s" % str(e)

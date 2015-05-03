@@ -13,7 +13,7 @@
       <li><a href="{{ url_for('user', id=g.user.id) }}">{{ g.user.email }}</a></li>
       <li><a href="{{ url_for('logout') }}">Log out</a></li>
       {% else %}
-      <li><a href="#loginModal" role="button" data-toggle="modal">Log in / Register</a></li>
+      <li><a href="{{ url_for('social.auth', backend='google-oauth2') }}">Log in with Google</a></li>
       {% endif %}
     </ul>
   </div>

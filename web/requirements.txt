@@ -4,4 +4,4 @@ flask-login
 flask-wtf
 flask-migrate
 flask-script
-flask-mail
+python-social-auth

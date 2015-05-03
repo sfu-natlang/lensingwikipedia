@@ -1,12 +1,12 @@
 from flask import request, url_for, render_template, g, session, redirect, \
         flash, abort
-from flask.ext.login import login_required, login_user, logout_user, \
-        current_user
-from flask.ext.mail import Message
+from flask.ext.login import login_required, logout_user, current_user
+from social.apps.flask_app import routes
 from functools import wraps
 import textwrap
-from . import app, db, lm, forms, mail
-from .models import User, ForgotPasswordUrl, ConfirmationUrl
+import datetime
+from . import app, db, lm, forms
+from .models import User
 
 def admin_required(f):
     @wraps(f)
@@ -28,92 +28,28 @@ def before_request():
     # so that we can access the current user wherever
     g.user = current_user
 
-@app.route('/', methods=['GET', 'POST'])
+    if g.user.is_authenticated():
+        g.user.last_seen = datetime.datetime.utcnow()
+        # TODO: is the line below necessary?
+        db.session.add(g.user)
+        db.session.commit()
+
+@app.teardown_appcontext
+def commit_on_success(error=None):
+    if error is None:
+        db.session.commit()
+    else:
+        raise Exception(error)
+
+@app.route('/')
 def index():
-    # prefixes are needed so that there's no conflict between the two forms
-    login_form = forms.Login(prefix="login_form")
-    register_form = forms.Register(prefix="register_form")
-
-    if request.method == "POST":
-        login_form_submitted = (request.form.get('submit-btn', '') == "Sign in")
-        register_form_submitted = (request.form.get('submit-btn', '') == "Register")
-
-        if login_form_submitted and login_form.validate_on_submit():
-            login_user(login_form.user)
-            print("logged in a user")
-            return redirect(url_for("index"))
-
-        if register_form_submitted and register_form.validate_on_submit():
-            user = User(email=register_form.email.data,
-                        password=register_form.password.data,
-                        username=register_form.username.data)
-
-            db.session.add(user)
-            db.session.commit()
-
-            print("registered a new user")
-
-            _send_confirmation_email(user)
-
-            flash("Registered! Check your email for a confirmation!")
-
-            return redirect(url_for("index"))
-
-    return render_template("index.html",
-            title="index",
-            login_form=login_form,
-            register_form=register_form)
+    return render_template("index.html", title="index")
 
 @app.route("/logout")
 def logout():
     logout_user()
     flash("You were logged out")
     return redirect(url_for("index"))
-
-@app.route("/forgot-password", methods=['GET', 'POST'])
-def forgot_password():
-    form = forms.ForgotPassword()
-
-    if form.validate_on_submit():
-        _send_reset_email(form.user)
-        flash("Password reset email sent!")
-
-        return redirect(url_for("index"))
-
-    return render_template("forgot_password.html", form=form)
-
-@app.route("/confirm-email", methods=['GET', 'POST'])
-@app.route("/confirm-email/<uuid>", methods=['GET', 'POST'])
-def confirm_email(uuid=None):
-
-    if uuid is not None:
-        confirm_url = ConfirmationUrl.query.filter_by(uuid=uuid).first()
-
-        if confirm_url is None:
-            flash("That URL doesn't exist")
-            abort(404)
-
-        confirm_url.user.confirmed = True
-        db.session.commit()
-
-        login_user(confirm_url.user)
-
-        db.session.delete(confirm_url)
-        db.session.commit()
-
-        flash("Welcome to Lensing!")
-        return redirect(url_for('index'))
-
-    form = forms.ResendConfirmation()
-
-    if form.validate_on_submit():
-        _send_confirmation_email(form.user)
-        flash("Confirmation email sent!")
-
-        return redirect(url_for('index'))
-
-    return render_template("confirm_email.html", form=form)
-
 
 @app.route('/user')
 @login_required
@@ -130,112 +66,13 @@ def user(id):
         abort(403)
 
     user = User.query.get_or_404(id)
-    delete_form = forms.DeleteUser(prefix='delete_form')
-    change_pass_form = forms.ChangeUserPassword(user, prefix='change_pass_form');
+    ban_user_form = forms.BanUser()
 
-    if request.method == "POST":
-        change_pass_form_submitted = (request.form.get('submit-btn', '') == "save")
-        delete_form_submitted = (request.form.get('submit-btn', '') == "delete")
-
-        if change_pass_form_submitted and change_pass_form.validate_on_submit():
-            user.set_password(change_pass_form.password.data)
-            db.session.commit();
-            flash("Password has been reset")
-            return redirect(url_for("user", id=id))
-
-        if delete_form_submitted and delete_form.validate_on_submit():
-            redirect_location = "users"
-            if g.user.id == id:
-                redirect_location = "index"
-                logout_user()
-
-            db.session.delete(user)
-            db.session.commit()
-
-            return redirect(url_for(redirect_location))
+    if ban_user_form.validate_on_submit():
+        user.status = STATUS['banned']
+        db.session.commit()
 
     return render_template("admin/user.html",
             title="User %d = %s" % (id, user.username),
-            user=user, delete_form=delete_form,
-            change_pass_form=change_pass_form)
-
-@app.route("/reset-password/<uuid>", methods=['GET', 'POST'])
-def reset_password(uuid):
-    url = ForgotPasswordUrl.query.filter_by(uuid=uuid).first()
-    if url is None:
-        flash("That URL doesn't exist")
-        return redirect(url_for('forgot_password'))
-
-    # if the user clicked "forgot password" before confirming his email
-    # address, we can consider this as confirmation.
-    if not url.user.confirmed:
-        url.user.confirmed = True
-
-    form = forms.ResetPassword()
-
-    if form.validate_on_submit():
-        db.session.delete(url)
-        url.user.set_password(form.password.data)
-        db.session.commit()
-
-        flash("Your password has been changed!")
-        login_user(url.user)
-
-        return redirect(url_for('user', id=url.user.id))
-
-
-    return render_template("reset_password.html", form=form)
-
-
-def _send_confirmation_email(user):
-    confirmation_path = ConfirmationUrl()
-    user.confirmation_urls.append(confirmation_path)
-    db.session.commit()
-
-    confirm_url = url_for('confirm_email', uuid=confirmation_path.uuid, _external=True)
-
-    msg = Message("Confirm your email address", recipients=[user.email])
-    msg.body = textwrap.dedent("""\
-            Hi {name},
-
-            Thanks for registering! Click this link to confirm your email address:
-
-            {confirm_url}
-
-            If you didn't request this, just ignore the message.
-
-
-            Cheers,
-
-            The Lensing Team
-            """).format(name=user.username, confirm_url=confirm_url)
-
-    mail.send(msg)
-
-def _send_reset_email(user):
-    reset_path = ForgotPasswordUrl()
-
-    user.forgot_password_urls.append(reset_path)
-    db.session.commit()
-
-    reset_url = url_for('reset_password', uuid=reset_path.uuid, _external=True)
-
-    msg = Message("Reset your password", recipients=[user.email])
-    msg.body = textwrap.dedent("""\
-            Hi {name},
-
-            Looks like asked for a link to reset your password, so here it is!
-
-            {reset_url}
-
-            The URL will expire in the next 24 hours.
-
-            If you didn't request this, just ignore the message.
-
-
-            Cheers,
-
-            The Lensing Team
-            """).format(name=user.username, reset_url=reset_url)
-
-    mail.send(msg)
+            user=user,
+            ban_user_form=ban_user_form)

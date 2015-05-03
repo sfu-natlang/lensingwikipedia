@@ -1,70 +1,24 @@
 from app import db
 from flask.ext.login import UserMixin
-from werkzeug.security import generate_password_hash, check_password_hash
-import uuid
+from social.apps.flask_app.default import models
 import datetime
 
-ROLE_USER = 0
-ROLE_ADMIN = 1
+ROLE = {'user': 0, 'admin': 1}
+STATUS = {'regular': 0, 'banned': 1}
 
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String)
+    username = db.Column(db.String(200))
     email = db.Column(db.String, index=True, unique=True)
-    pw_hash = db.Column(db.String)
-    role = db.Column(db.SmallInteger, default=ROLE_USER)
-    confirmed = db.Column(db.Boolean, default=False)
-
-    queries = db.relationship("Query", backref="user", lazy="dynamic")
-    forgot_password_urls = db.relationship("ForgotPasswordUrl", backref="user", lazy="dynamic")
-    confirmation_urls = db.relationship("ConfirmationUrl", backref="user", lazy="dynamic")
-
-    def __init__(self, email, password, *args, **kwargs):
-        super(User, self).__init__(*args, **kwargs)
-        self.email = email
-        self.set_password(password)
+    role = db.Column(db.SmallInteger, default=ROLE['user'])
+    status = db.Column(db.SmallInteger, default=STATUS['regular'])
+    last_seen = db.Column(db.DateTime)
 
     def is_admin(self):
-        return self.role == ROLE_ADMIN
+        return self.role == ROLE['admin']
 
-    def set_password(self, password):
-        self.pw_hash = generate_password_hash(password)
-
-    def check_password(self, password):
-        if self.pw_hash is None:
-            return False
-        else:
-            return check_password_hash(self.pw_hash, password)
+    def is_active(self):
+        return self.status == STATUS['regular']
 
     def __repr__(self):
         return '<User %r>' % self.email
-
-
-class ConfirmationUrl(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    uuid = db.Column(db.String(36), unique=True)
-    date = db.Column(db.DateTime)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-
-    def __init__(self, *args, **kwargs):
-        super(ConfirmationUrl, self).__init__(*args, **kwargs)
-        self.uuid = str(uuid.uuid4())
-        self.date = datetime.datetime.utcnow()
-
-
-class ForgotPasswordUrl(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    uuid = db.Column(db.String(36), unique=True)
-    date = db.Column(db.DateTime)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-
-    def __init__(self, *args, **kwargs):
-        super(ForgotPasswordUrl, self).__init__(*args, **kwargs)
-        self.uuid = str(uuid.uuid4())
-        self.date = datetime.datetime.utcnow()
-
-class Query(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    json = db.Column(db.String)
-
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"))

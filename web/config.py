@@ -30,12 +30,13 @@ TABS = [
     ("textsearch", "Text Search")
 ]
 
-MAIL_SERVER = 'mailgate.sfu.ca'
-MAIL_PORT = 465
-MAIL_USE_SSL = True
-MAIL_USERNAME = 'computing_id'
-MAIL_PASSWORD = 'XXX'
-MAIL_DEFAULT_SENDER = 'computing_id@sfu.ca'
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = '***'
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = '***'
+SOCIAL_AUTH_USER_MODEL = 'app.models.User'
+SOCIAL_AUTH_AUTHENTICATION_BACKENDS = ('social.backends.google.GoogleOAuth2',)
+SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/'
+
+SITE_URL = "lensingwikipedia.cs.sfu.ca"
 
 try:
     from local_config import *
