@@ -15,6 +15,14 @@
   <script src="{{ url_for('static', filename='vendor/d3/d3.sankey.min.js') }}"></script>
   <script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.min.js') }}"></script>
 
+  <script>
+    {% if g.user.is_authenticated() %}
+    var userID = {{ g.user.email }};
+    {% else %}
+    var userID = null;
+    {% endif %}
+  </script>
+
   {% block head %}
   {% endblock %}
 
