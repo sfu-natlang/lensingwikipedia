@@ -11,7 +11,7 @@ build:
 	find $(SRC) -maxdepth 1 \( -name '*.py' -o -executable \) \( -not -type d \) -exec cp {} $(OUT) \;
 	find $(CONFIG) -maxdepth 1 -name '*.py' -exec cp {} $(OUT) \;
 	cp -r $(SRC)/bhtsne $(OUT)/
-	if grep --quiet "Ubuntu" /etc/lsb-release; then \
+	if [ -e /etc/lsb-release ] && grep --quiet "Ubuntu" /etc/lsb-release; then \
 		ln -s /usr/lib/libcblas.so $(OUT)/bhtsne/libcblas.so; \
 	else \
 		ln -s /usr/lib64/atlas/libcblas.so $(OUT)/bhtsne/libcblas.so; \
