@@ -18,6 +18,5 @@ build:
 	fi
 	cd $(OUT)/bhtsne
 	g++ $(OUT)/bhtsne/quadtree.cpp $(OUT)/bhtsne/tsne.cpp -o $(OUT)/bhtsne/bh_tsne -O3 -L$(OUT)/bhtsne -lcblas
-	mkdir -p $(OUT)/Temp
 clean:
 	rm -rf $(OUT)
