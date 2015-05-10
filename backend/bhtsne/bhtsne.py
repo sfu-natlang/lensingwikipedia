@@ -59,7 +59,7 @@ DEFAULT_THETA = 0.5
 
 class TmpDir:
     def __enter__(self):
-        self._tmp_dir_path = mkdtemp(dir='/tmp')
+        self._tmp_dir_path = mkdtemp()
         return self._tmp_dir_path
 
     def __exit__(self, type, value, traceback):
