@@ -12,4 +12,4 @@ backend: $(BACKENDPATH)
 	SRC=$(BACKENDPATH) CONFIG=. OUT=$(BACKENDOUTPUT) make -f $(BACKENDPATH)/Makefile build
 
 clean:
-	OUT=$(BACKENDOUTPUT) make -f "$(BACKENDPATH)"/Makefile $@
+	SRC=$(BACKENDPATH) CONFIG=. OUT=$(BACKENDOUTPUT) make -f "$(BACKENDPATH)"/Makefile $@

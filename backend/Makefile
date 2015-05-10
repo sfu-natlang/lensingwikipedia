@@ -10,13 +10,16 @@ OUT?=build
 
 -include Makefile.local
 
-build:
+build: python bhtsne
+
+python:
 	@mkdir -p $(OUT)
 	find $(SRC) -maxdepth 1 \( -name '*.py' -o -executable \) \( -not -type d \) -exec cp {} $(OUT) \;
 	find $(CONFIG) -maxdepth 1 -name '*.py' -exec cp {} $(OUT) \;
-	cp -r $(SRC)/bhtsne $(OUT)/
-	cd $(OUT)/bhtsne
-	g++ $(OUT)/bhtsne/quadtree.cpp $(OUT)/bhtsne/tsne.cpp -o $(OUT)/bhtsne/bh_tsne -O3 -L$(OUT)/bhtsne -lcblas
-	mkdir -p $(OUT)/Temp
+
+bhtsne:
+	SRC=$(SRC)/bhtsne OUT=$(OUT)/bhtsne $(MAKE) -f $(SRC)/bhtsne/Makefile build
+
 clean:
+	SRC=$(SRC)/bhtsne OUT=$(OUT)/bhtsne $(MAKE) -f $(SRC)/bhtsne/Makefile clean
 	rm -rf $(OUT)
