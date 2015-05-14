@@ -15,6 +15,12 @@ DOMAIN = "wikipediahistory"
 
 BACKEND_URL = "http://localhost:1500"
 
+# Tokens used to access Google Spreadsheet API on the command line.
+# To generate these, click 'Create new Client ID' and select 'Installed
+# application' in the Google Developers Console.
+CLI_OAUTH2_ID = '***'
+CLI_OAUTH2_SECRET = '***'
+
 try:
     from local_config import *
 except ImportError:
