@@ -2,7 +2,7 @@
 # Basic makefile to "compile" the backend by combining the main source files with configuration files.
 #
 
-SRC?=.
+SRC?=src
 CONFIG?=config
 OUT?=build
 
