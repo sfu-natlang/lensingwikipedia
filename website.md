@@ -143,14 +143,16 @@ the `apache` user has access to that location.
 
 To use the backend we first need to build the domain-specific programs.
 
-    cd /var/www/html/checkouts/20131017/domains/wikipediahistory
-    make backend
+    cd /var/www/html/checkouts/20131017/backend
+    CONFIG=domains/wikipediahistory make build
 
-Now the appropriate programs are in `/var/www/html/checkouts/20131017/domains/wikipediahistory/backend`
+Now the appropriate programs are in
+`/var/www/html/checkouts/20131017/backend/build`
 
 ## Get the data from the nightly crawl
 
-These are instructions for the wikipedia crawl. The avherald and other domains will be similar.
+These are instructions for the wikipedia crawl. The avherald and other domains
+will be similar.
 
     cd /var/www/html/data/wikipedia
     scp linux.cs.sfu.ca:/cs/natlang-projects/users/maryam/wikiCrawler/Crawl_20150202/fullData.json . # (use the correct date)
@@ -158,7 +160,7 @@ These are instructions for the wikipedia crawl. The avherald and other domains w
     mv fullData.json Crawl_20150202
     rm -f latest
     ln -s Crawl_20150202 latest
-    
+
 ## Set up data files for backend
 
     cd /var/www/html
@@ -175,7 +177,7 @@ These are instructions for the wikipedia crawl. The avherald and other domains w
 
 ## Run backend
 
-    cd /var/www/html/checkouts/20131017/domains/wikipediahistory/backend
+    cd /var/www/html/checkouts/20131017/backend/build
     # create full.conf as below
     nohup python2.7 backend -p 1510 -c full.conf
 
@@ -200,10 +202,11 @@ If Apache is not available and you only want to execute the frontend for testing
 
 ## Restart backend
 
-    cd /var/www/html/checkouts/20131017/domains/wikipediahistory/backend
+    cd /var/www/html/checkouts/20131017/backend/build
     nohup python2.7 backend -p 1510 -c full.conf
 
-Note that you do not always need to restart the backend to change to new data; see the backend README.
+Note that you do not always need to restart the backend to change to new data;
+see the backend README.
 
 ## Pull new frontend and deploy
 
@@ -212,17 +215,17 @@ Note that you do not always need to restart the backend to change to new data; s
 
 # Using upstart to start backend
 
-You can use `upstart` to restart the backend server on crash. Make sure you have `upstart` installed and checking for jobs in `/etc/init`. You can check by running `initctl list` and comparing to `/etc/init`.
+You can use `upstart` to restart the backend server on crash. Make sure you
+have `upstart` installed and checking for jobs in `/etc/init`. You can check by
+running `initctl list` and comparing to `/etc/init`.
 
-    cd /var/www/html/checkouts/20131017/domains/wikipediahistory/backend
-    cp /var/www/html/checkouts/20131017/backend/lensing-backend.conf .
+    cp /var/www/html/checkouts/20131017/backend/upstart.conf /etc/init/lensing-backend.conf
 
-Edit the `lensing-backend.conf` file to set `LOC=/var/www/html/checkouts/20131017/domains/wikipediahistory/backend`.
+Edit the `lensing-backend.conf` file to set
+`LOC=/var/www/html/checkouts/20131017/domains/wikipediahistory/backend`.
 
-    sudo cp lensing-backend.conf /etc/init/lensing-backend.conf
     initctl list # check to see: lensing-backend stop/waiting
     sudo initctl start lensing-backend
-    
-The last command will print out the process id. You might want to save it to `upstart.pid` to check on the running process later.
 
-    
+The last command will print out the process id. You might want to save it to
+`upstart.pid` to check on the running process later.
