@@ -3,7 +3,7 @@
 #
 
 SRC?=src
-CONFIG?=config
+CONFIG?=domains/wikipediahistory/
 OUT?=build
 
 build:
