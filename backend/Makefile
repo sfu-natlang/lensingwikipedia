@@ -3,13 +3,13 @@
 #
 
 SRC?=src
-CONFIG?=domains/wikipediahistory/
+CONFIG?=wikipediahistory
 OUT?=build
 
 all:
 	@mkdir -p $(OUT)
 	find $(SRC) -maxdepth 1 \( -name '*.py' -o -executable \) \( -not -type d \) -exec cp {} $(OUT) \;
-	find $(CONFIG) -maxdepth 1 -name '*.py' -exec cp {} $(OUT) \;
+	find domains/$(CONFIG) -maxdepth 1 -name '*.py' -exec cp {} $(OUT) \;
 	cp -r $(SRC)/bhtsne $(OUT)/
 	if [ -e /etc/lsb-release ] && grep --quiet "Ubuntu" /etc/lsb-release; then \
 		ln -s /usr/lib/libcblas.so $(OUT)/bhtsne/libcblas.so; \
