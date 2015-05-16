@@ -19,8 +19,8 @@ Domain-specific files for Wikipedia and AVHerald are found in domains/. You can
 ask the Makefile to use one of these by setting the `CONFIG` environment
 variable:
 
-    CONFIG=domains/wikipediahistory/ make build
-    CONFIG=domains/avherald/ make build
+    CONFIG=domains/wikipediahistory/ make
+    CONFIG=domains/avherald/ make
 
 You can then use the programs in build/ for the following steps.
 

@@ -144,7 +144,7 @@ the `apache` user has access to that location.
 To use the backend we first need to build the domain-specific programs.
 
     cd /var/www/html/checkouts/20131017/backend
-    CONFIG=domains/wikipediahistory make build
+    CONFIG=domains/wikipediahistory make
 
 Now the appropriate programs are in
 `/var/www/html/checkouts/20131017/backend/build`

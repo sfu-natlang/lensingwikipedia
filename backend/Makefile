@@ -6,7 +6,7 @@ SRC?=src
 CONFIG?=domains/wikipediahistory/
 OUT?=build
 
-build:
+all:
 	@mkdir -p $(OUT)
 	find $(SRC) -maxdepth 1 \( -name '*.py' -o -executable \) \( -not -type d \) -exec cp {} $(OUT) \;
 	find $(CONFIG) -maxdepth 1 -name '*.py' -exec cp {} $(OUT) \;
