@@ -40,6 +40,23 @@
 	float: right;
 	margin: 0 0.5em 0 0.5em;
 }
+.storyline .legend {
+	width: 150px;
+	float: right;
+
+	max-height: 500px;
+	overflow: scroll;
+	overflow-x: hidden;
+}
+.storyline .legend ul {
+	margin-left: 0;
+}
+.storyline .legend ul li {
+	list-style: none;
+}
+.storyline .outersvg {
+	width: calc(100% - 150px);
+}
 .storyline svg {
 	width: 100%;
 	margin: 0;
@@ -68,9 +85,12 @@
 }
 .storyline .line.highlight {
 	stroke-opacity: 8.0;
+	font-weight: bold;
 }
 .storyline .line.selected {
 	stroke-opacity: 5.0;
+	font-weight: bold;
+	font-style: italic;
 }
 .storyline .line.highlight.selected {
 	stroke-opacity: 1.0;
