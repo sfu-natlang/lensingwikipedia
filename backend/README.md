@@ -22,6 +22,13 @@ variable:
     CONFIG=wikipediahistory make
     CONFIG=avherald make
 
+To set a default for `CONFIG`, you can create a `Makefile.local` file in the
+directory you run make from, containing eg:
+
+    CONFIG?=wikipediahistory
+
+See Makefile for more details.
+
 You can then use the programs in build/ for the following steps.
 
 Creating an index from the data
