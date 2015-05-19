@@ -5,9 +5,10 @@ This assumes a bare bones CentOS 6 install.
 ## Choose a domain
 
 The instructions below assume we are building the main Lensing Wikipedia site.
-We therefore use the domains/wikipediahistory/ directory for the backend and
-frontend. For a different domain use the appropriate sub-directory in domains/
-instead, and adjust local paths and URLs as needed.
+We therefore use the config files in backend/domains/wikipediahistory/
+directory for the backend and frontend. For a different domain use the
+appropriate sub-directory in backend/domains/ instead, and adjust local paths
+and URLs as needed.
 
 ## Set up packages on CentOS 6
 
@@ -144,7 +145,7 @@ the `apache` user has access to that location.
 To use the backend we first need to build the domain-specific programs.
 
     cd /var/www/html/checkouts/20131017/backend
-    CONFIG=domains/wikipediahistory make
+    CONFIG=wikipediahistory make
 
 Now the appropriate programs are in
 `/var/www/html/checkouts/20131017/backend/build`
@@ -222,7 +223,7 @@ running `initctl list` and comparing to `/etc/init`.
     cp /var/www/html/checkouts/20131017/backend/upstart.conf /etc/init/lensing-backend.conf
 
 Edit the `lensing-backend.conf` file to set
-`LOC=/var/www/html/checkouts/20131017/domains/wikipediahistory/backend`.
+`LOC=/var/www/html/checkouts/20131017/backend/build/backend`.
 
     initctl list # check to see: lensing-backend stop/waiting
     sudo initctl start lensing-backend
