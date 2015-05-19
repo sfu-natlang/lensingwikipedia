@@ -1,6 +1,13 @@
 #
 # Basic makefile to "compile" the backend by combining the main source files with configuration files.
 #
+# Put local changes to the makefile variables or system environment in
+# Makefile.local. Use = for variables (like PATH) that need to override the
+# environment, and ?= for any variables (like CONFIG) that you might want to
+# override with the environment or commandline.
+#
+
+-include Makefile.local
 
 SRC?=src
 CONFIG?=wikipediahistory
