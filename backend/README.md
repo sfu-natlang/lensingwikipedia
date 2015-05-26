@@ -13,6 +13,24 @@ provide values for both the required fields and extra keyword fields.
 
 After the domain code is in place then the following steps will work.
 
+### Building domain-specific programs
+
+Domain-specific files for Wikipedia and AVHerald are found in domains/. You can
+ask the Makefile to use one of these by setting the `CONFIG` environment
+variable:
+
+    CONFIG=wikipediahistory make
+    CONFIG=avherald make
+
+To set a default for `CONFIG`, you can create a `Makefile.local` file in the
+directory you run make from, containing eg:
+
+    CONFIG?=wikipediahistory
+
+See Makefile for more details.
+
+You can then use the programs in build/ for the following steps.
+
 Creating an index from the data
 -------------------------------
 
