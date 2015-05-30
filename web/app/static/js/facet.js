@@ -326,7 +326,9 @@ function setup(container, globalQuery, name, field) {
 		globalQuery.update();
 	});
 
-	return ownCnstrQuery;
+	return {
+		ownCnstrQuery: ownCnstrQuery
+	}
 }
 
 return {
