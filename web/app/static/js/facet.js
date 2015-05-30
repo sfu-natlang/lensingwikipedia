@@ -5,6 +5,8 @@
 var Facet = (function () {
 
 function FacetListBox(container, query, field) {
+	Utils.SimpleWatchable.call(this);
+	
 	this.query = query;
 
 	this.outerElt = $('<div class="facetlistbox"></div>').appendTo(container);
@@ -20,7 +22,6 @@ function FacetListBox(container, query, field) {
 			field: field
 		}
 	};
-	this.handlers = {};
 
 	this.loadingIndicator.enabled(true);
 	this._clearList();
@@ -28,6 +29,8 @@ function FacetListBox(container, query, field) {
 
 	this.dataCounts = null;
 }
+
+Utils.extendObject([Utils.SimpleWatchable.prototype], FacetListBox.prototype);
 
 FacetListBox.prototype._watchQuery = function (query, viewValue) {
 	var listBox = this,
@@ -54,7 +57,7 @@ FacetListBox.prototype._watchQuery = function (query, viewValue) {
 	});
 
 	listBox.moreElt.click(function(fromEvent) {
-		listBox._trigger('more', null, fromEvent, listBox.moreElt);
+		listBox._triggerEvent('more', null, fromEvent, listBox.moreElt);
 		if (continuer != null)
 			continuer.fetchNext(function(result) {
 				listBox.dataCounts = listBox.dataCounts.concat(result.counts.counts);
@@ -66,20 +69,6 @@ FacetListBox.prototype._watchQuery = function (query, viewValue) {
 		listBox.loadingIndicator.enabled(true);
 		listBox._clearList();
 	});
-}
-
-FacetListBox.prototype.on = function (eventType, callback) {
-	if (!this.handlers.hasOwnProperty(eventType))
-		this.handlers[eventType] = [];
-	this.handlers[eventType].push(callback);
-}
-
-FacetListBox.prototype._trigger = function (eventType, value, fromEvent, elt) {
-	if (this.handlers.hasOwnProperty(eventType)) {
-		var handlers = this.handlers[eventType];
-		for (var i = 0; i < handlers.length; i++)
-			handlers[i](value, fromEvent, elt);
-	}
 }
 
 FacetListBox.prototype.select = function (value, selected) {
@@ -95,14 +84,14 @@ FacetListBox.prototype._select = function (value, elt, fromEvent, selected) {
 		if (this.viewValue.counts.length == 0)
 			delete this.viewValue.counts['requredValues'];
 		elt.removeClass('selected');
-		this._trigger('unselect', value, fromEvent, elt);
+		this._triggerEvent('unselect', value, fromEvent, elt);
 	} else {
 		this.selected[value] = true;
 		if (!this.viewValue.counts.hasOwnProperty('requiredkeys'))
 			this.viewValue.counts.requiredkeys = [];
 		this.viewValue.counts.requiredkeys.push(value)
 		elt.addClass('selected');
-		this._trigger('select', value, fromEvent, elt);
+		this._triggerEvent('select', value, fromEvent, elt);
 	}
 }
 
@@ -111,7 +100,7 @@ FacetListBox.prototype._clearList = function () {
 }
 
 FacetListBox.prototype.clearSelection = function () {
-	this._trigger('clear-selection');
+	this._triggerEvent('clear-selection');
 	this.selected = {};
 	this._setData(this.dataCounts);
 }
@@ -132,7 +121,7 @@ FacetListBox.prototype._setData = function (dataCounts) {
 			listBox._select(value, itemElt, fromEvent);
 		});
 		if (isSelected)
-			listBox._trigger('select', value, null, itemElt);
+			listBox._triggerEvent('select', value, null, itemElt);
 	}
 
 	this._clearList();
