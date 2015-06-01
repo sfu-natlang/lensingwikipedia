@@ -523,7 +523,7 @@ function drawAll(outer, svg, legend, detailBox, selectBox, data, initialBrushExt
  * initialQuery: the initial (empty) query
  * globalQuery: the global query
  */
-function setup(container, globalQuery) {
+function setup(container, globalQuery, facets) {
 	// The view space for SVG; this doesn't have to correspond to screen units.
 	var viewBox = { x: 0, y : 0, width: 1024, height: 768 };
 	// Margins for the graph
@@ -558,6 +558,11 @@ function setup(container, globalQuery) {
 	LayoutUtils.fillElement(container, outerElt, 'vertical');
 	LayoutUtils.setupPanelled(outerElt, topBoxElt, outerSvgElt, 'vertical', 0, false);
 	var scaleSvg = D3Utils.dontScaleSvgParts(outerSvgElt, 'text,.tick');
+
+	var facetsByField = {};
+	$.each(facets, function (facetI, facet) {
+		facetsByField[facet.field] = facet;
+	});
 
 	initHelpElt.html(storylineInitHelpText);
 	queryHelpElt.html(storylineQueryHelpText);
@@ -794,8 +799,7 @@ function setup(container, globalQuery) {
 	}
 	function onSelectEntityLine(entityLine) {
 		var entity = vis.lookupEntity(entityLine.entityId);
-		var toSet = !(entityConstraints.hasOwnProperty(entity.field) && entityConstraints[entity.field].hasOwnProperty(entity.value));
-		constrainEntity(entityLine.entityId, entity, toSet);
+		facetsByField[entity.field].facet.selection.toggle(entity.value);
 	}
 	function clearOwnConstraints() {
 		{
