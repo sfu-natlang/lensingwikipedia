@@ -1,21 +1,24 @@
 #
 # Basic makefile to "compile" the backend by combining the main source files with configuration files.
 #
-# If you need to do local configuration changes, use Makefile.local in the directory you run make from.
+# Put local changes to the makefile variables or system environment in
+# Makefile.local. Use = for variables (like PATH) that need to override the
+# environment, and ?= for any variables (like CONFIG) that you might want to
+# override with the environment or commandline.
 #
 
-SRC?=.
-CONFIG?=config
-OUT?=build
-
 -include Makefile.local
+
+SRC?=src
+CONFIG?=wikipediahistory
+OUT?=build
 
 build: python bhtsne
 
 python:
 	@mkdir -p $(OUT)
 	find $(SRC) -maxdepth 1 \( -name '*.py' -o -executable \) \( -not -type d \) -exec cp {} $(OUT) \;
-	find $(CONFIG) -maxdepth 1 -name '*.py' -exec cp {} $(OUT) \;
+	find domains/$(CONFIG) -maxdepth 1 -name '*.py' -exec cp {} $(OUT) \;
 
 bhtsne:
 	SRC=$(SRC)/bhtsne OUT=$(OUT)/bhtsne $(MAKE) -f $(SRC)/bhtsne/Makefile build

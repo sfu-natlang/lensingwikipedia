@@ -14,7 +14,6 @@ There are four main parts:
   system against this data.
 - Web (`web/`). Web interface which visualizes the data, querying the
   backend.
-- Domain code (`domains/*`). Domain-specific code which uses the above.
 
 See the documentation in the respective directories for more information. To
 set up the complete system follow the usage directions for each part in

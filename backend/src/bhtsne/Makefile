@@ -16,7 +16,6 @@ $(OUT)/%.py: $(SRC)/%.py
 $(OUT)/bh_tsne: $(SRC)/quadtree.cpp $(SRC)/tsne.cpp
 	@mkdir -p $(OUT)
 	g++ -O3 -lcblas $^ -o $@
-	mkdir -p $(OUT)/Temp
 
 clean:
 	rm -rf $(OUT)
