@@ -39,20 +39,24 @@ FacetListBox.prototype._watchSelection = function (viewValue, selection) {
 	var listBox = this;
 	selection.on('add', function (value) {
 		listBox.viewValue.counts.requiredkeys.push(value);
-		if (listBox._dataElts.hasOwnProperty(value))
+		if (listBox._dataElts.hasOwnProperty(value)) {
+			listBox.outerElt.addClass('selected');
 			listBox._dataElts[value].addClass('selected');
-		else
+		} else
 			console.log("warning: no element for '" + value + "'");
 	});
 	selection.on('remove-not-clear', function (value) {
 		listBox.viewValue.counts.requiredkeys = listBox.viewValue.counts.requiredkeys.splice($.inArray(value, listBox.viewValue.counts.requiredkeys), 1);
-		if (listBox._dataElts.hasOwnProperty(value))
+		if (listBox._dataElts.hasOwnProperty(value)) {
 			listBox._dataElts[value].removeClass('selected');
-		else
+			if (selection.isEmpty())
+				listBox.outerElt.removeClass('selected');
+		} else
 			console.log("warning: no element for '" + value + "'");
 	});
 	selection.on('clear', function() {
 		listBox.listElt.find('li').removeClass('selected');
+		listBox.outerElt.removeClass('selected');
 	});
 }
 
@@ -225,34 +229,11 @@ function setup(container, globalQuery, name, field) {
 	var listBox = new FacetListBox(facetElt, contextQuery, field, selection);
 	var searchElt = listBox.makeSearchElement();
 	searchElt.appendTo(topBoxElt);
-
-	Utils.setupSelectionClearButton(clearElt, listBox.selection);
-
 	LayoutUtils.fillElement(container, facetElt, 'vertical');
 	LayoutUtils.setupPanelled(facetElt, topBoxElt, listBox.outerElt, 'vertical', 0, false);
 
-	var constraints = {};
-	function clearConstraints() {
-		var oldConstraints = constraints;
-		constraints = {};
-		$.each(oldConstraints, function (value, constraint) {
-			globalQuery.removeConstraint(constraint);
-			ownCnstrQuery.removeConstraint(constraint);
-			listBox.selection.add(value, false);
-		});
-		listBox.outerElt.removeClass('selected');
-	}
-	function removeConstraint(value) {
-		var constraint = constraints[value];
-		delete constraints[value];
-		globalQuery.removeConstraint(constraint);
-		ownCnstrQuery.removeConstraint(constraint);
-		listBox.selection.remove(value);
-		if ($.isEmptyObject(constraints)) {
-			listBox.outerElt.removeClass('selected');
-		}
-	}
-	function addConstraint(value) {
+	Utils.setupSelectionClearButton(clearElt, listBox.selection);
+	Utils.syncSelectionWithConstraints(selection, globalQuery, ownCnstrQuery, function (value) {
 		var constraint = new Queries.Constraint();
 		constraint.name(name + ": " + value);
 		constraint.set({
@@ -260,47 +241,12 @@ function setup(container, globalQuery, name, field) {
 			field: field,
 			value: value
 		});
-		listBox.outerElt.addClass('selected');
-		constraint.onChange(function (changeType, query) {
-			if (changeType == 'removed' && query == ownCnstrQuery && constraints.hasOwnProperty(value))
-				removeConstraint(value);
-		});
-		if (constraints.hasOwnProperty(value))
-			console.log("warning: duplicate constraint for value '" + value + "'");
-		constraints[value] = constraint;
-		globalQuery.addConstraint(constraint);
-		ownCnstrQuery.addConstraint(constraint);
-	}
-	function changeConstraint(value, oldValue, constraint) {
-		constraint.name(name + ": " + value);
-		constraint.set({
-			type: 'fieldvalue',
-			field: field,
-			value: value
-		});
-		delete constraints[oldValue];
-		constraints[value] = constraint;
-		listBox.outerElt.addClass('selected');
-	}
-
-	listBox.selection.on('add', function (value) {
-		if (!constraints.hasOwnProperty(value))
-			addConstraint(value);
-		globalQuery.update();
-	});
-	listBox.selection.on('remove', function (value) {
-		if (constraints.hasOwnProperty(value))
-			removeConstraint(value);
-		globalQuery.update();
-	});
-
-	listBox.selection.on('clear', function () {
-		clearConstraints();
-		globalQuery.update();
+		return constraint;
 	});
 
 	return {
-		ownCnstrQuery: ownCnstrQuery
+		ownCnstrQuery: ownCnstrQuery,
+		selection: selection
 	}
 }
 

@@ -146,12 +146,46 @@ setupSelectionClearButton = function (buttonElt, selection) {
 	});
 }
 
+function syncSelectionWithConstraints(selection, globalQuery, ownCnstrQuery, makeConstraint) {
+	var constraints = {};
+	selection.on('add', function (value) {
+		if (!constraints.hasOwnProperty(value)) {
+			var constraint = makeConstraint(value);
+			constraint.onChange(function (changeType, query) {
+				if (changeType == 'removed' && query == ownCnstrQuery && constraints.hasOwnProperty(value))
+					selection.remove(value);
+			});
+			globalQuery.addConstraint(constraint);
+			ownCnstrQuery.addConstraint(constraint);
+			constraints[value] = constraint;
+			globalQuery.update();
+		} else
+			console.log("error: duplicate constraint for value '" + value + "'");
+	});
+	selection.on('remove-not-clear', function (value) {
+		var constraint = constraints[value];
+		delete constraints[value];
+		globalQuery.removeConstraint(constraint);
+		ownCnstrQuery.removeConstraint(constraint);
+		globalQuery.update();
+	});
+	selection.on('clear', function() {
+		$.each(constraints, function (value, constraint) {
+			globalQuery.removeConstraint(constraint);
+			ownCnstrQuery.removeConstraint(constraint);
+		});
+		constraints = {};
+		globalQuery.update();
+	});
+}
+
 return {
 	extendObject: extendObject,
 	extendModule: extendModule,
 	pairListToDict: pairListToDict,
 	SimpleWatchable: SimpleWatchable,
 	SimpleSelection: SimpleSelection,
-	setupSelectionClearButton: setupSelectionClearButton
+	setupSelectionClearButton: setupSelectionClearButton,
+	syncSelectionWithConstraints: syncSelectionWithConstraints
 };
 }());
