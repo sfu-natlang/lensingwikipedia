@@ -600,15 +600,16 @@ function setup(container, globalQuery) {
 	contextQuery.addResultWatcher(resultWatcher);
 
 	var entityLists = $.map(storylineFields, function (fieldInfo, fieldI) {
+		var entitySelection = new Utils.SimpleSelection();
+		var entityList = new Facet.FacetListBox(entityListMenuElts[fieldI], globalQuery, fieldInfo.field, entitySelection);
 		// This is a bit messy since we rely on the structure of the FacetListBox elements
-		var entityList = new Facet.FacetListBox(entityListMenuElts[fieldI], globalQuery, fieldInfo.field);
 		entityList.outerElt.addClass('dropdown-menu');
 		var btnBox = $('<div class="clearbuttonbox"></div>').prependTo(entityList.outerElt);
 		var clearEntitiesBtn = $('<button type="button" class="btn btn-mini btn-warning clearviewentities" title="Clear view entities.">Clear</button>').prependTo(btnBox);
 		LayoutUtils.fillElement(container, entityList.outerElt, 'vertical', 100);
-		clearEntitiesBtn.bind('click', function (fromEvent) {
-			fromEvent.stopPropagation();
-			entityList.clearSelection();
+		clearEntitiesBtn.bind('click', function (event) {
+			entityList.selection.clear();
+			event.stopPropagation();
 		});
 		return entityList;
 	});
@@ -968,25 +969,20 @@ function setup(container, globalQuery) {
 	}
 	$.each(storylineFields, function (fieldI, fieldInfo) {
 		var entityList = entityLists[fieldI];
-		entityList.on('select', function (value, fromEvent, itemElt) {
-			if (fromEvent != null)
-				fromEvent.stopPropagation();
+		entityList.selection.on('add', function (value) {
+			var itemElt = entityList.elementForValue(value);
 			itemElt.css('background-color', entityColour(value));
 			if (findEntity(fieldInfo.field, value) < 0)
 				queryEntities.push({ value: value, field: fieldInfo.field });
 			updateQuery();
 		});
-		entityList.on('unselect', function (value, fromEvent, itemElt) {
-			if (fromEvent != null)
-				fromEvent.stopPropagation();
+		entityList.selection.on('remove', function (value) {
+			var itemElt = entityList.elementForValue(value);
 			itemElt.css('background-color', 'white');
 			queryEntities.splice(findEntity(fieldInfo.field, value), 1);
 			updateQuery();
 		});
-		entityList.on('more', function (value, fromEvent) {
-			fromEvent.stopPropagation();
-		});
-		entityList.on('clear-selection', function () {
+		entityList.selection.on('clear', function () {
 			queryEntities = [];
 			updateQuery();
 		});

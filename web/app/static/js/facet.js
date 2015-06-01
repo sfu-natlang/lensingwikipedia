@@ -4,10 +4,15 @@
 
 var Facet = (function () {
 
-function FacetListBox(container, query, field) {
+function FacetListBox(container, query, field, selection) {
 	Utils.SimpleWatchable.call(this);
 	
 	this.query = query;
+	this.field = field;
+	this.selection = selection;
+
+	this.dataCounts = null;
+	this.dataElts = {};
 
 	this.outerElt = $('<div class="facetlistbox"></div>').appendTo(container);
 	this.loadingIndicator = new LoadingIndicator.LoadingIndicator(this.outerElt);
@@ -15,22 +20,41 @@ function FacetListBox(container, query, field) {
 	var moreBoxElt = $('<div class="buttonbox"></div>').appendTo(this.outerElt);
 	this.moreElt = $('<button type="button" class="btn" disabled="true">More</button>').appendTo(moreBoxElt);
 
-	this.selected = {};
 	this.viewValue = {
 		counts: {
 			type: 'countbyfieldvalue',
-			field: field
+			field: field,	
+			requiredkeys: []
 		}
 	};
 
 	this.loadingIndicator.enabled(true);
-	this._clearList();
+	this._watchSelection(this.viewValue, selection);
 	this._watchQuery(query, this.viewValue);
-
-	this.dataCounts = null;
 }
 
 Utils.extendObject([Utils.SimpleWatchable.prototype], FacetListBox.prototype);
+
+FacetListBox.prototype._watchSelection = function (viewValue, selection) {
+	var listBox = this;
+	selection.on('add', function (value) {
+		listBox.viewValue.counts.requiredkeys.push(value);
+		if (listBox._dataElts.hasOwnProperty(value))
+			listBox._dataElts[value].addClass('selected');
+		else
+			console.log("warning: no element for '" + value + "'");
+	});
+	selection.on('remove-not-clear', function (value) {
+		listBox.viewValue.counts.requiredkeys = listBox.viewValue.counts.requiredkeys.splice($.inArray(value, listBox.viewValue.counts.requiredkeys), 1);
+		if (listBox._dataElts.hasOwnProperty(value))
+			listBox._dataElts[value].removeClass('selected');
+		else
+			console.log("warning: no element for '" + value + "'");
+	});
+	selection.on('clear', function() {
+		listBox.listElt.find('li').removeClass('selected');
+	});
+}
 
 FacetListBox.prototype._watchQuery = function (query, viewValue) {
 	var listBox = this,
@@ -63,71 +87,35 @@ FacetListBox.prototype._watchQuery = function (query, viewValue) {
 				listBox.dataCounts = listBox.dataCounts.concat(result.counts.counts);
 				listBox._setData(listBox.dataCounts);
 			});
+		fromEvent.stopPropagation();
 	});
 
 	query.onChange(function () {
 		listBox.loadingIndicator.enabled(true);
-		listBox._clearList();
 	});
-}
-
-FacetListBox.prototype.select = function (value, selected) {
-	this._select(value, this._dataElts[value], null, selected);
-}
-
-FacetListBox.prototype._select = function (value, elt, fromEvent, selected) {
-	if (selected == null)
-		selected = !this.selected.hasOwnProperty(value);
-	if (!selected) {
-		delete this.selected[value];
-		this.viewValue.counts.requiredkeys = this.viewValue.counts.requiredkeys.splice($.inArray(value, this.viewValue.counts.requiredkeys), 1);
-		if (this.viewValue.counts.length == 0)
-			delete this.viewValue.counts['requredValues'];
-		elt.removeClass('selected');
-		this._triggerEvent('unselect', value, fromEvent, elt);
-	} else {
-		this.selected[value] = true;
-		if (!this.viewValue.counts.hasOwnProperty('requiredkeys'))
-			this.viewValue.counts.requiredkeys = [];
-		this.viewValue.counts.requiredkeys.push(value)
-		elt.addClass('selected');
-		this._triggerEvent('select', value, fromEvent, elt);
-	}
-}
-
-FacetListBox.prototype._clearList = function () {
-	this.listElt.find('li').remove();
-}
-
-FacetListBox.prototype.clearSelection = function () {
-	this._triggerEvent('clear-selection');
-	this.selected = {};
-	this._setData(this.dataCounts);
 }
 
 FacetListBox.prototype._setData = function (dataCounts) {
 	var listBox = this;
 
 	this._dataElts = {};
+	listBox.listElt.find('li').remove();
 
 	function addValue(value, count) {
-		var isSelected = listBox.selected.hasOwnProperty(value);
+		var isSelected = listBox.selection.mem(value);
 		var classStr = isSelected ? ' class="selected"' : '';
 		var bracketedCountStr = count == null ? '' : ' [' + count + ']';
 		var countStr = count == null ? 'no' : count;
 		var itemElt = $('<li' + classStr + ' title="Value \'' + value + '\' is in ' + countStr + ' events under current constraints. Click to select it.">' + value + bracketedCountStr + '</li>').appendTo(listBox.listElt);
 		listBox._dataElts[value] = itemElt;
 		itemElt.click(function(fromEvent) {
-			listBox._select(value, itemElt, fromEvent);
+			listBox.selection.toggle(value);
+			fromEvent.stopPropagation();
 		});
-		if (isSelected)
-			listBox._triggerEvent('select', value, null, itemElt);
 	}
 
-	this._clearList();
-
 	var extraToAdd = {};
-	$.each(this.selected, function (value) {
+	this.selection.each(function (value) {
 		extraToAdd[value] = true;
 	});
 
@@ -145,6 +133,10 @@ FacetListBox.prototype._setData = function (dataCounts) {
 
 	if (this.hasOwnProperty('search'))
 		this._setSearchData(dataCounts);
+}
+
+FacetListBox.prototype.elementForValue = function (value) {
+	return this._dataElts[value];
 }
 
 FacetListBox.prototype.makeSearchElement = function () {
@@ -167,7 +159,7 @@ FacetListBox.prototype.makeSearchElement = function () {
 		var value = listBox.searchInputElt.val();
 		if (listBox._dataElts.hasOwnProperty(value)) {
 			setSearchErrorStatus(false);
-			listBox.select(value, true);
+			listBox.selection.add(value);
 			listBox.query.update();
 		} else
 			setSearchErrorStatus(true);
@@ -224,24 +216,20 @@ function setup(container, globalQuery, name, field) {
 	var contextQueryResultWatcher = new Queries.ResultWatcher(function () {});
 	contextQuery.addResultWatcher(contextQueryResultWatcher);
 
+	var selection = new Utils.SimpleSelection();
+
 	var facetElt = $("<div class=\"facet\"></div>").appendTo(container);
 	var topBoxElt = $("<div class=\"topbox\"></div>").appendTo(facetElt);
 	$("<h1>" + name + "</h1>").appendTo(topBoxElt);
 	var clearElt = $("<button type=\"button\" class=\"btn btn-block btn-mini btn-warning\" title=\"Clear the facet selection.\">Clear selection</button></ul>").appendTo(topBoxElt);
-	var listBox = new FacetListBox(facetElt, contextQuery, field);
+	var listBox = new FacetListBox(facetElt, contextQuery, field, selection);
 	var searchElt = listBox.makeSearchElement();
 	searchElt.appendTo(topBoxElt);
 
+	Utils.setupSelectionClearButton(clearElt, listBox.selection);
+
 	LayoutUtils.fillElement(container, facetElt, 'vertical');
 	LayoutUtils.setupPanelled(facetElt, topBoxElt, listBox.outerElt, 'vertical', 0, false);
-
-	function setClearEnabled(enabled) {
-		if (enabled)
-			clearElt.removeAttr('disabled');
-		else
-			clearElt.attr('disabled', 'disabled');
-	}
-	setClearEnabled(false);
 
 	var constraints = {};
 	function clearConstraints() {
@@ -250,25 +238,21 @@ function setup(container, globalQuery, name, field) {
 		$.each(oldConstraints, function (value, constraint) {
 			globalQuery.removeConstraint(constraint);
 			ownCnstrQuery.removeConstraint(constraint);
-			listBox.select(value, false);
+			listBox.selection.add(value, false);
 		});
 		listBox.outerElt.removeClass('selected');
-		setClearEnabled(false);
 	}
 	function removeConstraint(value) {
 		var constraint = constraints[value];
 		delete constraints[value];
 		globalQuery.removeConstraint(constraint);
 		ownCnstrQuery.removeConstraint(constraint);
-		listBox.select(value, false);
+		listBox.selection.remove(value);
 		if ($.isEmptyObject(constraints)) {
 			listBox.outerElt.removeClass('selected');
-			setClearEnabled(false);
 		}
 	}
 	function addConstraint(value) {
-		setClearEnabled(value != null);
-
 		var constraint = new Queries.Constraint();
 		constraint.name(name + ": " + value);
 		constraint.set({
@@ -299,18 +283,18 @@ function setup(container, globalQuery, name, field) {
 		listBox.outerElt.addClass('selected');
 	}
 
-	listBox.on('select', function (value) {
+	listBox.selection.on('add', function (value) {
 		if (!constraints.hasOwnProperty(value))
 			addConstraint(value);
 		globalQuery.update();
 	});
-	listBox.on('unselect', function (value) {
+	listBox.selection.on('remove', function (value) {
 		if (constraints.hasOwnProperty(value))
 			removeConstraint(value);
 		globalQuery.update();
 	});
 
-	clearElt.click(function () {
+	listBox.selection.on('clear', function () {
 		clearConstraints();
 		globalQuery.update();
 	});
