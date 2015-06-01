@@ -689,6 +689,7 @@ function setup(container, globalQuery, facets) {
 			updateHelp(true);
 			statusElt.html("");
 			outerSvgElt.hide();
+			legendElt.hide();
 			setClearEntitiesEnabled(false);
 		}
 	}
@@ -845,6 +846,7 @@ function setup(container, globalQuery, facets) {
 			var legend = D3Utils.jqueryToD3(legendElt);
 			setLoadingIndicator(false);
 			outerSvgElt.show();
+			legendElt.show();
 			function onBrush(selection) {
 				lastBrushSelection = selection;
 			}
