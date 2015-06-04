@@ -144,6 +144,11 @@ setupSelectionClearButton = function (buttonElt, selection) {
 	buttonElt.click(function () {
 		selection.clear();
 	});
+
+	if (selection.isEmpty())
+		buttonElt.attr('disabled', 'disabled');
+	else
+		buttonElt.removeAttr('disabled');
 }
 
 function syncSelectionWithConstraints(selection, globalQuery, ownCnstrQuery, makeConstraint) {
