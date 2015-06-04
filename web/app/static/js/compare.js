@@ -104,7 +104,7 @@ function setup(container, globalQuery, facets) {
 		setLoadingIndicator(true);
 		smooth_k = Number(smoothSel[0].value);
 		drawCompare(viewBox, detailBox, selectBox, margins, data_allNames,
-								data_allPairs, smooth_k, container);
+								data_allPairs, smooth_k, container, outerElt);
 		setLoadingIndicator(false);
 	});
 
@@ -164,7 +164,7 @@ function setup(container, globalQuery, facets) {
 						add_zeroes(data_allPairs, first_year, last_year);
 
 						drawCompare(viewBox, detailBox, selectBox, margins,
-									data_allNames, data_allPairs, smooth_k, container);
+									data_allNames, data_allPairs, smooth_k, container, outerElt);
 						setLoadingIndicator(false);
 					}
 				});
@@ -379,7 +379,7 @@ function processData(data, names, smooth_k) {
 	return {merged: updated_data, persons: persons, yearly: yearly_data};
 }
 
-function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth_k, container) {
+function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth_k, container, outerElt) {
 	var processed = processData(data, names, smooth_k);
 
 	var persons = processed.persons;
@@ -404,7 +404,7 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 			.attr('x', 0)
 			.attr('y', 0);
 
-	var legend = d3.select(".legend > ul");
+	var legend = D3Utils.jqueryToD3(outerElt).select(".legend > ul");
 
 	legend.selectAll("li").remove();
 
@@ -534,13 +534,13 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 					$('path.line').css("stroke-opacity", "0.5");
 					$('path.line[name="' + d.name + '"]').css("stroke-opacity", "1");
 					$('path.line[name="' + d.name + '"]').css("stroke-width", "3.5px");
-					$('.legend ul li[name="' + d.name + '"]').css("font-weight", "bold");
+					$('.legend ul li[name="' + d.name + '"]', outerElt).css("font-weight", "bold");
 				})
 				.on("mouseout", function(d) {
 					handleMouseOutGraph(d3.mouse(this));
 					$('path.line').css("stroke-opacity", "1");
 					$('path.line[name="' + d.name + '"]').css("stroke-width", "1.5px");
-					$('.legend ul li[name="' + d.name + '"]').css("font-weight", "normal");
+					$('.legend ul li[name="' + d.name + '"]', outerElt).css("font-weight", "normal");
 				})
 				.on("mousemove", function(d) {
 					handleMouseOverGraph(d3.mouse(this));
@@ -709,7 +709,7 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 
 	var updateLegendValues = function(year) {
 		// find element with the right year.
-		d3.selectAll(".legend > ul li")
+		D3Utils.jqueryToD3(outerElt).selectAll(".legend > ul li")
 			.text(function(d, i) {
 				return d.name  + " - " + yearly_data[year][d.name];
 			});
