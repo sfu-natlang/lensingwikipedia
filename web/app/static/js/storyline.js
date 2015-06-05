@@ -612,8 +612,7 @@ function setup(container, globalQuery, facets) {
 	var entityColour = d3.scale.category10()
 
 	var ownCnstrQuery = new Queries.Query(globalQuery.backendUrl());
-	var nodesConstraint = new Queries.Constraint(),
-	    entityConstraints = {};
+	var nodesConstraint = new Queries.Constraint();
 	globalQuery.addConstraint(nodesConstraint);
 	ownCnstrQuery.addConstraint(nodesConstraint);
 	var contextQuery = new Queries.Query(globalQuery.backendUrl(), 'setminus', globalQuery, ownCnstrQuery);
@@ -721,31 +720,11 @@ function setup(container, globalQuery, facets) {
 					changed = true;
 				}
 			});
-			$.each(entityConstraints, function (field, valueTable) {
-				$.each(valueTable, function (value) {
-					if (!vis.checkEntity(field, value)) {
-						var constraint = entityConstraints[field][value].constraint;
-						globalQuery.removeConstraint(constraint);
-						ownCnstrQuery.removeConstraint(constraint);
-						delete entityConstraints[field][value];
-						changed = true;
-					}
-				});
-			});
 		}
 		return changed;
 	}
 	function constrainToNodeSelection() {
 		if ($.isEmptyObject(nodeSelection)) {
-			var haveEntityConstraints = true;
-			$.each(entityConstraints, function (field, valueTable) {
-				if (!$.isEmptyObject(valueTable)) {
-					haveEntityConstraints = false;
-					return false;
-				}
-			});
-			if (haveEntityConstraints)
-				clearSelElt.attr('disabled', 'disabled');
 			nodesConstraint.clear();
 		} else {
 			var nodeCount = 0,
@@ -765,40 +744,6 @@ function setup(container, globalQuery, facets) {
 				type: 'referencepoints',
 				points: selPointStrs
 			});
-			clearSelElt.removeAttr('disabled');
-		}
-		globalQuery.update();
-	}
-	function constrainEntity(entityId, entity, set) {
-		if (!set) {
-			var constraint = entityConstraints[entity.field][entity.value].constraint;
-			globalQuery.removeConstraint(constraint);
-			ownCnstrQuery.removeConstraint(constraint);
-			delete entityConstraints[entity.field][entity.value];
-			vis.selectEntities([entityId], false);
-			if ($.isEmptyObject(nodeSelection))
-				clearSelElt.attr('disabled', 'disabled');
-		} else {
-			var constraint = new Queries.Constraint();
-			constraint.name("Storyline: " + entity.field + " = " + entity.value);
-			constraint.set({
-				type: 'fieldvalue',
-				field: entity.field,
-				value: entity.value
-			});
-			constraint.onChange(function (type, query) {
-				if (type == 'removed' && query == globalQuery)
-					constrainEntity(entityId, entity, false);
-			});
-			globalQuery.addConstraint(constraint);
-			ownCnstrQuery.addConstraint(constraint);
-			if (!entityConstraints.hasOwnProperty(entity.field))
-				entityConstraints[entity.field] = {};
-			entityConstraints[entity.field][entity.value] = {
-				entityId: entityId,
-				constraint: constraint
-			};
-			vis.selectEntities([entityId], true);
 			clearSelElt.removeAttr('disabled');
 		}
 		globalQuery.update();
@@ -825,19 +770,6 @@ function setup(container, globalQuery, facets) {
 				vis.selectNodes(Object.keys(nodeSelection), false);
 			nodeSelection = {};
 			constrainToNodeSelection();
-		}
-		{
-			var removingEntityIds = [];
-			$.each(entityConstraints, function (field, valueTable) {
-				$.each(valueTable, function (value, info) {
-					removingEntityIds.push(info.entityId);
-					globalQuery.removeConstraint(info.constraint);
-					ownCnstrQuery.removeConstraint(info.constraint);
-				});
-			});
-			if (vis != null)
-				vis.selectEntities(removingEntityIds, false);
-			entityConstraints = {};
 		}
 	}
 	clearSelElt.attr('disabled', 'disabled');
@@ -871,7 +803,7 @@ function setup(container, globalQuery, facets) {
 			if (cleanSelectionToMatchData())
 				constrainToNodeSelection();
 			vis.selectNodes(Object.keys(nodeSelection), true);
-			vis.selectEntities($.map(entityConstraints, function (r) { return $.map(r, function (ec) { return ec.entityId; }); }), true);
+			//TODO: vis.selectEntities($.map(entityConstraints, function (r) { return $.map(r, function (ec) { return ec.entityId; }); }), true);
 			statusElt.html(
 				"showing "
 				+ queryEntities.length
