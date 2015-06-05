@@ -446,10 +446,10 @@ function drawAll(outer, svg, legend, detailBox, selectBox, data, initialBrushExt
 	}
 	function findKnownEntities(entities) {
 		var knownEntities = {};
-		$.each(entities, function (entityI, entity) {
+		$.each(entities, function (entityId, entity) {
 			if (!knownEntities.hasOwnProperty(entity.field))
 				knownEntities[entity.field] = {};
-			knownEntities[entity.field][entity.value] = true;
+			knownEntities[entity.field][entity.value] = entityId;
 		});
 		return knownEntities;
 	}
@@ -530,7 +530,8 @@ function drawAll(outer, svg, legend, detailBox, selectBox, data, initialBrushExt
 		selectEntities: selectEntities,
 		checkVisClusterKey: function (k) { return knownVisClusterKeys.hasOwnProperty(k); },
 		checkEntity: function (n, v) { return knownEntities.hasOwnProperty(n) && knownEntities[n].hasOwnProperty(v); },
-		lookupEntity: function(eid) { return layout.entities[eid]; }
+		lookupEntity: function(eid) { return layout.entities[eid]; },
+		lookupEntityId: function (n, v) { return knownEntities.hasOwnProperty(n) ? knownEntities[n][v] : null; }
 	};
 }
 
@@ -560,7 +561,9 @@ function setup(container, globalQuery, facets) {
 	var formElt = $("<form></form>").appendTo(topBoxElt);
 	var clearSelElt = $("<button type=\"button\" class=\"btn btn-mini btn-warning clear mapclear\" title=\"Clear the storyline selection.\">Clear selection</button>").appendTo(formElt);
 	var modeElt = $("<select class=\"btn btn-mini\"></select>").appendTo(formElt);
+	var entityFields = [];
 	var entityListMenuElts = $.map(storylineFields, function (fieldInfo) {
+		entityFields.push(fieldInfo.field);
 		var menuElt = $('<div class="btn-group"></div>').appendTo(formElt);
 		$('<a class="btn btn-mini dropdown-toggle entitylist" data-toggle="dropdown" href="#" title="View entities">Entities<span class="caret"></span></a>').appendTo(menuElt);
 		menuElt.hide();
@@ -788,6 +791,24 @@ function setup(container, globalQuery, facets) {
 	    vis = null,
 	    lastBrushSelection = null;
 	function draw() {
+		function getSelectedEntityIds(lookupEntityId) {
+			var ids = [];
+			if (selectedViewFieldI != null) {
+				var field = entityFields[selectedViewFieldI];
+				facetsByField[field].facet.selection.each(function (value) {
+					ids.push(lookupEntityId(field, value));
+				});
+			} else {
+				$.each(facetsByField, function (field, facet) {
+					facet.facet.selection.each(function (value) {
+						var id = lookupEntityId(field, value);
+						if (id != null)
+							ids.push(id);
+					});
+				});
+			}
+			return ids;
+		}
 		if (data != null) {
 			svgElt.children().remove();
 			var outer = D3Utils.jqueryToD3(outerElt);
@@ -803,7 +824,7 @@ function setup(container, globalQuery, facets) {
 			if (cleanSelectionToMatchData())
 				constrainToNodeSelection();
 			vis.selectNodes(Object.keys(nodeSelection), true);
-			//TODO: vis.selectEntities($.map(entityConstraints, function (r) { return $.map(r, function (ec) { return ec.entityId; }); }), true);
+			vis.selectEntities(getSelectedEntityIds(vis.lookupEntityId), true);
 			statusElt.html(
 				"showing "
 				+ queryEntities.length
