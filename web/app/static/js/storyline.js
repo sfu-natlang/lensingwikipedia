@@ -225,7 +225,7 @@ function classForNode(visNode) {
 	return "node node" + visNode.node.key;
 }
 
-function drawDiagram(svg, box, clipId, data, layout, layoutHeight, nodeWidth, lineWidth, doMouseovers, useFieldPrefixes, importantEntities, entityColour, classEnitityLines, onChooseNode, onChooseEntityLine) {
+function drawDiagram(svg, box, clipId, data, layout, layoutHeight, nodeWidth, lineWidth, doMouseovers, useFieldPrefixes, importantEntities, entityColour, highlightEntityLines, onChooseNode, onChooseEntityLine) {
 	var yScale = box.height / layoutHeight;
 
 	var draw = svg.append('g')
@@ -276,10 +276,10 @@ function drawDiagram(svg, box, clipId, data, layout, layoutHeight, nodeWidth, li
 	function lineMouseovers(lines) {
 		lines
 			.on("mouseover", function (l) {
-				classEnitityLines([l.entityLine.entityId], true, 'highlight');
+				highlightEntityLines([l.entityLine.entityId], true);
 			})
 			.on("mouseout", function (l) {
-				classEnitityLines([l.entityLine.entityId], false, 'highlight');
+				highlightEntityLines([l.entityLine.entityId], false);
 			})
 			.append("title")
 			.text(function (l) { var e = layout.entities[l.entityLine.entityId]; return "" + (useFieldPrefixes ? e.field + ":" : "") + e.value; });
@@ -318,11 +318,11 @@ function drawDiagram(svg, box, clipId, data, layout, layoutHeight, nodeWidth, li
 		node
 			.on("mouseover", function (vn) {
 				d3.select(this).classed('highlight', true);
-				classEnitityLines(vn.node.entityIds, true, 'highlight');
+				highlightEntityLines(vn.node.entityIds, true);
 			})
 			.on("mouseout", function (vn) {
 				d3.select(this).classed('highlight', false);
-				classEnitityLines(vn.node.entityIds, false, 'highlight');
+				highlightEntityLines(vn.node.entityIds, false);
 			})
 			.append("title")
 			.text(function(vn) {
@@ -381,7 +381,7 @@ function drawDiagram(svg, box, clipId, data, layout, layoutHeight, nodeWidth, li
 /*
  * Draw the legend box.
  */
-function drawLegend(legend, layout, importantEntities, useFieldPrefixes, entityColour, classEnitityLines, onChooseEntityLine) {
+function drawLegend(legend, layout, importantEntities, useFieldPrefixes, entityColour, highlightEntityLines, onChooseEntityLine) {
 	legend.selectAll("ul").remove();
 	legend.append('ul')
 		.selectAll('li')
@@ -392,10 +392,10 @@ function drawLegend(legend, layout, importantEntities, useFieldPrefixes, entityC
 		.text(function (el) { var e = layout.entities[el.entityId]; return "" + (useFieldPrefixes ? e.field + ":" : "") + e.value; })
 		.style('color', function(el) { return entityColour(el.entityId); })
 		.on("mouseover", function (el) {
-			classEnitityLines([el.entityId], true, 'highlight');
+			highlightEntityLines([el.entityId], true);
 		})
 		.on("mouseout", function (el) {
-			classEnitityLines([el.entityId], false, 'highlight');
+			highlightEntityLines([el.entityId], false);
 		})
 		.on("click", function (el) {
 			return onChooseEntityLine(el);
@@ -456,13 +456,30 @@ function drawAll(outer, svg, legend, detailBox, selectBox, data, initialBrushExt
 	var knownVisClusterKeys = keyVisClusters(layout.visClusters),
 			knownEntities = findKnownEntities(layout.entities);
 
-	function classEnitityLines(entityIds, value, classname) {
+	function highlightEntityLines(entityIds, value) {
+		function getEntityId(x) {
+			if (x.hasOwnProperty('entityLine'))
+				x = x.entityLine;
+			return x.entityId;
+		}
 		outer.selectAll(entityIds.map(function (eid) { return ".line" + eid; }).join(', '))
-			.classed(classname, value);
+			.classed('highlight', value)
+			.style('color', function (x) {
+				if (value)
+					return null;
+				else
+					return entityColour(getEntityId(x));
+			})
+			.style('background-color', function (x) {
+				if (value)
+					return entityColour(getEntityId(x));
+				else
+					return null;
+			});
 	}
 
-	var detailPlot = drawDiagram(svg, detailBox, clipId, data, layout, layoutHeight, nodeWidth, lineWidth, true, useFieldPrefixes, importantEntities, entityColour, classEnitityLines, onSelectNode, onSelectEntityLine);
-	var selectPlot = drawDiagram(svg, selectBox, clipId, data, layout, layoutHeight, nodeWidth, lineWidth, false, useFieldPrefixes, importantEntities, entityColour, classEnitityLines, null, null);
+	var detailPlot = drawDiagram(svg, detailBox, clipId, data, layout, layoutHeight, nodeWidth, lineWidth, true, useFieldPrefixes, importantEntities, entityColour, highlightEntityLines, onSelectNode, onSelectEntityLine);
+	var selectPlot = drawDiagram(svg, selectBox, clipId, data, layout, layoutHeight, nodeWidth, lineWidth, false, useFieldPrefixes, importantEntities, entityColour, highlightEntityLines, null, null);
 
 	if (layout.visNodes.length == 0) {
 		detailPlot.draw.append('text')
@@ -494,7 +511,7 @@ function drawAll(outer, svg, legend, detailBox, selectBox, data, initialBrushExt
 		.attr('y', -2)
 		.attr('height', selectBox.height + 6);
 
-	drawLegend(legend, layout, importantEntities, useFieldPrefixes, entityColour, classEnitityLines, onSelectEntityLine);
+	drawLegend(legend, layout, importantEntities, useFieldPrefixes, entityColour, highlightEntityLines, onSelectEntityLine);
 
 	function selectNodes(nodeKeys, areSelected) {
 		if (nodeKeys.length > 0)

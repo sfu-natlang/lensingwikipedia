@@ -54,6 +54,9 @@
 .storyline .legend ul li {
 	list-style: none;
 }
+.storyline .legend ul li.highlight {
+	color: black;
+}
 .storyline .outersvg {
 	width: calc(100% - 150px);
 }
@@ -85,7 +88,6 @@
 }
 .storyline .line.highlight {
 	stroke-opacity: 8.0;
-	font-weight: bold;
 }
 .storyline .line.selected {
 	stroke-opacity: 5.0;
