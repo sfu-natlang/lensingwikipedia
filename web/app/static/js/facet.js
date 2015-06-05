@@ -5,6 +5,8 @@
 var Facet = (function () {
 
 function FacetListBox(container, query, field, selection) {
+	var listBox = this;
+
 	Utils.SimpleWatchable.call(this);
 	
 	this.query = query;
@@ -19,6 +21,7 @@ function FacetListBox(container, query, field, selection) {
 	this.listElt = $('<ul></ul>').appendTo(this.outerElt);
 	var moreBoxElt = $('<div class="buttonbox"></div>').appendTo(this.outerElt);
 	this.moreElt = $('<button type="button" class="btn" disabled="true">More</button>').appendTo(moreBoxElt);
+	this.loadingIndicator.enabled(true);
 
 	this.viewValue = {
 		counts: {
@@ -28,9 +31,16 @@ function FacetListBox(container, query, field, selection) {
 		}
 	};
 
-	this.loadingIndicator.enabled(true);
 	this._watchSelection(this.viewValue, selection);
-	this._watchQuery(query, this.viewValue);
+
+	this.watchQueryResultWatcher = null;
+	this.onMore = function () {};
+	listBox.moreElt.click(function(fromEvent) {
+		listBox.onMore();
+		fromEvent.stopPropagation();
+	});
+
+	this._reset();
 }
 
 Utils.extendObject([Utils.SimpleWatchable.prototype], FacetListBox.prototype);
@@ -60,15 +70,20 @@ FacetListBox.prototype._watchSelection = function (viewValue, selection) {
 	});
 }
 
-FacetListBox.prototype._watchQuery = function (query, viewValue) {
+FacetListBox.prototype.setupWatchQuery = function (query) {
 	var listBox = this,
 	    continuer = null;
 
-	var resultWatcher = new Queries.ResultWatcher(function () {});
-	resultWatcher.set(viewValue);
-	query.addResultWatcher(resultWatcher);
+	this._reset();
 
-	resultWatcher.setCallback(function(result, getContinuer) {
+	if (this.watchQueryResultWatcher != null)
+		this.watchQueryResultWatcher.enabled(false);
+
+	this.watchQueryResultWatcher = new Queries.ResultWatcher(function () {});
+	this.watchQueryResultWatcher.set(this.viewValue);
+	query.addResultWatcher(this.watchQueryResultWatcher);
+
+	this.watchQueryResultWatcher.setCallback(function(result, getContinuer) {
 		listBox.dataCounts = [];
 		if (result.counts.hasOwnProperty('error')) {
 			listBox.loadingIndicator.error('counts', true);
@@ -84,19 +99,23 @@ FacetListBox.prototype._watchQuery = function (query, viewValue) {
 		listBox._setData(listBox.dataCounts);
 	});
 
-	listBox.moreElt.click(function(fromEvent) {
-		listBox._triggerEvent('more', null, fromEvent, listBox.moreElt);
+	this.onMore = function (fromEvent) {
 		if (continuer != null)
 			continuer.fetchNext(function(result) {
 				listBox.dataCounts = listBox.dataCounts.concat(result.counts.counts);
 				listBox._setData(listBox.dataCounts);
 			});
-		fromEvent.stopPropagation();
-	});
+	};
 
 	query.onChange(function () {
 		listBox.loadingIndicator.enabled(true);
 	});
+}
+
+FacetListBox.prototype._reset = function () {
+	this.listElt.find('li').remove();
+	this.loadingIndicator.enabled(true);
+	this.dataCounts = null;
 }
 
 FacetListBox.prototype._setData = function (dataCounts) {
@@ -227,6 +246,7 @@ function setup(container, globalQuery, name, field) {
 	$("<h1>" + name + "</h1>").appendTo(topBoxElt);
 	var clearElt = $("<button type=\"button\" class=\"btn btn-block btn-mini btn-warning\" title=\"Clear the facet selection.\">Clear selection</button></ul>").appendTo(topBoxElt);
 	var listBox = new FacetListBox(facetElt, contextQuery, field, selection);
+	listBox.setupWatchQuery(contextQuery);
 	var searchElt = listBox.makeSearchElement();
 	searchElt.appendTo(topBoxElt);
 	LayoutUtils.fillElement(container, facetElt, 'vertical');
@@ -243,9 +263,9 @@ function setup(container, globalQuery, name, field) {
 		});
 		return constraint;
 	});
-
 	return {
 		ownCnstrQuery: ownCnstrQuery,
+		contextQuery: contextQuery,
 		selection: selection
 	}
 }
