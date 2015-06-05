@@ -765,7 +765,12 @@ function setup(container, globalQuery, facets) {
 	}
 	function onSelectEntityLine(entityLine) {
 		var entity = vis.lookupEntity(entityLine.entityId);
-		facetsByField[entity.field].facet.selection.toggle(entity.value);
+		if (facetsByField.hasOwnProperty(entity.field)) {
+			facetsByField[entity.field].facet.selection.toggle(entity.value);
+		} else {
+			// TODO: how to handle the case of non-facet entities from manual queries?
+			console.log("warning: can't select non-facet entity");
+		}
 	}
 	function clearOwnConstraints() {
 		{
