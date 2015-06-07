@@ -41,6 +41,10 @@ body {
 	list-style: none;
 }
 
+.storyline .legend ul li.highlight {
+	color: black;
+}
+
 .axis path,
 .axis line {
 	fill: none;
