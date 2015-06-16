@@ -16,7 +16,7 @@ class locationSpider(BaseSpider):
 	outFileOrg=""
 	def __init__(self, **kwargs):
 		BaseSpider.__init__(self)
-		startingAdd = "http://en.wikipedia.org/wiki/"
+		startingAdd = "https://en.wikipedia.org/wiki/"
 		self.inFile=kwargs['infile']
 		self.outFileURL=kwargs['outfile']
 		self.outFileLoc=kwargs['outfileLoc']
@@ -37,8 +37,8 @@ class locationSpider(BaseSpider):
 	
 	def readFile(self, fileName):
 		fin = open(fileName,"r")
-		startingAdd1 = "http://en.wikipedia.org/wiki/"
-		startingAdd2 = "http://en.wikipedia.org"
+		startingAdd1 = "https://en.wikipedia.org/wiki/"
+		startingAdd2 = "https://en.wikipedia.org"
 		#fout = open("urls.txt", "w")
 		for line in fin:
 			items = json.loads(line[:-1], "utf-8")				
@@ -73,11 +73,11 @@ class locationSpider(BaseSpider):
 
 	def parse(self, response):
 		url = response.url
-		startingAdr = "http://en.wikipedia.org"
+		startingAdr = "https://en.wikipedia.org"
 		ptr = HtmlXPathSelector(response)
 		ulDict = {}
-		h1 = ptr.select('//h1/span')
-		title = h1[0].select('descendant::text()').extract()[0].encode('utf8','ignore')
+		h1 = ptr.select('//h1')
+		title = h1[0].select('descendant::text()').extract()[0].encode('utf8','ignore').strip()
 		latFlag = 0
 		location = {}
 		person = {}

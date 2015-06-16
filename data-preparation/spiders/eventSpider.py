@@ -34,7 +34,7 @@ class eventSpider(BaseSpider):
 		except:
 			print >>sys.stderr, "eventSpider needs 3 arguments: outDir, startYear, endYear"
 			exit(1)
-		startingAdd = "http://en.wikipedia.org/wiki/"
+		startingAdd = "https://en.wikipedia.org/wiki/"
 		self.start_urls = []
                 if startYear < -500:
 		    	for i in range(startYear, min(-499, endYear), 10):
