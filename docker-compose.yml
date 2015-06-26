@@ -4,16 +4,11 @@ web:
         - "80:80"
     links:
         - query
-        - data
-    volumes_from:
-        - data
 query:
     build: backend
     ports:
         - "1500:1500"
-    volumes_from:
-        - data
+    volumes:
+        - /opt/lensing/data:/data
     environment:
         CONFIG: wikipediahistory
-data:
-    build: .
