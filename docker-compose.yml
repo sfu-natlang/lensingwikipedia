@@ -2,8 +2,6 @@ web:
     build: web
     ports:
         - "80:80"
-    links:
-        - query
 query:
     build: backend
     ports:
