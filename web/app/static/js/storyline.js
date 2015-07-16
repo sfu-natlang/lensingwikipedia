@@ -962,21 +962,24 @@ function setup(container, globalQuery, facets) {
 	}
 	$.each(storylineFields, function (fieldI, fieldInfo) {
 		var entityList = entityLists[fieldI];
-		entityList.selection.on('add', function (value) {
-			var itemElt = entityList.elementForValue(value);
-			itemElt.css('background-color', entityColour(value));
-			if (findEntity(fieldInfo.field, value) < 0)
-				queryEntities.push({ value: value, field: fieldInfo.field });
-			updateQuery();
-		});
-		entityList.selection.on('remove', function (value) {
-			var itemElt = entityList.elementForValue(value);
-			itemElt.css('background-color', 'white');
-			queryEntities.splice(findEntity(fieldInfo.field, value), 1);
-			updateQuery();
-		});
-		entityList.selection.on('clear', function () {
-			queryEntities = [];
+		entityList.selection.on('change', function (added, removed, newLength) {
+			if (newLength > 0) {
+				for (var valueI = 0; valueI < added.length; valueI++) {
+					var value = added[valueI],
+					    itemElt = entityList.elementForValue(value);
+					itemElt.css('background-color', entityColour(value));
+					if (findEntity(fieldInfo.field, value) < 0)
+						queryEntities.push({ value: value, field: fieldInfo.field });
+				}
+				for (var valueI = 0; valueI < removed.length; valueI++) {
+					var value = removed[valueI],
+					    itemElt = entityList.elementForValue(value);
+					itemElt.css('background-color', 'white');
+					queryEntities.splice(findEntity(fieldInfo.field, value), 1);
+				}
+			} else {
+				queryEntities = [];
+			}
 			updateQuery();
 		});
 	});

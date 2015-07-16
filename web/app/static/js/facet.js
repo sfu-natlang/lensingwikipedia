@@ -47,26 +47,31 @@ Utils.extendObject([Utils.SimpleWatchable.prototype], FacetListBox.prototype);
 
 FacetListBox.prototype._watchSelection = function (viewValue, selection) {
 	var listBox = this;
-	selection.on('add', function (value) {
-		listBox.viewValue.counts.requiredkeys.push(value);
-		if (listBox._dataElts.hasOwnProperty(value)) {
-			listBox.outerElt.addClass('selected');
-			listBox._dataElts[value].addClass('selected');
-		} else
-			console.log("warning: no element for '" + value + "'");
-	});
-	selection.on('remove-not-clear', function (value) {
-		listBox.viewValue.counts.requiredkeys = listBox.viewValue.counts.requiredkeys.splice($.inArray(value, listBox.viewValue.counts.requiredkeys), 1);
-		if (listBox._dataElts.hasOwnProperty(value)) {
-			listBox._dataElts[value].removeClass('selected');
-			if (selection.isEmpty())
-				listBox.outerElt.removeClass('selected');
-		} else
-			console.log("warning: no element for '" + value + "'");
-	});
-	selection.on('clear', function() {
-		listBox.listElt.find('li').removeClass('selected');
-		listBox.outerElt.removeClass('selected');
+	selection.on('change', function (added, removed, newLength) {
+		if (newLength > 0) {
+			for (var valueI = 0; valueI < added.length; valueI++) {
+				var value = added[valueI];
+				listBox.viewValue.counts.requiredkeys.push(value);
+				if (listBox._dataElts.hasOwnProperty(value)) {
+					listBox.outerElt.addClass('selected');
+					listBox._dataElts[value].addClass('selected');
+				} else
+					console.log("warning: no element for '" + value + "'");
+			}
+			for (var valueI = 0; valueI < removed.length; valueI++) {
+				var value = removed[valueI];
+				listBox.viewValue.counts.requiredkeys = listBox.viewValue.counts.requiredkeys.splice($.inArray(value, listBox.viewValue.counts.requiredkeys), 1);
+				if (listBox._dataElts.hasOwnProperty(value)) {
+					listBox._dataElts[value].removeClass('selected');
+					if (selection.isEmpty())
+						listBox.outerElt.removeClass('selected');
+				} else
+					console.log("warning: no element for '" + value + "'");
+			}
+		} else {
+			listBox.listElt.find('li').removeClass('selected');
+			listBox.outerElt.removeClass('selected');
+		}
 	});
 }
 
@@ -183,7 +188,6 @@ FacetListBox.prototype.makeSearchElement = function () {
 		if (listBox._dataElts.hasOwnProperty(value)) {
 			setSearchErrorStatus(false);
 			listBox.selection.add(value);
-			listBox.query.update();
 		} else
 			setSearchErrorStatus(true);
 		return false;
@@ -253,7 +257,7 @@ function setup(container, globalQuery, name, field) {
 	LayoutUtils.setupPanelled(facetElt, topBoxElt, listBox.outerElt, 'vertical', 0, false);
 
 	Selections.setupSelectionClearButton(clearElt, listBox.selection);
-	Selections.syncSelectionWithConstraints(selection, globalQuery, ownCnstrQuery, function (value) {
+	Selections.syncSetSelectionWithConstraints(selection, globalQuery, ownCnstrQuery, function (value) {
 		var constraint = new Queries.Constraint();
 		constraint.name(name + ": " + value);
 		constraint.set({
