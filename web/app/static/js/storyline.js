@@ -624,7 +624,7 @@ function setup(container, globalQuery, facets) {
 	contextQuery.addResultWatcher(resultWatcher);
 
 	var entityLists = $.map(storylineFields, function (fieldInfo, fieldI) {
-		var entitySelection = new Utils.SimpleSelection();
+		var entitySelection = new Selections.SimpleSetSelection();
 		var entityList = new Facet.FacetListBox(entityListMenuElts[fieldI], globalQuery, fieldInfo.field, entitySelection);
 		// This is a bit messy since we rely on the structure of the FacetListBox elements
 		var facet = facetsByField[fieldInfo.field];

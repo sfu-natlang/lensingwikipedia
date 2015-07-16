@@ -239,7 +239,7 @@ function setup(container, globalQuery, name, field) {
 	var contextQueryResultWatcher = new Queries.ResultWatcher(function () {});
 	contextQuery.addResultWatcher(contextQueryResultWatcher);
 
-	var selection = new Utils.SimpleSelection();
+	var selection = new Selections.SimpleSetSelection();
 
 	var facetElt = $("<div class=\"facet\"></div>").appendTo(container);
 	var topBoxElt = $("<div class=\"topbox\"></div>").appendTo(facetElt);
@@ -252,8 +252,8 @@ function setup(container, globalQuery, name, field) {
 	LayoutUtils.fillElement(container, facetElt, 'vertical');
 	LayoutUtils.setupPanelled(facetElt, topBoxElt, listBox.outerElt, 'vertical', 0, false);
 
-	Utils.setupSelectionClearButton(clearElt, listBox.selection);
-	Utils.syncSelectionWithConstraints(selection, globalQuery, ownCnstrQuery, function (value) {
+	Selections.setupSelectionClearButton(clearElt, listBox.selection);
+	Selections.syncSelectionWithConstraints(selection, globalQuery, ownCnstrQuery, function (value) {
 		var constraint = new Queries.Constraint();
 		constraint.name(name + ": " + value);
 		constraint.set({
