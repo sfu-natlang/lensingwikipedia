@@ -14,7 +14,7 @@ class locationSpider(BaseSpider):
 	outFile=""
 	def __init__(self, **kwargs):
 		BaseSpider.__init__(self)
-		startingAdd = "http://en.wikipedia.org/wiki/"
+		startingAdd = "https://en.wikipedia.org/wiki/"
 		self.inFile=kwargs['infile']
 		self.outFile=kwargs['outfile']
 		self.start_urls = []
@@ -25,7 +25,7 @@ class locationSpider(BaseSpider):
 	
 	def readFile(self, fileName):
 		fout = open(fileName,"r")
-		startingAdd1 = "http://en.wikipedia.org/wiki/"
+		startingAdd1 = "https://en.wikipedia.org/wiki/"
 		for line in fout:
 			items = line[:-1].split(" ")
 			header = startingAdd1+"_".join(items)
@@ -64,7 +64,7 @@ class locationSpider(BaseSpider):
 					location['url'] = "/wiki/"+"_".join(text.split())
 					
 				except:
-					startingAdd1 = "http://en.wikipedia.org"
+					startingAdd1 = "https://en.wikipedia.org"
 					location['url'] = "/wiki/"+url[len(startingAdd1):]
 					location['text'] = " ".join(url[len(startingAdd1)+6:].split("_"))
 				isLocation = 1

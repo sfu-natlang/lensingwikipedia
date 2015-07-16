@@ -14,20 +14,20 @@ class locationSpider(BaseSpider):
 	outFile=""
 	def __init__(self, **kwargs):
 		BaseSpider.__init__(self)
-		startingAdd = "http://en.wikipedia.org/wiki/"
+		startingAdd = "https://en.wikipedia.org/wiki/"
 		self.inFile=kwargs['infile']
 		self.outFile=kwargs['outfile']
 		self.start_urls = []
 		self.url2locDic = {}
-		#self.url2locDic = {"http://en.wikipedia.org/wiki/Air_trans":"Air trans"}
-		#self.start_urls = ["http://en.wikipedia.org/wiki/Air_trans"]
+		#self.url2locDic = {"https://en.wikipedia.org/wiki/Air_trans":"Air trans"}
+		#self.start_urls = ["https://en.wikipedia.org/wiki/Air_trans"]
 		self.readFile(self.inFile)
 		fout = codecs.open(self.outFile,"w", encoding='utf-8')
 		fout.close
 	
 	def readFile(self, fileName):
 		fout = open(fileName,"r")
-		startingAdd1 = "http://en.wikipedia.org/wiki/"
+		startingAdd1 = "https://en.wikipedia.org/wiki/"
 		for line in fout:
 			items = line[:-1].split(" ")
 			header = startingAdd1+"_".join(items)
@@ -69,7 +69,7 @@ class locationSpider(BaseSpider):
 							org['text'] = text
 							org['url'] = "/wiki/"+"_".join(text.split())
 						except:
-							startingAdd1 = "http://en.wikipedia.org/wiki/"
+							startingAdd1 = "https://en.wikipedia.org/wiki/"
 							org['url'] = "/wiki/"+url[len(startingAdd1):]
 							org['text'] = " ".join(url[len(startingAdd1)+6:].split("_"))
 						break
@@ -99,7 +99,7 @@ class locationSpider(BaseSpider):
 					org['text'] = text
 					org['url'] = "/wiki/"+"_".join(text.split())
 				except:
-					startingAdd1 = "http://en.wikipedia.org/wiki/"
+					startingAdd1 = "https://en.wikipedia.org/wiki/"
 					org['url'] = "/wiki/"+url[len(startingAdd1):]
 					org['text'] = " ".join(url[len(startingAdd1)+6:].split("_"))
 		if is_org: print >> fout, json.dumps(org)
