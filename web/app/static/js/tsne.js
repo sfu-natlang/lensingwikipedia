@@ -1,12 +1,6 @@
 var Tsne = (function () {
 
-var constraintIds = {};
-var constraintsChanged = false;
-
 function setup(container, initialQuery, globalQuery, minZoom, maxZoom) {
-    var constraint = new Queries.Constraint();
-    globalQuery.addConstraint(constraint);
-
     var width = 1024,
     height = 768;
     // The view space for SVG; this doesn't have to correspond to screen units.
@@ -33,6 +27,41 @@ function setup(container, initialQuery, globalQuery, minZoom, maxZoom) {
         loadingIndicator.enabled(enabled);
     }
     setLoadingIndicator(true);
+
+    var ownCnstrQuery = new Queries.Query(globalQuery.backendUrl());
+
+    var selection = new Selections.SimpleSetSelection();
+    Selections.syncSetSelectionWithConstraint(selection, globalQuery, ownCnstrQuery, function () {
+        return new Queries.Constraint();
+    }, function (constraint, selection, added, removed) {
+        /**
+        * Hack fix to not allow more than 300 selections at a time.
+        */
+        if (selection.length() > 300) {
+            selection.clear();
+            d3.selectAll(".brush").call(brush.clear());
+            brushed();
+            alert("Selection of more than 300 points is not supported currently.");
+        } else {
+            var selectedPoints = [];
+            selection.each(function (id) {
+                selectedPoints.push(id);
+            });
+            constraint.name("Cluster: " + selectedPoints.length + (selectedPoints.length == 1 ? " point" : " points"));
+            constraint.set( {
+                type: 'tsneCoordinates',
+                points: selectedPoints
+            });
+        }
+    });
+
+    var clearElt = topBoxElt.find(".selbox .clusterclear");
+    setupSelectionClearButton(clearElt, selection);
+    selection.on('empty', function () {
+        d3.selectAll(".brush").call(brush.clear());
+        brushed();
+        brushended();
+    });
 
     initialQuery.onResult({
         coordinates: { type: 'tsnecoordinates' }
@@ -144,6 +173,9 @@ function setup(container, initialQuery, globalQuery, minZoom, maxZoom) {
         return "translate(" + x(d[0]) + "," + y(d[1]) + ")";
     }
 
+    var constraintIds = {};
+    var constraintsChanged = false;
+
     function brushed() {
       var extent = brush.extent();
       circle.each(function(d) { d.selected = false; });
@@ -161,7 +193,12 @@ function setup(container, initialQuery, globalQuery, minZoom, maxZoom) {
 
     function brushended() {
         if (constraintsChanged) {
-            updateTextConstraints();
+            selection.modify(function (selMod) {
+                selMod.clear();
+                for (var constraintId in constraintIds)
+                    if (constraintIds.hasOwnProperty(constraintId))
+                        selMod.add(constraintId);
+            });
             constraintsChanged = false;
         }
         renderSelectionTooltipOff();
@@ -201,38 +238,9 @@ function setup(container, initialQuery, globalQuery, minZoom, maxZoom) {
         tooltip.transition().duration(0).style("opacity", 0)
     }
 
-    topBoxElt.find(".selbox .clusterclear").bind('click', function () {
-        constraintIds = {}
-        d3.selectAll(".brush").call(brush.clear());
-        brushed();
-        brushended();
-    });
-
-    function updateTextConstraints() {
-        var selectedPoints = [];
-        for (var key in constraintIds) {
-            selectedPoints.push(key);
-        }
-
-        /**
-        * Hack fix to not allow more than 300 selections at a time.
-        */
-        if (selectedPoints.length > 300) {
-            constraintIds = {}
-            d3.selectAll(".brush").call(brush.clear());
-            brushed();
-            alert("Selection of more than 300 points is not supported currently.");
-        } else if (selectedPoints.length > 0) {
-            constraint.name("Cluster: " + selectedPoints.length + (selectedPoints.length == 1 ? " point" : " points"));
-            constraint.set( {
-                type: 'tsneCoordinates',
-                points: selectedPoints
-            });
-
-            globalQuery.update();
-        }
-
-    }
+    return {
+        selection: selection
+    };
 }
 
 function makeControls(container) {

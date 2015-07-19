@@ -615,9 +615,6 @@ function setup(container, globalQuery, facets) {
 	var entityColour = d3.scale.category10()
 
 	var ownCnstrQuery = new Queries.Query(globalQuery.backendUrl());
-	var nodesConstraint = new Queries.Constraint();
-	globalQuery.addConstraint(nodesConstraint);
-	ownCnstrQuery.addConstraint(nodesConstraint);
 	var contextQuery = new Queries.Query(globalQuery.backendUrl(), 'setminus', globalQuery, ownCnstrQuery);
 
 	var resultWatcher = new Queries.ResultWatcher(function () {});
@@ -716,7 +713,7 @@ function setup(container, globalQuery, facets) {
 			resultWatcher.clear();
 			setLoadingIndicator(false);
 			clearQueryElt.attr('disabled', 'disabled');
-			clearOwnConstraints();
+			nodeSelection.clear();
 			updateHelp(true);
 			statusElt.html("");
 			outerSvgElt.hide();
@@ -725,11 +722,12 @@ function setup(container, globalQuery, facets) {
 		}
 	}
 
-	var nodeSelection = {};
+	var nodeSelection = new Selections.SimpleSetSelection();
+	nodeSelection.hashValue = function (n) { return n.key; };
 	function cleanSelectionToMatchData() {
 		var changed = false;
 		if (vis != null) {
-			$.each(nodeSelection, function (nodeKey, node) {
+			nodeSelection.each(function (node, nodeKey) {
 				if (!vis.checkVisClusterKey(nodeKey)) {
 					delete nodeSelection[nodeKey];
 					changed = true;
@@ -738,42 +736,31 @@ function setup(container, globalQuery, facets) {
 		}
 		return changed;
 	}
-	function constrainToNodeSelection() {
-		if ($.isEmptyObject(nodeSelection)) {
-			nodesConstraint.clear();
-		} else {
-			var nodeCount = 0,
-			    seen = {},
-			    selPointStrs = [];
-			$.each(nodeSelection, function (nodeKey, node) {
-				nodeCount += 1;
-				$.each(node.clusters, function (cluster, mem) {
-					if (!seen.hasOwnProperty(cluster)) {
-						seen[cluster] = true;
-						selPointStrs.push(cluster);
-					}
-				});
+	Selections.syncSetSelectionWithConstraint(nodeSelection, globalQuery, ownCnstrQuery, function () {
+		return new Queries.Constraint();
+	}, function (constraint, selection, changeType, changeValues) {
+		var nodeCount = 0,
+		    seen = {},
+		    selPointStrs = [];
+		selection.each(function (node, nodeKey) {
+			nodeCount += 1;
+			$.each(node.clusters, function (cluster, mem) {
+				if (!seen.hasOwnProperty(cluster)) {
+					seen[cluster] = true;
+					selPointStrs.push(cluster);
+				}
 			});
-			nodesConstraint.name("Storyline: " + nodeCount + (nodeCount == 1 ? " node" : " nodes"));
-			nodesConstraint.set({
-				type: 'referencepoints',
-				points: selPointStrs
-			});
-			clearSelElt.removeAttr('disabled');
-		}
-		globalQuery.update();
-	}
+		});
+		nodesConstraint.name("Storyline: " + nodeCount + (nodeCount == 1 ? " node" : " nodes"));
+		nodesConstraint.set({
+			type: 'referencepoints',
+			points: selPointStrs
+		});
+	});
+	setupSelectionClearButton(clearSelElt, nodeSelection);
+
 	function onSelectNode(node) {
-		var nowSelected = null;
-		if (!nodeSelection.hasOwnProperty(node.key)) {
-			nodeSelection[node.key] = node;
-			nowSelected = true;
-		} else {
-			delete nodeSelection[node.key];
-			nowSelected = false;
-		}
-		vis.selectNodes([node.key], nowSelected);
-		constrainToNodeSelection();
+		nodeSelection.toggle(node);
 	}
 	function onSelectEntityLine(entityLine) {
 		var entity = vis.lookupEntity(entityLine.entityId);
@@ -784,25 +771,6 @@ function setup(container, globalQuery, facets) {
 			console.log("warning: can't select non-facet entity");
 		}
 	}
-	function clearOwnConstraints() {
-		{
-			if (vis != null)
-				vis.selectNodes(Object.keys(nodeSelection), false);
-			nodeSelection = {};
-			constrainToNodeSelection();
-		}
-	}
-	clearSelElt.attr('disabled', 'disabled');
-	clearSelElt.bind('click', function () {
-		clearOwnConstraints();
-	});
-	nodesConstraint.onChange(function (type, query) {
-		if (type == 'removed' && query == globalQuery) {
-			if (vis != null)
-				vis.selectNodes(Object.keys(nodeSelection), false);
-			nodeSelection = {};
-		}
-	});
 
 	var data = null,
 	    vis = null,
@@ -935,7 +903,7 @@ function setup(container, globalQuery, facets) {
 			selectedViewFieldI = newMode;
 		}
 		updateHelp(true);
-		clearOwnConstraints();
+		nodeSelection.clear();
 		updateQuery();
 	});
 	queryFormElt.hide();
@@ -988,6 +956,11 @@ function setup(container, globalQuery, facets) {
 		if ($(e.target.getAttribute('href'))[0] === container[0] && vis != null)
 			vis.update();
 	});
+
+	return {
+		nodeSelection: nodeSelection,
+		selection: nodeSelection
+	};
 }
 
 return {

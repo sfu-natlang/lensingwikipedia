@@ -8,7 +8,7 @@ var smooth_k = 5;
 var data_allPairs = [];
 var data_allNames = [];
 
-var hidden_names = [];
+var hidden_names_sel = new Selections.SimpleSetSelection();
 
 var current_domain = null;
 
@@ -131,7 +131,7 @@ function setup(container, globalQuery, facets) {
 			//		 executed so we don't reload too many times.
 			var topNames = [];
 			current_domain = null;
-			hidden_names = [];
+			hidden_names_sel.clear();
 
 			if (topCount < 0) {
 				topCount = result.counts.counts.length;
@@ -551,8 +551,7 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 				.attr("name", function(d) { return d.name; })
 				.style("stroke", function(d) { return color(d.name); })
 				.style("display", function(d) {
-					var index = hidden_names.indexOf(d.name);
-					if (index >= 0) {
+					if (hidden_names_sel.mem(d.name)) {
 						return "none";
 					} else {
 						return "initial";
@@ -579,8 +578,7 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 				.attr("name", function(d) { return d.name; })
 				.style("stroke", function(d) { return color(d.name); })
 				.style("display", function(d) {
-					var index = hidden_names.indexOf(d.name);
-					if (index >= 0) {
+					if (hidden_names_sel.mem(d.name)) {
 						return "none";
 					} else {
 						return "initial";
@@ -595,8 +593,7 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 				return color(d.name);
 			})
 			.style("text-decoration", function(d) {
-				var index = hidden_names.indexOf(d.name);
-				if (index >= 0) {
+				if (hidden_names_sel.mem(d.name)) {
 					return "line-through";
 				} else {
 					return "";
@@ -610,17 +607,12 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 				if (this.style.textDecoration == "")  {
 					// disable
 					this.style.textDecoration = "line-through";
-					hidden_names.push(d.name);
+					hidden_names_sel.add(d.name);
 					yRescale();
 				} else {
 					// enable
 					this.style.textDecoration = "";
-
-					var index = hidden_names.indexOf(d.name);
-					if (index >= 0) {
-						hidden_names.splice(index, 1);
-					}
-
+					hidden_names_sel.remove(d.name);
 					yRescale();
 				}
 			})
@@ -662,7 +654,7 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 				name: d.name,
 				values: d.values.filter(function(item, i) {
 					if ((item.date >= x.domain()[0]) && (item.date <= x.domain()[1])) {
-						if (hidden_names.indexOf(d.name) < 0)
+						if (!hidden_names_sel.mem(d.name))
 							return true;
 					}
 				})
