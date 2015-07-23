@@ -395,9 +395,18 @@ function saveSettingsCookie(name, value) {
  * Update the SVG markers for points to match the selection one time.
  */
 function styleSelectedMarkers(svg, selection) {
+	if (selection.isEmpty())
+		return;
+	var classStr = "",
+	    isFirst = true;
 	selection.each(function (pointStr) {
-		svg.selectAll(".marker." + classForMarker(pointStr)).classed("selected", true);
+		if (isFirst) 
+			isFirst = false;
+		else
+			classStr += ",";
+		classStr += ".marker." + classForMarker(pointStr);
 	});
+	svg.selectAll(classStr).classed("selected", true);
 }
 
 /*
@@ -407,15 +416,9 @@ function syncMarkerStylesWithSelection(svg, selection) {
 	selection.on('change', function (added, removed, newLength) {
 		if (newLength > 0) {
 			if (added.length > 0)
-				for (var valueI = 0; valueI < added.length; valueI++) {
-					var pointStr = added[valueI];
-					svg.selectAll(".marker." + classForMarker(pointStr)).classed("selected", true);
-				}
+				svg.selectAll(added.map(function (ps) { return ".marker." + classForMarker(ps); }).join(",")).classed("selected", true);
 			if (removed.length > 0)
-				for (var valueI = 0; valueI < removed.length; valueI++) {
-					var pointStr = removed[valueI];
-					svg.selectAll(".marker." + classForMarker(pointStr)).classed("selected", false);
-				}
+				svg.selectAll(removed.map(function (ps) { return ".marker." + classForMarker(ps); }).join(",")).classed("selected", false);
 		} else {
 			svg.selectAll(".marker").classed("selected", false);
 		}
