@@ -542,7 +542,7 @@ function drawAll(outer, svg, legend, detailBox, selectBox, data, initialBrushExt
  * initialQuery: the initial (empty) query
  * globalQuery: the global query
  */
-function setup(container, globalQuery, facets) {
+function setup(container, globalQuery, facets, fieldSelections) {
 	// The view space for SVG; this doesn't have to correspond to screen units.
 	var viewBox = { x: 0, y : 0, width: 1024, height: 768 };
 	// Margins for the graph
@@ -770,12 +770,7 @@ function setup(container, globalQuery, facets) {
 	}
 	function onSelectEntityLine(entityLine) {
 		var entity = vis.lookupEntity(entityLine.entityId);
-		if (facetsByField.hasOwnProperty(entity.field)) {
-			facetsByField[entity.field].facet.selection.toggle(entity.value);
-		} else {
-			// We currently have no way to handle selecting non-facet entities from manual queries
-			console.log("warning: can't select non-facet entity");
-		}
+		fieldSelections.get(entity.field).selection.toggle(entity.value);
 	}
 
 	var data = null,

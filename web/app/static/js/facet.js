@@ -234,49 +234,79 @@ FacetListBox.prototype._setMoreEnabled = function (enabled) {
 }
 
 /*
+* Manage per-field selections, with synchronization to constraints.
+*/
+function FieldSelections(globalQuery) {
+	this._globalQuery = globalQuery;
+	this._cache = {};
+	this._names = {};
+}
+
+/*
+ * Set an (optional) name for a field, for constraint UI purposes.
+ */
+FieldSelections.prototype.setName = function (field, name) {
+	this._names[field] = name;
+}
+
+/*
+* Get the selection information for values on a particular field.
+*/
+FieldSelections.prototype.get = function (field) {
+	if (!this._cache.hasOwnProperty(field)) {
+		var fieldSelections = this;
+		var ownCnstrQuery = new Queries.Query(this._globalQuery.backendUrl());
+		var contextQuery = new Queries.Query(this._globalQuery.backendUrl(), 'setminus', this._globalQuery, ownCnstrQuery);
+		var selection = new Selections.SimpleSetSelection();
+		var name = this._names.hasOwnProperty(field) ? this._names[field] : field;
+		Selections.syncSetSelectionWithConstraints(selection, fieldSelections._globalQuery, ownCnstrQuery, function (value) {
+			var constraint = new Queries.Constraint();
+			constraint.name(name + ": " + value);
+			constraint.set({
+				type: 'fieldvalue',
+				field: field,
+				value: value
+			});
+			return constraint;
+		});
+		this._cache[field] = {
+			selection: selection,
+			ownCnstrQuery: ownCnstrQuery,
+			contextQuery: contextQuery
+		};
+	}
+	return this._cache[field];
+}
+
+/*
  * Setup the control in some container element.
  * container: container element as a jquery selection
  * globalQuery: the global query
  * name: name for the facet, to show the user
  * field: field name to use in requesting views from the backend
  */
-function setup(container, globalQuery, name, field) {
-	var ownCnstrQuery = new Queries.Query(globalQuery.backendUrl());
-	var contextQuery = new Queries.Query(globalQuery.backendUrl(), 'setminus', globalQuery, ownCnstrQuery);
-
-	var selection = new Selections.SimpleSetSelection();
-
+function setup(container, globalQuery, name, field, fieldSelection) {
 	var facetElt = $("<div class=\"facet\"></div>").appendTo(container);
 	var topBoxElt = $("<div class=\"topbox\"></div>").appendTo(facetElt);
 	$("<h1>" + name + "</h1>").appendTo(topBoxElt);
 	var clearElt = $("<button type=\"button\" class=\"btn btn-block btn-mini btn-warning\" title=\"Clear the facet selection.\">Clear selection</button></ul>").appendTo(topBoxElt);
-	var listBox = new FacetListBox(facetElt, contextQuery, field, selection);
-	listBox.setupWatchQuery(contextQuery);
+	var listBox = new FacetListBox(facetElt, fieldSelection.contextQuery, field, fieldSelection.selection);
+	listBox.setupWatchQuery(fieldSelection.contextQuery);
 	var searchElt = listBox.makeSearchElement();
 	searchElt.appendTo(topBoxElt);
 	LayoutUtils.fillElement(container, facetElt, 'vertical');
 	LayoutUtils.setupPanelled(facetElt, topBoxElt, listBox.outerElt, 'vertical', 0, false);
 
-	Selections.setupSelectionClearButton(clearElt, listBox.selection);
-	Selections.syncSetSelectionWithConstraints(selection, globalQuery, ownCnstrQuery, function (value) {
-		var constraint = new Queries.Constraint();
-		constraint.name(name + ": " + value);
-		constraint.set({
-			type: 'fieldvalue',
-			field: field,
-			value: value
-		});
-		return constraint;
-	});
 	return {
-		ownCnstrQuery: ownCnstrQuery,
-		contextQuery: contextQuery,
-		selection: selection
+		ownCnstrQuery: fieldSelection.ownCnstrQuery,
+		contextQuery: fieldSelection.contextQuery,
+		selection: fieldSelection.selection
 	}
 }
 
 return {
 	setup: setup,
-	FacetListBox: FacetListBox
+	FacetListBox: FacetListBox,
+	FieldSelections: FieldSelections
 };
 }());

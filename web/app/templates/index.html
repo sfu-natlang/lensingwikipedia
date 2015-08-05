@@ -128,16 +128,18 @@ Welcome back, {{ g.user.email }}!
 			}
 			setupSidebar($(".sidebar"), globalQuery);
 
+			var fieldSelections = new Facet.FieldSelections(globalQuery);
 			var facetsExpanded = [];
 			var facetMakers = $.map(FrontendConfig.facets, function (facet) {
 				return function (container) {
+					fieldSelections.setName(facet.field, facet.title);
 					facetsExpanded.push(Utils.extendObject([facet], {
-						facet: Facet.setup(container, globalQuery, facet.title, facet.field)
+						facet: Facet.setup(container, globalQuery, facet.title, facet.field, fieldSelections.get(facet.field))
 					}));
 				}
 			});
 			LayoutUtils.setupSplitMakeElements($('#facetstab'), 'horizontal', facetMakers);
-			Storyline.setup($('#storyline'), globalQuery, facetsExpanded);
+			Storyline.setup($('#storyline'), globalQuery, facetsExpanded, fieldSelections);
 			Timeline.setup($('#timelinetab'), initialQuery, globalQuery);
 			Compare.setup($('#comparetab'), globalQuery, facetsExpanded);
 			Map.setup($('#maptab'), initialQuery, globalQuery, mapDataUrl, FrontendConfig.minMapZoom, FrontendConfig.maxMapZoom);
