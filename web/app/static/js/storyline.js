@@ -513,9 +513,10 @@ function drawAll(outer, svg, legend, detailBox, selectBox, data, initialBrushExt
 
 	drawLegend(legend, layout, importantEntities, useFieldPrefixes, entityColour, highlightEntityLines, onSelectEntityLine);
 
-	function selectNodes(nodeKeys, areSelected) {
-		if (nodeKeys.length > 0)
-			detailPlot.draw.selectAll(nodeKeys.map(function (nk) { return ".node" + nk; }).join(', '))
+	function selectNodes(nodeSelection, areSelected) {
+		detailPlot.draw.selectAll('.node').classed('selected', false);
+		if (nodeSelection.length() > 0)
+			detailPlot.draw.selectAll(nodeSelection.map(function (n, nk) { return ".node" + nk; }).join(', '))
 				.classed('selected', areSelected);
 	}
 	function selectEntities(entityIds, areSelected) {
@@ -559,7 +560,7 @@ function setup(container, globalQuery, facets) {
 	var queryHelpElt = $("<div class=\"alert alert-warning alert-dismissable\"></div>").appendTo(outerElt);
 
 	var formElt = $("<form></form>").appendTo(topBoxElt);
-	var clearSelElt = $("<button type=\"button\" class=\"btn btn-mini btn-warning clear mapclear\" title=\"Clear the storyline selection.\">Clear selection</button>").appendTo(formElt);
+	var clearSelElt = $("<button type=\"button\" class=\"btn btn-mini btn-warning clear mapclear\" title=\"Clear the storyline node selection.\">Clear node selection</button>").appendTo(formElt);
 	var modeElt = $("<select class=\"btn btn-mini\"></select>").appendTo(formElt);
 	var entityFields = [];
 	var entityListMenuElts = $.map(storylineFields, function (fieldInfo) {
@@ -623,6 +624,9 @@ function setup(container, globalQuery, facets) {
 	var entityLists = $.map(storylineFields, function (fieldInfo, fieldI) {
 		var entitySelection = new Selections.SimpleSetSelection();
 		var entityList = new Facet.FacetListBox(entityListMenuElts[fieldI], globalQuery, fieldInfo.field, entitySelection);
+		entityList.on('element-selection-change', function (value, itemElt, isSelected) {
+			itemElt.css('background-color', isSelected ? entityColour(value) : 'white');
+		});
 		// This is a bit messy since we rely on the structure of the FacetListBox elements
 		var facet = facetsByField[fieldInfo.field];
 		function updateMenu() {
@@ -633,7 +637,7 @@ function setup(container, globalQuery, facets) {
 		entityList.outerElt.addClass('dropdown-menu');
 		var btnBox = $('<div class="clearbuttonbox"></div>').prependTo(entityList.outerElt);
 		var updateBtn = $('<button type="button" class="btn btn-mini btn-primary" title="Update menu to match facet.">Update</button>').appendTo(btnBox);
-		var clearEntitiesBtn = $('<button type="button" class="btn btn-mini btn-warning" title="Clear view entities.">Clear</button>').appendTo(btnBox);
+		var clearEntitiesBtn = $('<button type="button" class="btn btn-mini btn-warning clearviewentities" title="Clear view entities.">Clear</button>').appendTo(btnBox);
 		LayoutUtils.fillElement(container, entityList.outerElt, 'vertical', 100);
 		clearEntitiesBtn.bind('click', function (event) {
 			entityList.selection.clear();
@@ -655,6 +659,7 @@ function setup(container, globalQuery, facets) {
 		else
 			elts.removeAttr('disabled');
 	}
+
 
 	function setLoadingIndicator(enabled) {
 		svgElt.css('display', !enabled ? '' : 'none');
@@ -725,16 +730,17 @@ function setup(container, globalQuery, facets) {
 	var nodeSelection = new Selections.SimpleSetSelection();
 	nodeSelection.hashValue = function (n) { return n.key; };
 	function cleanSelectionToMatchData() {
-		var changed = false;
 		if (vis != null) {
+			var toRemove = [];
 			nodeSelection.each(function (node, nodeKey) {
-				if (!vis.checkVisClusterKey(nodeKey)) {
-					delete nodeSelection[nodeKey];
-					changed = true;
-				}
+				if (!vis.checkVisClusterKey(nodeKey))
+					toRemove.push(node);
+			});
+			nodeSelection.modify(function (selMod) {
+				for (var nodeI = 0; nodeI < toRemove.length; nodeI++)
+					selMod.remove(toRemove[nodeI]);
 			});
 		}
-		return changed;
 	}
 	Selections.syncSetSelectionWithConstraint(nodeSelection, globalQuery, ownCnstrQuery, function () {
 		return new Queries.Constraint();
@@ -751,8 +757,8 @@ function setup(container, globalQuery, facets) {
 				}
 			});
 		});
-		nodesConstraint.name("Storyline: " + nodeCount + (nodeCount == 1 ? " node" : " nodes"));
-		nodesConstraint.set({
+		constraint.name("Storyline: " + nodeCount + (nodeCount == 1 ? " node" : " nodes"));
+		constraint.set({
 			type: 'referencepoints',
 			points: selPointStrs
 		});
@@ -767,7 +773,7 @@ function setup(container, globalQuery, facets) {
 		if (facetsByField.hasOwnProperty(entity.field)) {
 			facetsByField[entity.field].facet.selection.toggle(entity.value);
 		} else {
-			// TODO: how to handle the case of non-facet entities from manual queries?
+			// We currently have no way to handle selecting non-facet entities from manual queries
 			console.log("warning: can't select non-facet entity");
 		}
 	}
@@ -806,9 +812,8 @@ function setup(container, globalQuery, facets) {
 				lastBrushSelection = selection;
 			}
 			vis = drawAll(outer, svg, legend, detailBox, selectBox, data, lastBrushSelection, drawEntityTitlePrefixes, drawImportantEntities, entityColour, onSelectNode, onSelectEntityLine, onBrush);
-			if (cleanSelectionToMatchData())
-				constrainToNodeSelection();
-			vis.selectNodes(Object.keys(nodeSelection), true);
+			cleanSelectionToMatchData();
+			vis.selectNodes(nodeSelection, true);
 			vis.selectEntities(getSelectedEntityIds(vis.lookupEntityId), true);
 			statusElt.html(
 				"showing "
@@ -825,7 +830,11 @@ function setup(container, globalQuery, facets) {
 		}
 	}
 
-	function onResult(result) {
+	nodeSelection.on('change', function () {
+		vis.selectNodes(nodeSelection, true);
+	});
+
+	resultWatcher.setCallback(function onResult(result) {
 		if (result.plottimeline.hasOwnProperty('error')) {
 			data = null;
 			loadingIndicator.error('storyline', true);
@@ -837,10 +846,6 @@ function setup(container, globalQuery, facets) {
 			outerSvgElt.show();
 			draw();
 		}
-	}
-
-	resultWatcher.setCallback(function (a) {
-		onResult(a);
 	});
 
 	updateElt.bind('click', function() {
@@ -931,22 +936,14 @@ function setup(container, globalQuery, facets) {
 	$.each(storylineFields, function (fieldI, fieldInfo) {
 		var entityList = entityLists[fieldI];
 		entityList.selection.on('change', function (added, removed, newLength) {
-			if (newLength > 0) {
-				for (var valueI = 0; valueI < added.length; valueI++) {
-					var value = added[valueI],
-					    itemElt = entityList.elementForValue(value);
-					itemElt.css('background-color', entityColour(value));
-					if (findEntity(fieldInfo.field, value) < 0)
-						queryEntities.push({ value: value, field: fieldInfo.field });
-				}
-				for (var valueI = 0; valueI < removed.length; valueI++) {
-					var value = removed[valueI],
-					    itemElt = entityList.elementForValue(value);
-					itemElt.css('background-color', 'white');
-					queryEntities.splice(findEntity(fieldInfo.field, value), 1);
-				}
-			} else {
-				queryEntities = [];
+			for (var valueI = 0; valueI < added.length; valueI++) {
+				var value = added[valueI];
+				if (findEntity(fieldInfo.field, value) < 0)
+					queryEntities.push({ value: value, field: fieldInfo.field });
+			}
+			for (var valueI = 0; valueI < removed.length; valueI++) {
+				var value = removed[valueI];
+				queryEntities.splice(findEntity(fieldInfo.field, value), 1);
 			}
 			updateQuery();
 		});

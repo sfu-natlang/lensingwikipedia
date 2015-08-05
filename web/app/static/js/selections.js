@@ -195,6 +195,17 @@ SimpleSetSelection.prototype.each = function(f) {
 	}
 }
 
+SimpleSetSelection.prototype.map = function(f) {
+	var list = [];
+	for (var valueHash in this._selected) {
+		if (this._selected.hasOwnProperty(valueHash)) {
+			var value = this._selected[valueHash];
+			list.push(f(value, valueHash));
+		}
+	}
+	return list;
+}
+
 SimpleSetSelection.prototype.length = function(f) {
 	return this._length;
 }

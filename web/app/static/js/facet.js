@@ -4,6 +4,11 @@
 
 var Facet = (function () {
 
+/*
+ * UI list of values for a field.
+ *
+ * event 'element-selection-change': triggered when the visual selection status of an item element is changed; can be used to apply extra styles to the element
+ */
 function FacetListBox(container, query, field, selection) {
 	var listBox = this;
 
@@ -54,21 +59,28 @@ FacetListBox.prototype._watchSelection = function (viewValue, selection) {
 				listBox.viewValue.counts.requiredkeys.push(value);
 				if (listBox._dataElts.hasOwnProperty(value)) {
 					listBox.outerElt.addClass('selected');
-					listBox._dataElts[value].addClass('selected');
-				} else
-					console.log("warning: no element for '" + value + "'");
+					var elt = listBox._dataElts[value];
+					elt.addClass('selected');
+					listBox._triggerEvent('element-selection-change', value, elt, true);
+				}
 			}
 			for (var valueI = 0; valueI < removed.length; valueI++) {
 				var value = removed[valueI];
 				listBox.viewValue.counts.requiredkeys = listBox.viewValue.counts.requiredkeys.splice($.inArray(value, listBox.viewValue.counts.requiredkeys), 1);
 				if (listBox._dataElts.hasOwnProperty(value)) {
-					listBox._dataElts[value].removeClass('selected');
+					var elt = listBox._dataElts[value];
+					elt.removeClass('selected');
+					listBox._triggerEvent('element-selection-change', value, elt, false);
 					if (selection.isEmpty())
 						listBox.outerElt.removeClass('selected');
-				} else
-					console.log("warning: no element for '" + value + "'");
+				}
 			}
 		} else {
+			for (var valueI = 0; valueI < removed.length; valueI++) {
+				var value = removed[valueI],
+				    elt = listBox._dataElts[value];
+				listBox._triggerEvent('element-selection-change', value, elt, false);
+			}
 			listBox.listElt.find('li').removeClass('selected');
 			listBox.outerElt.removeClass('selected');
 		}
@@ -140,6 +152,7 @@ FacetListBox.prototype._setData = function (dataCounts) {
 			listBox.selection.toggle(value);
 			fromEvent.stopPropagation();
 		});
+		listBox._triggerEvent('element-selection-change', value, itemElt, isSelected);
 	}
 
 	var extraToAdd = {};
@@ -220,14 +233,6 @@ FacetListBox.prototype._setMoreEnabled = function (enabled) {
 	}
 }
 
-function setupTest(container, globalQuery, name, field) {
-	var facetElt = $("<div class=\"facet\"></div>").appendTo(container);
-	var listBox = new FacetListBox(facetElt, globalQuery, field);
-	LayoutUtils.fillElement(container, facetElt, 'vertical');
-	LayoutUtils.fillElement(facetElt, listBox.outerElt, 'vertical');
-	globalQuery.update();
-}
-
 /*
  * Setup the control in some container element.
  * container: container element as a jquery selection
@@ -236,12 +241,8 @@ function setupTest(container, globalQuery, name, field) {
  * field: field name to use in requesting views from the backend
  */
 function setup(container, globalQuery, name, field) {
-	var globalQueryResultWatcher = new Queries.ResultWatcher(function () {});
-	globalQuery.addResultWatcher(globalQueryResultWatcher);
 	var ownCnstrQuery = new Queries.Query(globalQuery.backendUrl());
 	var contextQuery = new Queries.Query(globalQuery.backendUrl(), 'setminus', globalQuery, ownCnstrQuery);
-	var contextQueryResultWatcher = new Queries.ResultWatcher(function () {});
-	contextQuery.addResultWatcher(contextQueryResultWatcher);
 
 	var selection = new Selections.SimpleSetSelection();
 
@@ -276,7 +277,6 @@ function setup(container, globalQuery, name, field) {
 
 return {
 	setup: setup,
-	setupTest: setupTest,
 	FacetListBox: FacetListBox
 };
 }());
