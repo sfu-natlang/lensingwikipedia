@@ -38,6 +38,14 @@ and URLs as needed.
     sudo /usr/local/bin/pip-2.7 install numpy scipy scikit-learn nltk
     sudo python2.7 -c 'import nltk; nltk.download("all")'
 
+## Set up docker on Ubuntu or CentOS 6/7
+
+Set up docker version 1.7.1 or greater on Ubuntu on CentOS 6 or CentOS 7. Installing on Ubuntu in easy. To install on CentOS follow the instructions in the following page:
+    http://blog.docker.com/2015/07/new-apt-and-yum-repos/
+
+After you have installed using `sudo yum install docker-engine` then install `docker-compose`
+    sudo /usr/local/bin/pip-2.7 install docker-compose
+
 ## Set up web directory to pull from github.com/lensingwikipedia
 
     cd /var/www/html
