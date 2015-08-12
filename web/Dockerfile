@@ -8,9 +8,12 @@ RUN apt-get update && \
     apt-get install -y git python-pip apache2 libapache2-mod-wsgi
 
 ADD . /opt/lensing
+RUN chown -R www-data:www-data /opt/lensing
+RUN find /opt/lensing -type f -exec chmod 664 "{}" \;
+RUN find /opt/lensing -type d -exec chmod 775 "{}" \;
 
-RUN chown www-data:www-data /var/www
-RUN ln -s /opt/lensing/app.wsgi /var/www/lensing.wsgi
+RUN cp /opt/lensing/app.wsgi /var/www/lensing.wsgi
+RUN chown -R www-data:www-data /var/www
 
 RUN pip install -r /opt/lensing/requirements.txt
 
@@ -19,4 +22,7 @@ ADD deploy-config/ubuntu-virtualhost.conf /etc/apache2/sites-available/001-lensi
 
 RUN a2enmod wsgi
 RUN a2ensite 001-lensing
-CMD apache2ctl -D FOREGROUND
+
+# THIS CHMOD HAS TO BE HERE OR ELSE PYTHON CODE WON'T BE ABLE TO OPEN THE FILES
+# EVEN THOUGH THE PERMISSIONS ARE 664 ON THESE FILES
+CMD chmod 664 /opt/lensing/app/templates/* && apache2ctl -D FOREGROUND
