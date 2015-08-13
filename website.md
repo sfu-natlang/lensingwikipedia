@@ -48,118 +48,6 @@ After you have installed using `sudo yum install docker-engine` then install `do
 
     sudo /usr/local/bin/pip-2.7 install docker-compose
 
-## Set up web directory to pull from github.com/lensingwikipedia
-
-    cd /var/www/html
-    sudo vi index.html # see below
-    sudo mkdir checkouts
-    sudo chown anoop checkouts
-    chgrp cs-natlang checkouts
-    chmod g+w checkouts
-    chmod g+s checkouts
-    cd checkouts
-    git clone https://github.com/sfu-natlang/lensingwikipedia.git 20131017 # use current date
-
-### Sample index.html
-
-    Welcome to natlang-web!
-    <p><a href="http://natlang-web.cs.sfu.ca/lensingwikipedia.cs.sfu.ca">Lensing Wikipedia</a> by <a href="http://natlang.cs.sfu.ca">SFU Natlang Lab</a>
-
-## Set up space for deployed website
-
-    cd /var/www/html
-    sudo mkdir lensingwikipedia.cs.sfu.ca
-    sudo chown anoop lensingwikipedia.cs.sfu.ca
-    chgrp cs-natlang lensingwikipedia.cs.sfu.ca
-    chmod g+w lensingwikipedia.cs.sfu.ca
-    chmod g+s lensingwikipedia.cs.sfu.ca
-
-## Set up apache to provide URL alias
-
-    edit /etc/httpd/conf/httpd.conf to include the following line:
-        Include /etc/httpd/sites-enabled/*.conf
-    create file /etc/httpd/sites-available/lensingwikipedia.cs.sfu.ca.conf # see below
-    symlink above file to /etc/httpd/sites-enabled/lensingwikipedia.cs.sfu.ca.conf
-
-### Install mod\_wsgi to run the Flask code
-
-    yum install mod_wsgi
-
-### Install all requirements
-
-This is going to be the requirements.txt in the web/ directory (assuming pip for python2.7 is in `/usr/local/bin/`)
-
-    sudo /usr/local/bin/pip install -r requirements.txt
-    sudo /usr/local/bin/pip install argparse
-
-`argparse` might not be required depending on how you've set up the system
-Python. The module is shipped with Python 2.7, but not with 2.6. If the error
-shows up in the error logs, install it.
-
-If "`flask` is not found" shows up in the error logs, edit web/app.wsgi with
-the correct location of site-packages. If you go to that directory, you should
-find a bunch of "flask", "jinja2", "werkzeug", etc. directories.
-
-### sites-available/lensingwikipedia.cs.sfu.ca.conf
-
-Go to `/etc/httpd/sites-available`. Edit the file `combined-namevirtualhost.conf`.
-
-    <VirtualHost *:80>
-      ServerName lensingwikipedia.cs.sfu.ca
-      ServerAdmin gripe@fas.sfu.ca
-
-      # change user to the user which has access to this directory
-      WSGIDaemonProcess app user=apache group=apache threads=1
-      WSGIScriptAlias / /var/www/html/lensingwikipedia/web/app.wsgi
-
-      <Directory /var/www/html/lensingwikipedia/web>
-        WSGIProcessGroup app
-        WSGIApplicationGroup %{GLOBAL}
-        Order deny,allow
-        Allow from all
-      </Directory>
-
-      ## Logging
-      ErrorLog /var/log/httpd/lensingwikipedia.cs.sfu.ca_error.log
-      LogLevel warn
-      ServerSignature Off
-      CustomLog /var/log/httpd/lensingwikipedia.cs.sfu.ca_access.log combined
-
-    </VirtualHost>
-
-The WSGI socket will be stored in `/var/log/httpd/` so we'll need to make sure
-the `apache` user has access to that location.
-
-    chown -R apache /var/log/httpd
-
-### Symlink your checkout of lensingwikipedia
-
-    ln -s /var/www/html/checkouts/$DATE /var/www/html/lensingwikipedia
-    chown -R apache /var/www/html/lensingwikipedia
-
-### Reload apache
-
-    apachectl restart
-
-### Troubleshooting
-
-* If you're trying to run this code on a port other than 80, make sure you have
-  the `Listen` directive for that port in your `httpd.conf` file.
-* Make sure you've got `*:80` in your `VirtualHost`. Use `ServerName` to tell
-  Apache which virtual host to choose.
-* Check that the `sys.path.append` code in `app.wsgi` has the correct paths for
-  your setup.
-
-## Build backend
-
-To use the backend we first need to build the domain-specific programs.
-
-    cd /var/www/html/checkouts/20131017/backend
-    CONFIG=wikipediahistory make
-
-Now the appropriate programs are in
-`/var/www/html/checkouts/20131017/backend/build`
-
 ## Get the data from the nightly crawl
 
 These are instructions for the wikipedia crawl. The avherald and other domains
@@ -186,57 +74,19 @@ will be similar.
     python2.7 cluster /var/www/html/data/wikipedia/latest/fullData.index
     python2.7 tsne /var/www/html/data/wikipedia/latest/fullData.index
 
-## Run backend
+## Build the docker images
 
-    cd /var/www/html/checkouts/20131017/backend/build
-    # create full.conf as below
-    nohup python2.7 backend -p 1510 -c full.conf
+When building the docker images, make sure the index you want to use is in
+`/opt/lensing/data`, and then run the following command:
 
-### Sample full.conf
+    cd repo
+    sudo docker-compose build
 
-    {
-      'server': {
-        'index_dir_path': '/var/www/html/data/wikipedia/latest/fullData.index'
-      },
-      'querier': {
-      }
-    }
+## Run the docker containers
 
+    cd repo
+    sudo docker-compose up
 
-## Deploying frontend without Apache
-If Apache is not available and you only want to execute the frontend for testing, execute the following command:
+## Updating the site.
 
-    cd /var/www/html/lensingwikipedia.cs.sfu.ca/web
-    python ./run.py runserver -d
-
-# Update the website
-
-## Restart backend
-
-    cd /var/www/html/checkouts/20131017/backend/build
-    nohup python2.7 backend -p 1510 -c full.conf
-
-Note that you do not always need to restart the backend to change to new data;
-see the backend README.
-
-## Pull new frontend and deploy
-
-    cd /var/www/html/checkouts/20131017/
-    git pull
-
-# Using upstart to start backend
-
-You can use `upstart` to restart the backend server on crash. Make sure you
-have `upstart` installed and checking for jobs in `/etc/init`. You can check by
-running `initctl list` and comparing to `/etc/init`.
-
-    cp /var/www/html/checkouts/20131017/backend/upstart.conf /etc/init/lensing-backend.conf
-
-Edit the `lensing-backend.conf` file to set
-`LOC=/var/www/html/checkouts/20131017/backend/build/backend`.
-
-    initctl list # check to see: lensing-backend stop/waiting
-    sudo initctl start lensing-backend
-
-The last command will print out the process id. You might want to save it to
-`upstart.pid` to check on the running process later.
+To update the site, rebuild the docker images (using the same commands above).
