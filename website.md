@@ -82,6 +82,17 @@ When building the docker images, make sure the index you want to use is in
     cd repo
     sudo docker-compose build
 
+## Configuring your images
+
+For the backend, the only configuration option available is whether you want
+the 'wikipediahistory' or 'avherald' domains to be used. This can be chosen by
+changing the `CONFIG` environment variable in `docker-compose.yml`.
+
+The frontend configuration is modified using the `local_config.py` as explained
+in `web/README.md`. Place the `local_config.py` file in the same directory as
+`config.py` before you run `docker-compose build`, and it'll be added to the
+image.
+
 ## Run the docker containers
 
     cd repo
@@ -90,3 +101,4 @@ When building the docker images, make sure the index you want to use is in
 ## Updating the site.
 
 To update the site, rebuild the docker images (using the same commands above).
+
