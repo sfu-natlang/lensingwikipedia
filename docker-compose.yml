@@ -1,12 +1,15 @@
 web:
     build: web
     ports:
+        # HOST:CONTAINER
         - "80:80"
 query:
     build: backend
     ports:
+        # HOST:CONTAINER
         - "1500:1500"
     volumes:
+        # HOST:CONTAINER
         - /opt/lensing/data:/data
     environment:
         CONFIG: wikipediahistory
