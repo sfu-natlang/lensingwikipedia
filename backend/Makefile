@@ -13,17 +13,16 @@ SRC?=src
 CONFIG?=wikipediahistory
 OUT?=build
 
-all:
+build: python bhtsne
+
+python:
 	@mkdir -p $(OUT)
 	find $(SRC) -maxdepth 1 \( -name '*.py' -o -executable \) \( -not -type d \) -exec cp {} $(OUT) \;
 	find domains/$(CONFIG) -maxdepth 1 -name '*.py' -exec cp {} $(OUT) \;
-	cp -r $(SRC)/bhtsne $(OUT)/
-	if [ -e /etc/lsb-release ] && grep --quiet "Ubuntu" /etc/lsb-release; then \
-		ln -s /usr/lib/libcblas.so $(OUT)/bhtsne/libcblas.so; \
-	else \
-		ln -s /usr/lib64/atlas/libcblas.so $(OUT)/bhtsne/libcblas.so; \
-	fi
-	cd $(OUT)/bhtsne
-	g++ $(OUT)/bhtsne/quadtree.cpp $(OUT)/bhtsne/tsne.cpp -o $(OUT)/bhtsne/bh_tsne -O3 -L$(OUT)/bhtsne -lcblas
+
+bhtsne:
+	SRC=$(SRC)/bhtsne OUT=$(OUT)/bhtsne $(MAKE) -f $(SRC)/bhtsne/Makefile build
+
 clean:
+	SRC=$(SRC)/bhtsne OUT=$(OUT)/bhtsne $(MAKE) -f $(SRC)/bhtsne/Makefile clean
 	rm -rf $(OUT)
