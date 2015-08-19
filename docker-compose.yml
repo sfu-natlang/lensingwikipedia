@@ -14,7 +14,7 @@ query:
     volumes:
         # Format is HOST:CONTAINER
         # Only change the HOST part
-        - /opt/lensing/data:/data
+        - /var/www/html/data/wikipedia/latest:/data
     environment:
         CONFIG: wikipediahistory
     restart: on-failure:10
