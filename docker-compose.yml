@@ -3,7 +3,7 @@ web:
     ports:
         # Format is HOST:CONTAINER
         # Only change the HOST part
-        - "80:80"
+        - "8080:80"
     restart: on-failure:10
 query:
     build: backend
