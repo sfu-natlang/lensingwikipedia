@@ -3,6 +3,7 @@ web:
     ports:
         # HOST:CONTAINER
         - "80:80"
+    restart: on-failure:10
 query:
     build: backend
     ports:
@@ -13,3 +14,4 @@ query:
         - /opt/lensing/data:/data
     environment:
         CONFIG: wikipediahistory
+    restart: on-failure:10
