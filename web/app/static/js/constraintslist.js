@@ -39,7 +39,6 @@ function setup(container, globalQuery) {
 		container.trigger('changedSize');
 		cnstrElt.click(function() {
 			cnstr.clear();
-			$(".clusterclear").click();
 			globalQuery.update();
 			removeElement(cnstrElt);
 		});
@@ -87,8 +86,6 @@ function setup(container, globalQuery) {
 	}, true);
 
 	clearAllElt.click(function() {
-		$(".mapclear").click();
-		$(".clusterclear").click();
 		globalQuery.clearAll();
 		globalQuery.update();
 	});

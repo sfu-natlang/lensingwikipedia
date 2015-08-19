@@ -195,9 +195,66 @@ function drawPlot(svg, box, data, classStr, matchScales, fitY, logY, clipId, sho
 }
 
 /*
+ * Make a brush that controls a range selection.
+ */
+function setupBrushForRangeSelection(brush, updateBrushVisuals, selection) {
+	// Delay before updating the query after a selection change (to avoid sending queries to the backend at each mouse movement).
+	var updateDelay = 500;
+
+	function getYear(date) {
+		return Math.round(date.getFullYear() + date.getMonth() / 12.0);
+	}
+	var updateTimer = null;
+	brush.on('brush', function() {
+		updateBrushVisuals();
+		if (brush.empty()) {
+			selection.clear();
+		} else {
+			if (updateTimer != null)
+				clearTimeout(updateTimer);
+			updateTimer = setTimeout(function () {
+				var range = brush.extent();
+				selection.set(range.map(getYear));
+				updateTimer = null;
+			}, updateDelay);
+		}
+	});
+
+	// Note that we don't need to handle selection set events here
+	selection.on('empty', function () {
+		brush.clear();
+		updateBrushVisuals();
+	});
+
+	if (selection.isEmpty())
+		brush.clear();
+	else
+		brush.extent(selection.get().map(TimeAxis.jsDateOfYear));
+	updateBrushVisuals();
+}
+
+/*
+ * Updates visibility of SVG elements for having or not having a selection.
+ */
+function updateSvgVisibility(svgElt, haveSelection) {
+	if (haveSelection) {
+		svgElt.find('.instructions').css('display', '');
+		svgElt.find('.bar.detail.initial').css('display', 'none');
+		svgElt.find('.bar.detail.context').css('display', 'none');
+		svgElt.find('.axis.detail').children().css('fill-opacity', '0.25');
+		svgElt.find('.axis.detail').children().css('stroke-opacity', '0.25');
+	} else{
+		svgElt.find('.instructions').css('display', 'none');
+		svgElt.find('.bar.detail').css('display', '');
+		svgElt.find('.axis.detail').children().css('fill-opacity', '');
+		svgElt.find('.axis.detail').children().css('stroke-opacity', '');
+	}
+}
+
+/*
  * Draw the whole timeline visualization.
  */
-function drawAll(svg, detailBox, selectBox, data, initialBrushExtent, brushCallback) {
+function drawAll(svgElt, svg, detailBox, selectBox, data, selection) {
 	var clipId = "timelineclip" + timelineClipNum;
 	timelineClipNum++;
 	svg.append('defs')
@@ -208,24 +265,12 @@ function drawAll(svg, detailBox, selectBox, data, initialBrushExtent, brushCallb
 		.attr('height', detailBox.height);
 	var detailPlot = drawPlot(svg, detailBox, data, 'detail', null, true, false, clipId, false);
 	var selectPlot = drawPlot(svg, selectBox, data, 'selection', detailPlot.scales, false, false, null, true);
-	var brush = null;
-	function updateBrush() {
-		detailPlot.updateX(brush.empty() ? selectPlot.scales.x.domain() : brush.extent());
-	}
-	function onBrush() {
-		updateBrush();
-		brushCallback(brush.empty() ? null : brush.extent());
-	}
-	brush = d3.svg.brush()
-		.x(selectPlot.scales.x)
-		.on('brush', onBrush);
-	if (initialBrushExtent != null) {
-		brush.extent(initialBrushExtent);
-		updateBrush();
-	}
-	selectPlot.draw.append('g')
+	var brush = d3.svg.brush()
+		.x(selectPlot.scales.x);
+	var brushVis = selectPlot.draw.append('g')
 		.attr('class', 'x brush')
-		.call(brush)
+		.call(brush);
+	brushVis
 		.selectAll('rect')
 		.attr('y', -2)
 		.attr('height', selectBox.height + 6);
@@ -241,7 +286,12 @@ function drawAll(svg, detailBox, selectBox, data, initialBrushExtent, brushCallb
 		.style('text-anchor', 'middle')
 		.text("Drag below to select");
 
-	return function() { d3.select('g.brush').call(brush.clear()); onBrush(); };
+	function updateBrush() {
+		brushVis.call(brush);
+		detailPlot.updateX(brush.empty() ? selectPlot.scales.x.domain() : brush.extent());
+		updateSvgVisibility(svgElt, brush.empty());
+	}
+	setupBrushForRangeSelection(brush, updateBrush, selection);
 }
 
 /*
@@ -257,8 +307,6 @@ function setup(container, initialQuery, globalQuery) {
 	var margins = { left: 50, right: 30, top: 40, bottom: 35, between: 40 };
 	// Vertical size of the detail area as a fraction of the total.
 	var split = 0.6;
-	// Delay before updating the query after a selection change (to avoid sending queries to the backend at each mouse movement).
-	var updateDelay = 500;
 
 	var outerElt = $('<div class="timeline"></div>').appendTo(container);
 	var topBoxElt = $('<div class="topbox"></div>').appendTo(outerElt);
@@ -294,89 +342,31 @@ function setup(container, initialQuery, globalQuery) {
 	}
 	setLoadingIndicator(true);
 
-	function setClearEnabled(enabled) {
-		if (enabled)
-			clearElt.removeAttr('disabled');
-		else
-			clearElt.attr('disabled', 'disabled');
-	}
-	setClearEnabled(false);
-
-	var constraint = new Queries.Constraint();
-	globalQuery.addConstraint(constraint);
 	var ownCnstrQuery = new Queries.Query(globalQuery.backendUrl());
-	ownCnstrQuery.addConstraint(constraint);
 	var contextQuery = new Queries.Query(globalQuery.backendUrl(), 'setminus', globalQuery, ownCnstrQuery);
-	var updateTimer = null;
-	var isSelection = true;
-	var lastSelection = null;
-	function setSelection(selection, forceUpdate) {
-		if (forceUpdate)
-			isSelection = !isSelection;
-		if (selection == null) {
-			setClearEnabled(false);
-			constraint.clear();
-			if (lastSelection != null)
-				globalQuery.update();
-			if (isSelection) {
-				svgElt.find('.instructions').css('display', '');
-				svgElt.find('.bar.detail.initial').css('display', 'none');
-				svgElt.find('.bar.detail.context').css('display', 'none');
-				svgElt.find('.axis.detail').children().css('fill-opacity', '0.25');
-				svgElt.find('.axis.detail').children().css('stroke-opacity', '0.25');
-			}
-		} else {
-			setClearEnabled(true);
-			function getYear(date) {
-				return Math.round(date.getFullYear() + date.getMonth() / 12.0);
-			}
-			function formatYear(year) {
-				return (year >= 0 ? year : -year) + (year >= 0 ? "CE" : "BCE");
-			}
-			if (selection != lastSelection) {
-				if (updateTimer != null)
-					clearTimeout(updateTimer);
-				updateTimer = setTimeout(function () {
-					var low = getYear(selection[0]);
-					var high = getYear(selection[1]);
-					constraint.name("Timeline: " + formatYear(low) + " - " + formatYear(high));
-					constraint.set({
-						type: 'timerange',
-						low: low,
-						high: high
-					});
-					globalQuery.update();
-					updateTimer = null;
-					scaleSvg();
-				}, updateDelay);
-			}
-			if (!isSelection) {
-				svgElt.find('.instructions').css('display', 'none');
-				svgElt.find('.bar.detail').css('display', '');
-				svgElt.find('.axis.detail').children().css('fill-opacity', '');
-				svgElt.find('.axis.detail').children().css('stroke-opacity', '');
-			}
-		}
-		lastSelection = selection;
-		isSelection = (selection != null);
-	}
-	setSelection(null);
 
-	var clearBrush = null;
-	clearElt.click(function () {
-		if (clearBrush != null)
-			clearBrush();
-		constraint.clear();
-		globalQuery.update();
+	var selection = new Selections.SimpleSingleValueSelection();
+	Selections.setupSelectionClearButton(clearElt, selection);
+	Selections.syncSingleValueSelectionWithConstraint(selection, globalQuery, ownCnstrQuery, function () {
+		return new Queries.Constraint();
+	}, function (constraint, selection, value) {
+		var start = value[0],
+		    end = value[1];
+		function formatYear(year) {
+			return (year >= 0 ? year : -year) + (year >= 0 ? "CE" : "BCE");
+		}
+		constraint.name("Timeline: " + formatYear(start) + " - " + formatYear(end));
+		constraint.set({
+			type: 'timerange',
+			low: start,
+			high: end
+		});
 	});
+
 	smoothElt.click(function() {
 		var k = $('#smoothSel').val();
 		smooth_k = parseInt(k);
 		draw();
-	});
-	constraint.onChange(function (changeType, query) {
-		if (changeType == 'removed' && query == ownCnstrQuery && clearBrush != null)
-			clearBrush();
 	});
 
 	var initialData = null;
@@ -387,12 +377,7 @@ function setup(container, initialQuery, globalQuery) {
 			var svg = D3Utils.jqueryToD3(svgElt);
 			var plotData = smoothData(resultToPlotData(initialData, contextData), smooth_k);
 			setLoadingIndicator(false);
-			clearBrush = drawAll(svg, detailBox, selectBox, plotData, lastSelection, function (selection) {
-				if (selection == null)
-					globalQuery.update();
-				setSelection(selection);
-			});
-			setSelection(lastSelection, true);
+			drawAll(svgElt, svg, detailBox, selectBox, plotData, selection);
 			scaleSvg();
 		}
 	}
@@ -432,6 +417,10 @@ function setup(container, initialQuery, globalQuery) {
 		}
 	});
 	contextData = {};
+
+	return {
+		selection: selection
+	};
 }
 
 return {

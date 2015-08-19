@@ -28,9 +28,61 @@ function pairListToDict(list) {
 	return dict;
 }
 
+/*
+ * Mixin for things that can have watchers on events.
+ */
+function SimpleWatchable() {
+	this._watchers = {};
+}
+
+SimpleWatchable.prototype.on = function (eventType, callback) {
+	if (!this._watchers.hasOwnProperty(eventType))
+		this._watchers[eventType] = [];
+	this._watchers[eventType].push(callback);
+}
+
+SimpleWatchable.prototype._triggerEvent = function(eventType) {
+	if (!this._watchers.hasOwnProperty(eventType))
+		return;
+	var args = Array.prototype.slice.call(arguments, 1);
+	var callbacks = this._watchers[eventType];
+	for (var callbackI = 0; callbackI < callbacks.length; callbackI++) {
+		var callback = callbacks[callbackI];
+		callback.apply(callback, args);
+	}
+}
+
+/*
+ * Log time taken to run something to the console.
+ */
+var logTimeRecords = {};
+function logTime(f, title) {
+	var start = new Date().getTime();
+	f();
+	var time = new Date().getTime() - start;
+	var record = null;
+	if (title != null) {
+		if (!logTimeRecords.hasOwnProperty(title)) {
+			record = {
+				mean: time,
+				numSamples: 1
+			};
+			logTimeRecords[title] = record;
+		} else {
+			record = logTimeRecords[title];
+			var numSamples = record.numSamples + 1;
+			record.mean = record.mean * (record.numSamples / numSamples) + time / numSamples;
+			record.numSamples = numSamples;
+		}
+	}
+	console.log("timing: " + (title != null ? title + ": " : ""), time, (record != null ? record.mean : ""), (record != null ? record.numSamples : ""));
+}
+
 return {
 	extendObject: extendObject,
 	extendModule: extendModule,
-	pairListToDict: pairListToDict
+	pairListToDict: pairListToDict,
+	SimpleWatchable: SimpleWatchable,
+	logTime: logTime
 };
 }());

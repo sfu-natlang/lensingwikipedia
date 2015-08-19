@@ -8,7 +8,7 @@ var smooth_k = 5;
 var data_allPairs = [];
 var data_allNames = [];
 
-var hidden_names = [];
+var hidden_names_sel = new Selections.SimpleSetSelection();
 
 var current_domain = null;
 
@@ -104,7 +104,7 @@ function setup(container, globalQuery, facets) {
 		setLoadingIndicator(true);
 		smooth_k = Number(smoothSel[0].value);
 		drawCompare(viewBox, detailBox, selectBox, margins, data_allNames,
-								data_allPairs, smooth_k, container);
+								data_allPairs, smooth_k, container, outerElt);
 		setLoadingIndicator(false);
 	});
 
@@ -131,7 +131,7 @@ function setup(container, globalQuery, facets) {
 			//		 executed so we don't reload too many times.
 			var topNames = [];
 			current_domain = null;
-			hidden_names = [];
+			hidden_names_sel.clear();
 
 			if (topCount < 0) {
 				topCount = result.counts.counts.length;
@@ -164,7 +164,7 @@ function setup(container, globalQuery, facets) {
 						add_zeroes(data_allPairs, first_year, last_year);
 
 						drawCompare(viewBox, detailBox, selectBox, margins,
-									data_allNames, data_allPairs, smooth_k, container);
+									data_allNames, data_allPairs, smooth_k, container, outerElt);
 						setLoadingIndicator(false);
 					}
 				});
@@ -379,7 +379,34 @@ function processData(data, names, smooth_k) {
 	return {merged: updated_data, persons: persons, yearly: yearly_data};
 }
 
-function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth_k, container) {
+function highlightPerson(outer, name, value, personColour) {
+	outer.selectAll(".person")
+		.style("stroke-opacity", function () {
+			return value ? "0.5" : "1";
+		});
+	outer.selectAll(".person[name='" + name + "']")
+		.classed('highlight', value)
+		.style("stroke-opacity", function () {
+			return "1";
+		})
+		.style("stroke-width", function () {
+			return value ? "3.5px" : "1.5px";
+		})
+		.style('color', function (x) {
+			if (value)
+				return null;
+			else
+				return personColour(name);
+		})
+		.style('background-color', function (x) {
+			if (value)
+				return personColour(name);
+			else
+				return null;
+		});
+}
+
+function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth_k, container, outerElt) {
 	var processed = processData(data, names, smooth_k);
 
 	var persons = processed.persons;
@@ -404,7 +431,9 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 			.attr('x', 0)
 			.attr('y', 0);
 
-	var legend = d3.select(".legend > ul");
+	var outer = D3Utils.jqueryToD3(outerElt);
+
+	var legend = outer.select(".legend > ul");
 
 	legend.selectAll("li").remove();
 
@@ -516,14 +545,13 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 			.data(persons)
 		.enter()
 			.append("path")
-				.attr("class", "line")
+				.attr("class", "line person")
 				.attr("clip-path", "url(#clip)")
 				.attr("d", function(d) { return line(d.values); })
 				.attr("name", function(d) { return d.name; })
 				.style("stroke", function(d) { return color(d.name); })
 				.style("display", function(d) {
-					var index = hidden_names.indexOf(d.name);
-					if (index >= 0) {
+					if (hidden_names_sel.mem(d.name)) {
 						return "none";
 					} else {
 						return "initial";
@@ -531,16 +559,11 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 				})
 				.on("mouseover", function(d) {
 					handleMouseOverGraph(d3.mouse(this));
-					$('path.line').css("stroke-opacity", "0.5");
-					$('path.line[name="' + d.name + '"]').css("stroke-opacity", "1");
-					$('path.line[name="' + d.name + '"]').css("stroke-width", "3.5px");
-					$('.legend ul li[name="' + d.name + '"]').css("font-weight", "bold");
+					highlightPerson(outer, d.name, true, color);
 				})
 				.on("mouseout", function(d) {
 					handleMouseOutGraph(d3.mouse(this));
-					$('path.line').css("stroke-opacity", "1");
-					$('path.line[name="' + d.name + '"]').css("stroke-width", "1.5px");
-					$('.legend ul li[name="' + d.name + '"]').css("font-weight", "normal");
+					highlightPerson(outer, d.name, false, color);
 				})
 				.on("mousemove", function(d) {
 					handleMouseOverGraph(d3.mouse(this));
@@ -555,8 +578,7 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 				.attr("name", function(d) { return d.name; })
 				.style("stroke", function(d) { return color(d.name); })
 				.style("display", function(d) {
-					var index = hidden_names.indexOf(d.name);
-					if (index >= 0) {
+					if (hidden_names_sel.mem(d.name)) {
 						return "none";
 					} else {
 						return "initial";
@@ -566,12 +588,12 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 	legend.selectAll()
 			.data(persons)
 		.enter().append("li")
+			.attr("class", "person")
 			.style("color", function(d) {
 				return color(d.name);
 			})
 			.style("text-decoration", function(d) {
-				var index = hidden_names.indexOf(d.name);
-				if (index >= 0) {
+				if (hidden_names_sel.mem(d.name)) {
 					return "line-through";
 				} else {
 					return "";
@@ -585,30 +607,20 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 				if (this.style.textDecoration == "")  {
 					// disable
 					this.style.textDecoration = "line-through";
-					hidden_names.push(d.name);
+					hidden_names_sel.add(d.name);
 					yRescale();
 				} else {
 					// enable
 					this.style.textDecoration = "";
-
-					var index = hidden_names.indexOf(d.name);
-					if (index >= 0) {
-						hidden_names.splice(index, 1);
-					}
-
+					hidden_names_sel.remove(d.name);
 					yRescale();
 				}
 			})
 			.on("mouseover", function(d) {
-				$('path.line').css("stroke-opacity", "0.5");
-				$('path.line[name="' + d.name + '"]').css("stroke-opacity", "1");
-				$('path.line[name="' + d.name + '"]').css("stroke-width", "3.5px");
-				this.style.fontWeight = "bold";
+				highlightPerson(outer, d.name, true, color);
 			})
 			.on("mouseout", function(d) {
-				$('path.line').css("stroke-opacity", "1");
-				$('path.line[name="' + d.name + '"]').css("stroke-width", "1.5px");
-				this.style.fontWeight = "normal";
+				highlightPerson(outer, d.name, false, color);
 			});
 
 	svg.append("text")
@@ -642,7 +654,7 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 				name: d.name,
 				values: d.values.filter(function(item, i) {
 					if ((item.date >= x.domain()[0]) && (item.date <= x.domain()[1])) {
-						if (hidden_names.indexOf(d.name) < 0)
+						if (!hidden_names_sel.mem(d.name))
 							return true;
 					}
 				})
@@ -709,7 +721,7 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 
 	var updateLegendValues = function(year) {
 		// find element with the right year.
-		d3.selectAll(".legend > ul li")
+		outer.selectAll(".legend > ul li")
 			.text(function(d, i) {
 				return d.name  + " - " + yearly_data[year][d.name];
 			});

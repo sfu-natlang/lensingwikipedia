@@ -44,43 +44,39 @@ function setup(container, globalQuery) {
 
 	LayoutUtils.fillElement(container, outerElt, 'vertical');
 
-	var constraint = new Queries.Constraint();
-	globalQuery.addConstraint(constraint);
+	var ownCnstrQuery = new Queries.Query(globalQuery.backendUrl());
 
-	var currentSearchTerm = null;
-	function update(searchTerm) {
-		if (searchTerm == null) {
-			if (currentSearchTerm != null) {
-				constraint.clear();
-				clearElt.attr('disabled', 'disabled');
-				globalQuery.update();
-				currentSearchTerm = null;
-			}
-		} else {
-			searchTerm = $.trim(searchTerm);
-			if (searchTerm.length > 0) {
-				constraint.name("Text search: " + searchTerm);
-				constraint.set({
-					type: 'textsearch',
-					value: searchTerm
-				});
-				globalQuery.update();
-				clearElt.removeAttr('disabled');
-				currentSearchTerm = searchTerm;
-			}
-		}
-	}
-	update(null);
-
-	clearElt.bind('click', function() {
-		update(null);
+	var selection = new Selections.SimpleSingleValueSelection();
+	Selections.setupSelectionClearButton(clearElt, selection);
+	Selections.syncSingleValueSelectionWithConstraint(selection, globalQuery, ownCnstrQuery, function () {
+		return new Queries.Constraint();
+	}, function (constraint, selection, searchTerm) {
+		constraint.name("Text search: " + searchTerm);
+		constraint.set({
+			type: 'textsearch',
+			value: searchTerm
+		});
 	});
+
+	selection.on('empty', function () {
+		if (searchInputElt.val() != "")
+			searchInputElt.val("");
+	});
+
 	searchElt.bind('click', function() {
-		update(searchInputElt.val());
+		var searchTerm = $.trim(searchInputElt.val());
+		if (searchTerm.length > 0)
+			selection.set(searchTerm);
+		else
+			selection.clear();
 	});
 	formElt.submit(function () {
 		return false;
 	});
+
+	return {
+		selection: selection
+	};
 }
 
 return {

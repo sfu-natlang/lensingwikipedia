@@ -40,6 +40,26 @@
 	float: right;
 	margin: 0 0.5em 0 0.5em;
 }
+.storyline .legend {
+	width: 150px;
+	float: right;
+
+	max-height: 500px;
+	overflow: scroll;
+	overflow-x: hidden;
+}
+.storyline .legend ul {
+	margin-left: 0;
+}
+.storyline .legend ul li {
+	list-style: none;
+}
+.storyline .legend ul li.highlight {
+	color: black;
+}
+.storyline .outersvg {
+	width: calc(100% - 150px);
+}
 .storyline svg {
 	width: 100%;
 	margin: 0;
@@ -71,6 +91,8 @@
 }
 .storyline .line.selected {
 	stroke-opacity: 5.0;
+	font-weight: bold;
+	font-style: italic;
 }
 .storyline .line.highlight.selected {
 	stroke-opacity: 1.0;
@@ -105,9 +127,6 @@
 	margin: 0;
 	padding: 0;
 	overflow-y: scroll;
-}
-.storyline .facetlistbox.selected {
-	background-color: rgba(58, 135, 173, 0.5);
 }
 
 .storyline .facetlistbox ul {
@@ -146,6 +165,6 @@
 	margin: 0;
 	padding: 0;
 }
-.storyline .topbox .clearbuttonbox button.clearviewentities {
+.storyline .topbox .clearbuttonbox button {
 	margin: 0.5em 0 0.5em 2em;
 }

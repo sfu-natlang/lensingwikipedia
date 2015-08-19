@@ -392,6 +392,40 @@ function saveSettingsCookie(name, value) {
 }
 
 /*
+ * Update the SVG markers for points to match the selection one time.
+ */
+function styleSelectedMarkers(svg, selection) {
+	if (selection.isEmpty())
+		return;
+	var classStr = "",
+	    isFirst = true;
+	selection.each(function (pointStr) {
+		if (isFirst) 
+			isFirst = false;
+		else
+			classStr += ",";
+		classStr += ".marker." + classForMarker(pointStr);
+	});
+	svg.selectAll(classStr).classed("selected", true);
+}
+
+/*
+ * Make the SVG markers for points match the selection as it changes.
+ */
+function syncMarkerStylesWithSelection(svg, selection) {
+	selection.on('change', function (added, removed, newLength) {
+		if (newLength > 0) {
+			if (added.length > 0)
+				svg.selectAll(added.map(function (ps) { return ".marker." + classForMarker(ps); }).join(",")).classed("selected", true);
+			if (removed.length > 0)
+				svg.selectAll(removed.map(function (ps) { return ".marker." + classForMarker(ps); }).join(",")).classed("selected", false);
+		} else {
+			svg.selectAll(".marker").classed("selected", false);
+		}
+	});
+}
+
+/*
  * Setup the control in some container element.
  * container: container element as a jquery selection
  * initialQuery: the initial (empty) query
@@ -431,9 +465,6 @@ function setup(container, initialQuery, globalQuery, mapDataUrl, minZoom, maxZoo
 	var box = { x: viewBox.x + margins.left, y: viewBox.y + margins.top, width: viewBox.width - margins.left - margins.right, height: viewBox.height - margins.top - margins.bottom };
 
 	var ownCnstrQuery = new Queries.Query(globalQuery.backendUrl());
-	var constraint = new Queries.Constraint();
-	globalQuery.addConstraint(constraint);
-	ownCnstrQuery.addConstraint(constraint);
 	var contextQuery = new Queries.Query(globalQuery.backendUrl(), 'setminus', globalQuery, ownCnstrQuery);
 
 	function setLoadingIndicator(enabled) {
@@ -455,56 +486,23 @@ function setup(container, initialQuery, globalQuery, mapDataUrl, minZoom, maxZoo
 	    panFactor = 1.0;
 	var selMode = null,
 	    allPointStrs = {};
-	var selection = {};
 
-	var clearElt = topBoxElt.find(".clear");
-	var lastSelection = {};
-	function updateSelection(dontChangeConstraint) {
-		if (initialCounts != null && contextCounts != null) {
-			if (curState.markersPath == null)
-				update();
-
-			var newSelection = {};
-			var allCounts = [initialCounts, contextCounts];
-			for (var pointStr in allPointStrs) {
-				if (!newSelection.hasOwnProperty(pointStr) && selection[pointStr] != lastSelection[pointStr])
-					svg.selectAll(".marker." + classForMarker(pointStr)).classed("selected", selection[pointStr]);
-				newSelection[pointStr] = selection[pointStr];
-			}
-			lastSelection = newSelection;
-
-			var selPointStrs = [];
-			for (var pointStr in selection)
-				if (selection[pointStr])
-						selPointStrs.push(pointStr);
-
-			if (selPointStrs.length > 0)
-				clearElt.removeAttr('disabled');
-			else
-				clearElt.attr('disabled', 'disabled');
-
-			if (!dontChangeConstraint) {
-				if (selPointStrs.length > 0) {
-					constraint.name("Map: " + selPointStrs.length + (selPointStrs.length == 1 ? " marker" : " markers"));
-					constraint.set({
-						type: 'referencepoints',
-						points: selPointStrs
-					});
-				} else
-					constraint.clear();
-				globalQuery.update();
-			}
-		}
-	}
-	function selectAll(value) {
-		if (initialCounts != null && contextCounts != null) {
-			for (var pointStr in initialCounts)
-				selection[pointStr] = value;
-			for (var pointStr in contextCounts)
-				selection[pointStr] = value;
-		}
-	}
-	clearElt.attr('disabled', 'disabled');
+	var selection = new Selections.SimpleSetSelection();
+	Selections.syncSetSelectionWithConstraint(selection, globalQuery, ownCnstrQuery, function () {
+		return new Queries.Constraint();
+	}, function (constraint, selection, changeType, changeValues) {
+		var selPointStrs = [];
+		selection.each(function (pointStr) {
+			selPointStrs.push(pointStr);
+		});
+		constraint.name("Map: " + selPointStrs.length + (selPointStrs.length == 1 ? " marker" : " markers"));
+		constraint.set({
+			type: 'referencepoints',
+			points: selPointStrs
+		});
+	});
+	setupSelectionClearButton(topBoxElt.find(".selbox .clear"), selection);
+	syncMarkerStylesWithSelection(svg, selection);
 
 	function update(quick) {
 		if (mapData == null || initialCounts == null || contextCounts == null || projection == null || zoomLevel == null || viewChoices == null || pan == null) {
@@ -551,8 +549,7 @@ function setup(container, initialQuery, globalQuery, mapDataUrl, minZoom, maxZoo
 				curState.markersPath = ret.path;
 				curState.screenPoints = ret.screenPoints;
 			}
-			lastSelection = {};
-			updateSelection(true);
+			styleSelectedMarkers(svg, selection);
 		}
 	}
 	function resetProjection() {
@@ -565,10 +562,6 @@ function setup(container, initialQuery, globalQuery, mapDataUrl, minZoom, maxZoo
 		update();
 	});
 
-	topBoxElt.find(".selbox .clear").bind('click', function () {
-		selectAll(false);
-		updateSelection();
-	});
 	topBoxElt.find(".selbox .mode button").bind('click', function () {
 		selMode = $(this).val();
 	});
@@ -607,8 +600,7 @@ function setup(container, initialQuery, globalQuery, mapDataUrl, minZoom, maxZoo
 	});
 	$(svg).bind('clickmarkerup', function (event, pointStr) {
 		if (mouseDownOnMarker && selMode == 'toggle') {
-			selection[pointStr] = !(selection[pointStr] == true);
-			updateSelection();
+			selection.toggle(pointStr);
 		}
 	});
 	D3Utils.makeDragEndWatcher(drag, function () {
@@ -623,25 +615,21 @@ function setup(container, initialQuery, globalQuery, mapDataUrl, minZoom, maxZoo
 	D3Utils.makeDragSelector(drag, svg, "dragselectextent", function (extent) {
 		if (curState.screenPoints != null) {
 			var offset = projection.panMode == 'translate' ? pan : [0, 0];
-			for (var pointStr in allPointStrs)
-				if (curState.screenPoints.hasOwnProperty(pointStr)) {
-					var x = curState.screenPoints[pointStr][0], y = curState.screenPoints[pointStr][1];
-					if (x >= extent[0][0] - offset[0] && y >= extent[0][1] - offset[1] && x <= extent[1][0] - offset[0] && y <= extent[1][1] - offset[1])
-						selection[pointStr] = true;
-				}
-			updateSelection();
+			var toSel = [];
+			selection.modify(function (selMod) {
+				for (var pointStr in allPointStrs)
+					if (curState.screenPoints.hasOwnProperty(pointStr)) {
+						var x = curState.screenPoints[pointStr][0], y = curState.screenPoints[pointStr][1];
+						if (x >= extent[0][0] - offset[0] && y >= extent[0][1] - offset[1] && x <= extent[1][0] - offset[0] && y <= extent[1][1] - offset[1])
+							selMod.add(pointStr);
+					}
+			});
 		}
 	}, function () {
 		return selMode == 'drag';
 	});
 	svg.call(drag);
 
-	constraint.onChange(function (changeType, query) {
-		if (changeType == 'removed' && query == ownCnstrQuery) {
-			selectAll(false);
-			updateSelection(true);
-		}
-	});
 	initialQuery.onChange(function () {
 		initialCounts = null;
 		update();
@@ -694,6 +682,10 @@ function setup(container, initialQuery, globalQuery, mapDataUrl, minZoom, maxZoo
 	svgElt[0].onmousewheel = onMouseWheel;
 
 	initControls();
+
+	return {
+		selection: selection
+	};
 }
 
 return {

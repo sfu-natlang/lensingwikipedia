@@ -213,7 +213,19 @@ function makeLayout(data, importantEntities, layoutHeight, layoutMarginSlots) {
 	return layout;
 }
 
-function drawDiagram(svg, box, clipId, data, layout, layoutHeight, nodeWidth, lineWidth, drawLabels, doMouseovers, useFieldPrefixes, importantEntities, entityColour, onChooseNode, onChooseEntityLine) {
+function classForEntityLine(layout, importantEntities, entityId) {
+	var e = layout.entities[entityId];
+	var c = "line line" + entityId;
+	if (importantEntities.hasOwnProperty(e.field) && importantEntities[e.field].indexOf(e.value) >= 0)
+		c += " important";
+	return c;
+}
+
+function classForNode(visNode) {
+	return "node node" + visNode.node.key;
+}
+
+function drawDiagram(svg, box, clipId, data, layout, layoutHeight, nodeWidth, lineWidth, doMouseovers, useFieldPrefixes, importantEntities, entityColour, highlightEntityLines, onChooseNode, onChooseEntityLine) {
 	var yScale = box.height / layoutHeight;
 
 	var draw = svg.append('g')
@@ -227,21 +239,6 @@ function drawDiagram(svg, box, clipId, data, layout, layoutHeight, nodeWidth, li
 		.orient('bottom')
 		.tickFormat(TimeAxis.tickFormater)
 		.tickValues(TimeAxis.tickValues(xScale));
-
-	function classEnitityLines(entityIds, value, classname) {
-		draw.selectAll(entityIds.map(function (eid) { return ".line" + eid; }).join(', '))
-			.classed(classname, value);
-	}
-	function classForEntityLine(line) {
-		var e = layout.entities[line.entityId];
-		var c = "line line" + line.entityId;
-		if (importantEntities.hasOwnProperty(e.field) && importantEntities[e.field].indexOf(e.value) >= 0)
-			c += " important";
-		return c;
-	}
-	function classForNode(visNode) {
-		return "node node" + visNode.node.key;
-	}
 
 	draw.append('g')
 		.attr('class', "x axis ")
@@ -279,10 +276,10 @@ function drawDiagram(svg, box, clipId, data, layout, layoutHeight, nodeWidth, li
 	function lineMouseovers(lines) {
 		lines
 			.on("mouseover", function (l) {
-				classEnitityLines([l.entityLine.entityId], true, 'highlight');
+				highlightEntityLines([l.entityLine.entityId], true);
 			})
 			.on("mouseout", function (l) {
-				classEnitityLines([l.entityLine.entityId], false, 'highlight');
+				highlightEntityLines([l.entityLine.entityId], false);
 			})
 			.append("title")
 			.text(function (l) { var e = layout.entities[l.entityLine.entityId]; return "" + (useFieldPrefixes ? e.field + ":" : "") + e.value; });
@@ -293,7 +290,7 @@ function drawDiagram(svg, box, clipId, data, layout, layoutHeight, nodeWidth, li
 		.enter()
 		.append("path")
 		.attr('clip-path', "url(#" + clipId + ")")
-		.attr("class", function (l) { return classForEntityLine(l.entityLine); })
+		.attr("class", function (l) { return classForEntityLine(layout, importantEntities, l.entityLine.entityId); })
 		.style('stroke-width', lineWidth)
 		.style("stroke", function(l, i) { return entityColour(l.entityLine.entityId); });
 	if (doMouseovers)
@@ -304,7 +301,7 @@ function drawDiagram(svg, box, clipId, data, layout, layoutHeight, nodeWidth, li
 		.enter()
 		.append("circle")
 		.attr('clip-path', "url(#" + clipId + ")")
-		.attr("class", function (s) { return classForEntityLine(s.entityLine); })
+		.attr("class", function (s) { return classForEntityLine(layout, importantEntities, s.entityLine.entityId); })
 		.attr('r', lineWidth * 2)
 		.style("fill", function(s, i) { return entityColour(s.entityLine.entityId); })
 		.style("stroke", function(s, i) { return entityColour(s.entityLine.entityId); });
@@ -321,11 +318,11 @@ function drawDiagram(svg, box, clipId, data, layout, layoutHeight, nodeWidth, li
 		node
 			.on("mouseover", function (vn) {
 				d3.select(this).classed('highlight', true);
-				classEnitityLines(vn.node.entityIds, true, 'highlight');
+				highlightEntityLines(vn.node.entityIds, true);
 			})
 			.on("mouseout", function (vn) {
 				d3.select(this).classed('highlight', false);
-				classEnitityLines(vn.node.entityIds, false, 'highlight');
+				highlightEntityLines(vn.node.entityIds, false);
 			})
 			.append("title")
 			.text(function(vn) {
@@ -343,61 +340,6 @@ function drawDiagram(svg, box, clipId, data, layout, layoutHeight, nodeWidth, li
 		setOnClickLine(lines);
 		setOnClickLine(lineSingletons);
 	}
-	function selectNodes(nodeKeys, areSelected) {
-		if (nodeKeys.length > 0)
-			draw.selectAll(nodeKeys.map(function (nk) { return ".node" + nk; }).join(', '))
-				.classed('selected', areSelected);
-	}
-	function selectEntities(entityIds, areSelected) {
-		if (entityIds.length > 0)
-			draw.selectAll(entityIds.map(function (eid) { return ".line" + eid; }).join(', '))
-				.classed('selected', areSelected);
-	}
-
-	var updateLabelGroups = null;
-	function makeLabels(entityLines) {
-		return $.map(entityLines, function (entityLine) {
-			return {
-				entityLine: entityLine
-			};
-		});
-	}
-	if (drawLabels) {
-		var labels = makeLabels(layout.entityLines);
-		labelGroups = draw.append("g")
-			.selectAll(".linelabel")
-			.data(labels)
-			.enter()
-			.append("g")
-			.attr('class', function (l) { return "linelabel" + classForEntityLine(l.entityLine); })
-			.style('stroke', function(l, i) { return entityColour(l.entityLine.entityId); })
-			.attr('text-anchor', 'middle');
-		var labelText = labelGroups
-			.append("text")
-			.text(function (l, i) { var e = layout.entities[l.entityLine.entityId]; return "" + (useFieldPrefixes ? e.field + ":" : "") + e.value; })
-			.attr("dy", ".35em")
-			.style('pointer-events', 'none');
-		updateLabelGroups = function (scaleWidthChanged) {
-			if (scaleWidthChanged) {
-				labelText.each(function (label) {
-					label.date = label.entityLine.points[0].visNode.node.date;
-					label.slotIndex = label.entityLine.points[0].slot.index;
-					label.width = this.getBBox().width;
-				});
-				storylinelayout.layoutLabels(labels, layout.slots.length,
-						[xScale(layout.xExtent[0]), xScale(layout.xExtent[1])],
-						function (l) { return xScale(l.date); },
-						function (l, x) { l.date = xScale.invert(x); }
-					);
-			}
-			labelGroups
-				.attr('transform', function(l) {
-					var x = xScale(l.date),
-					    y = slotY(l.slotIndex) + yLineOffset;
-					return "translate(" + x + "," + y + ")";
-				});
-		}
-	}
 
 	function update(scaleWidthChanged) {
 		lines
@@ -410,8 +352,6 @@ function drawDiagram(svg, box, clipId, data, layout, layoutHeight, nodeWidth, li
 			.attr("y", function (vn) { return slotY(vn.startSlot.index) + yNodeOffset; })
 			.attr("height", function(vn) { return slotsDY(vn.node.entityIds.length) - yNodeOffset * 2; })
 			.attr("width", nodeWidth);
-		if (updateLabelGroups != null)
-			updateLabelGroups(scaleWidthChanged);
 	}
 	update(true);
 
@@ -434,16 +374,38 @@ function drawDiagram(svg, box, clipId, data, layout, layoutHeight, nodeWidth, li
 	return {
 		draw: draw,
 		scales: { x: xScale },
-		updateX: updateX,
-		selectNodes: selectNodes,
-		selectEntities: selectEntities
+		updateX: updateX
 	};
+}
+
+/*
+ * Draw the legend box.
+ */
+function drawLegend(legend, layout, importantEntities, useFieldPrefixes, entityColour, highlightEntityLines, onChooseEntityLine) {
+	legend.selectAll("ul").remove();
+	legend.append('ul')
+		.selectAll('li')
+		.data(layout.entityLines)
+		.enter()
+		.append('li')
+		.attr('class', function (el) { return classForEntityLine(layout, importantEntities, el.entityId); })
+		.text(function (el) { var e = layout.entities[el.entityId]; return "" + (useFieldPrefixes ? e.field + ":" : "") + e.value; })
+		.style('color', function(el) { return entityColour(el.entityId); })
+		.on("mouseover", function (el) {
+			highlightEntityLines([el.entityId], true);
+		})
+		.on("mouseout", function (el) {
+			highlightEntityLines([el.entityId], false);
+		})
+		.on("click", function (el) {
+			return onChooseEntityLine(el);
+		});
 }
 
 /*
  * Draw the whole visualization.
  */
-function drawAll(svg, detailBox, selectBox, data, initialBrushExtent, useFieldPrefixes, importantEntities, entityColour, onSelectNode, onSelectEntityLine, brushCallback) {
+function drawAll(outer, svg, legend, detailBox, selectBox, data, initialBrushExtent, useFieldPrefixes, importantEntities, entityColour, onSelectNode, onSelectEntityLine, brushCallback) {
 	var nodeWidth = detailBox.width * 0.01,
 	    layoutHeight = detailBox.height,
 			layoutMarginSlots = 4,
@@ -484,18 +446,40 @@ function drawAll(svg, detailBox, selectBox, data, initialBrushExtent, useFieldPr
 	}
 	function findKnownEntities(entities) {
 		var knownEntities = {};
-		$.each(entities, function (entityI, entity) {
+		$.each(entities, function (entityId, entity) {
 			if (!knownEntities.hasOwnProperty(entity.field))
 				knownEntities[entity.field] = {};
-			knownEntities[entity.field][entity.value] = true;
+			knownEntities[entity.field][entity.value] = entityId;
 		});
 		return knownEntities;
 	}
 	var knownVisClusterKeys = keyVisClusters(layout.visClusters),
 			knownEntities = findKnownEntities(layout.entities);
 
-	var detailPlot = drawDiagram(svg, detailBox, clipId, data, layout, layoutHeight, nodeWidth, lineWidth, true, true, useFieldPrefixes, importantEntities, entityColour, onSelectNode, onSelectEntityLine);
-	var selectPlot = drawDiagram(svg, selectBox, clipId, data, layout, layoutHeight, nodeWidth, lineWidth, false, false, useFieldPrefixes, importantEntities, entityColour, null, null);
+	function highlightEntityLines(entityIds, value) {
+		function getEntityId(x) {
+			if (x.hasOwnProperty('entityLine'))
+				x = x.entityLine;
+			return x.entityId;
+		}
+		outer.selectAll(entityIds.map(function (eid) { return ".line" + eid; }).join(', '))
+			.classed('highlight', value)
+			.style('color', function (x) {
+				if (value)
+					return null;
+				else
+					return entityColour(getEntityId(x));
+			})
+			.style('background-color', function (x) {
+				if (value)
+					return entityColour(getEntityId(x));
+				else
+					return null;
+			});
+	}
+
+	var detailPlot = drawDiagram(svg, detailBox, clipId, data, layout, layoutHeight, nodeWidth, lineWidth, true, useFieldPrefixes, importantEntities, entityColour, highlightEntityLines, onSelectNode, onSelectEntityLine);
+	var selectPlot = drawDiagram(svg, selectBox, clipId, data, layout, layoutHeight, nodeWidth, lineWidth, false, useFieldPrefixes, importantEntities, entityColour, highlightEntityLines, null, null);
 
 	if (layout.visNodes.length == 0) {
 		detailPlot.draw.append('text')
@@ -527,13 +511,28 @@ function drawAll(svg, detailBox, selectBox, data, initialBrushExtent, useFieldPr
 		.attr('y', -2)
 		.attr('height', selectBox.height + 6);
 
+	drawLegend(legend, layout, importantEntities, useFieldPrefixes, entityColour, highlightEntityLines, onSelectEntityLine);
+
+	function selectNodes(nodeSelection, areSelected) {
+		detailPlot.draw.selectAll('.node').classed('selected', false);
+		if (nodeSelection.length() > 0)
+			detailPlot.draw.selectAll(nodeSelection.map(function (n, nk) { return ".node" + nk; }).join(', '))
+				.classed('selected', areSelected);
+	}
+	function selectEntities(entityIds, areSelected) {
+		if (entityIds.length > 0)
+			outer.selectAll(entityIds.map(function (eid) { return ".line" + eid; }).join(', '))
+				.classed('selected', areSelected);
+	}
+
 	return {
 		update: onBrush,
-		selectNodes: detailPlot.selectNodes,
-		selectEntities: detailPlot.selectEntities,
+		selectNodes: selectNodes,
+		selectEntities: selectEntities,
 		checkVisClusterKey: function (k) { return knownVisClusterKeys.hasOwnProperty(k); },
 		checkEntity: function (n, v) { return knownEntities.hasOwnProperty(n) && knownEntities[n].hasOwnProperty(v); },
-		lookupEntity: function(eid) { return layout.entities[eid]; }
+		lookupEntity: function(eid) { return layout.entities[eid]; },
+		lookupEntityId: function (n, v) { return knownEntities.hasOwnProperty(n) ? knownEntities[n][v] : null; }
 	};
 }
 
@@ -543,7 +542,7 @@ function drawAll(svg, detailBox, selectBox, data, initialBrushExtent, useFieldPr
  * initialQuery: the initial (empty) query
  * globalQuery: the global query
  */
-function setup(container, globalQuery) {
+function setup(container, globalQuery, facets, fieldSelections) {
 	// The view space for SVG; this doesn't have to correspond to screen units.
 	var viewBox = { x: 0, y : 0, width: 1024, height: 768 };
 	// Margins for the graph
@@ -554,15 +553,18 @@ function setup(container, globalQuery) {
 	var outerElt = $("<div class=\"storyline\"></div>").appendTo(container);
 	var topBoxElt = $("<div class=\"topbox\"></div>").appendTo(outerElt);
 	var loadingIndicator = new LoadingIndicator.LoadingIndicator(outerElt);
+	var legendElt = $('<div class="legend"></div>').appendTo(outerElt);
 	var outerSvgElt = $("<svg class=\"outersvg\"></svg>").appendTo(outerElt);
 	var svgElt = $("<svg class=\"innersvg\" viewBox=\"" + viewBox.x + " " + viewBox.y + " " + viewBox.width + " " + viewBox.height + "\" preserveAspectRatio=\"none\"></svg>").appendTo(outerSvgElt);
 	var initHelpElt = $("<div class=\"alert alert-warning alert-dismissable\"></div>").appendTo(outerElt);
 	var queryHelpElt = $("<div class=\"alert alert-warning alert-dismissable\"></div>").appendTo(outerElt);
 
 	var formElt = $("<form></form>").appendTo(topBoxElt);
-	var clearSelElt = $("<button type=\"button\" class=\"btn btn-mini btn-warning clear mapclear\" title=\"Clear the storyline selection.\">Clear selection</button>").appendTo(formElt);
+	var clearSelElt = $("<button type=\"button\" class=\"btn btn-mini btn-warning clear mapclear\" title=\"Clear the storyline node selection.\">Clear node selection</button>").appendTo(formElt);
 	var modeElt = $("<select class=\"btn btn-mini\"></select>").appendTo(formElt);
+	var entityFields = [];
 	var entityListMenuElts = $.map(storylineFields, function (fieldInfo) {
+		entityFields.push(fieldInfo.field);
 		var menuElt = $('<div class="btn-group"></div>').appendTo(formElt);
 		$('<a class="btn btn-mini dropdown-toggle entitylist" data-toggle="dropdown" href="#" title="View entities">Entities<span class="caret"></span></a>').appendTo(menuElt);
 		menuElt.hide();
@@ -577,6 +579,11 @@ function setup(container, globalQuery) {
 	LayoutUtils.fillElement(container, outerElt, 'vertical');
 	LayoutUtils.setupPanelled(outerElt, topBoxElt, outerSvgElt, 'vertical', 0, false);
 	var scaleSvg = D3Utils.dontScaleSvgParts(outerSvgElt, 'text,.tick');
+
+	var facetsByField = {};
+	$.each(facets, function (facetI, facet) {
+		facetsByField[facet.field] = facet;
+	});
 
 	initHelpElt.html(storylineInitHelpText);
 	queryHelpElt.html(storylineQueryHelpText);
@@ -609,26 +616,38 @@ function setup(container, globalQuery) {
 	var entityColour = d3.scale.category10()
 
 	var ownCnstrQuery = new Queries.Query(globalQuery.backendUrl());
-	var nodesConstraint = new Queries.Constraint(),
-	    entityConstraints = {};
-	globalQuery.addConstraint(nodesConstraint);
-	ownCnstrQuery.addConstraint(nodesConstraint);
 	var contextQuery = new Queries.Query(globalQuery.backendUrl(), 'setminus', globalQuery, ownCnstrQuery);
 
 	var resultWatcher = new Queries.ResultWatcher(function () {});
 	contextQuery.addResultWatcher(resultWatcher);
 
 	var entityLists = $.map(storylineFields, function (fieldInfo, fieldI) {
+		var entitySelection = new Selections.SimpleSetSelection();
+		var entityList = new Facet.FacetListBox(entityListMenuElts[fieldI], globalQuery, fieldInfo.field, entitySelection);
+		entityList.on('element-selection-change', function (value, itemElt, isSelected) {
+			itemElt.css('background-color', isSelected ? entityColour(value) : 'white');
+		});
 		// This is a bit messy since we rely on the structure of the FacetListBox elements
-		var entityList = new Facet.FacetListBox(entityListMenuElts[fieldI], globalQuery, fieldInfo.field);
+		var facet = facetsByField[fieldInfo.field];
+		function updateMenu() {
+			var menuQuery = new Queries.Query(globalQuery.backendUrl(), 'copy', facet.facet.contextQuery);
+			entityList.setupWatchQuery(menuQuery);
+			menuQuery.update();
+		}
 		entityList.outerElt.addClass('dropdown-menu');
 		var btnBox = $('<div class="clearbuttonbox"></div>').prependTo(entityList.outerElt);
-		var clearEntitiesBtn = $('<button type="button" class="btn btn-mini btn-warning clearviewentities" title="Clear view entities.">Clear</button>').prependTo(btnBox);
+		var updateBtn = $('<button type="button" class="btn btn-mini btn-primary" title="Update menu to match facet.">Update</button>').appendTo(btnBox);
+		var clearEntitiesBtn = $('<button type="button" class="btn btn-mini btn-warning clearviewentities" title="Clear view entities.">Clear</button>').appendTo(btnBox);
 		LayoutUtils.fillElement(container, entityList.outerElt, 'vertical', 100);
-		clearEntitiesBtn.bind('click', function (fromEvent) {
-			fromEvent.stopPropagation();
-			entityList.clearSelection();
+		clearEntitiesBtn.bind('click', function (event) {
+			entityList.selection.clear();
+			event.stopPropagation();
 		});
+		updateBtn.bind('click', function (fromEvent) {
+			fromEvent.stopPropagation();
+			updateMenu();
+		});
+		updateMenu();
 		return entityList;
 	});
 	var entityList = entityLists[0];
@@ -640,6 +659,7 @@ function setup(container, globalQuery) {
 		else
 			elts.removeAttr('disabled');
 	}
+
 
 	function setLoadingIndicator(enabled) {
 		svgElt.css('display', !enabled ? '' : 'none');
@@ -698,173 +718,98 @@ function setup(container, globalQuery) {
 			resultWatcher.clear();
 			setLoadingIndicator(false);
 			clearQueryElt.attr('disabled', 'disabled');
-			clearOwnConstraints();
+			nodeSelection.clear();
 			updateHelp(true);
 			statusElt.html("");
 			outerSvgElt.hide();
+			legendElt.hide();
 			setClearEntitiesEnabled(false);
 		}
 	}
 
-	var nodeSelection = {};
+	var nodeSelection = new Selections.SimpleSetSelection();
+	nodeSelection.hashValue = function (n) { return n.key; };
 	function cleanSelectionToMatchData() {
-		var changed = false;
 		if (vis != null) {
-			$.each(nodeSelection, function (nodeKey, node) {
-				if (!vis.checkVisClusterKey(nodeKey)) {
-					delete nodeSelection[nodeKey];
-					changed = true;
+			var toRemove = [];
+			nodeSelection.each(function (node, nodeKey) {
+				if (!vis.checkVisClusterKey(nodeKey))
+					toRemove.push(node);
+			});
+			nodeSelection.modify(function (selMod) {
+				for (var nodeI = 0; nodeI < toRemove.length; nodeI++)
+					selMod.remove(toRemove[nodeI]);
+			});
+		}
+	}
+	Selections.syncSetSelectionWithConstraint(nodeSelection, globalQuery, ownCnstrQuery, function () {
+		return new Queries.Constraint();
+	}, function (constraint, selection, changeType, changeValues) {
+		var nodeCount = 0,
+		    seen = {},
+		    selPointStrs = [];
+		selection.each(function (node, nodeKey) {
+			nodeCount += 1;
+			$.each(node.clusters, function (cluster, mem) {
+				if (!seen.hasOwnProperty(cluster)) {
+					seen[cluster] = true;
+					selPointStrs.push(cluster);
 				}
 			});
-			$.each(entityConstraints, function (field, valueTable) {
-				$.each(valueTable, function (value) {
-					if (!vis.checkEntity(field, value)) {
-						var constraint = entityConstraints[field][value].constraint;
-						globalQuery.removeConstraint(constraint);
-						ownCnstrQuery.removeConstraint(constraint);
-						delete entityConstraints[field][value];
-						changed = true;
-					}
-				});
-			});
-		}
-		return changed;
-	}
-	function constrainToNodeSelection() {
-		if ($.isEmptyObject(nodeSelection)) {
-			var haveEntityConstraints = true;
-			$.each(entityConstraints, function (field, valueTable) {
-				if (!$.isEmptyObject(valueTable)) {
-					haveEntityConstraints = false;
-					return false;
-				}
-			});
-			if (haveEntityConstraints)
-				clearSelElt.attr('disabled', 'disabled');
-			nodesConstraint.clear();
-		} else {
-			var nodeCount = 0,
-			    seen = {},
-			    selPointStrs = [];
-			$.each(nodeSelection, function (nodeKey, node) {
-				nodeCount += 1;
-				$.each(node.clusters, function (cluster, mem) {
-					if (!seen.hasOwnProperty(cluster)) {
-						seen[cluster] = true;
-						selPointStrs.push(cluster);
-					}
-				});
-			});
-			nodesConstraint.name("Storyline: " + nodeCount + (nodeCount == 1 ? " node" : " nodes"));
-			nodesConstraint.set({
-				type: 'referencepoints',
-				points: selPointStrs
-			});
-			clearSelElt.removeAttr('disabled');
-		}
-		globalQuery.update();
-	}
-	function constrainEntity(entityId, entity, set) {
-		if (!set) {
-			var constraint = entityConstraints[entity.field][entity.value].constraint;
-			globalQuery.removeConstraint(constraint);
-			ownCnstrQuery.removeConstraint(constraint);
-			delete entityConstraints[entity.field][entity.value];
-			vis.selectEntities([entityId], false);
-			if ($.isEmptyObject(nodeSelection))
-				clearSelElt.attr('disabled', 'disabled');
-		} else {
-			var constraint = new Queries.Constraint();
-			constraint.name("Storyline: " + entity.field + " = " + entity.value);
-			constraint.set({
-				type: 'fieldvalue',
-				field: entity.field,
-				value: entity.value
-			});
-			constraint.onChange(function (type, query) {
-				if (type == 'removed' && query == globalQuery)
-					constrainEntity(entityId, entity, false);
-			});
-			globalQuery.addConstraint(constraint);
-			ownCnstrQuery.addConstraint(constraint);
-			if (!entityConstraints.hasOwnProperty(entity.field))
-				entityConstraints[entity.field] = {};
-			entityConstraints[entity.field][entity.value] = {
-				entityId: entityId,
-				constraint: constraint
-			};
-			vis.selectEntities([entityId], true);
-			clearSelElt.removeAttr('disabled');
-		}
-		globalQuery.update();
-	}
+		});
+		constraint.name("Storyline: " + nodeCount + (nodeCount == 1 ? " node" : " nodes"));
+		constraint.set({
+			type: 'referencepoints',
+			points: selPointStrs
+		});
+	});
+	setupSelectionClearButton(clearSelElt, nodeSelection);
+
 	function onSelectNode(node) {
-		var nowSelected = null;
-		if (!nodeSelection.hasOwnProperty(node.key)) {
-			nodeSelection[node.key] = node;
-			nowSelected = true;
-		} else {
-			delete nodeSelection[node.key];
-			nowSelected = false;
-		}
-		vis.selectNodes([node.key], nowSelected);
-		constrainToNodeSelection();
+		nodeSelection.toggle(node);
 	}
 	function onSelectEntityLine(entityLine) {
 		var entity = vis.lookupEntity(entityLine.entityId);
-		var toSet = !(entityConstraints.hasOwnProperty(entity.field) && entityConstraints[entity.field].hasOwnProperty(entity.value));
-		constrainEntity(entityLine.entityId, entity, toSet);
+		fieldSelections.get(entity.field).selection.toggle(entity.value);
 	}
-	function clearOwnConstraints() {
-		{
-			if (vis != null)
-				vis.selectNodes(Object.keys(nodeSelection), false);
-			nodeSelection = {};
-			constrainToNodeSelection();
-		}
-		{
-			var removingEntityIds = [];
-			$.each(entityConstraints, function (field, valueTable) {
-				$.each(valueTable, function (value, info) {
-					removingEntityIds.push(info.entityId);
-					globalQuery.removeConstraint(info.constraint);
-					ownCnstrQuery.removeConstraint(info.constraint);
-				});
-			});
-			if (vis != null)
-				vis.selectEntities(removingEntityIds, false);
-			entityConstraints = {};
-		}
-	}
-	clearSelElt.attr('disabled', 'disabled');
-	clearSelElt.bind('click', function () {
-		clearOwnConstraints();
-	});
-	nodesConstraint.onChange(function (type, query) {
-		if (type == 'removed' && query == globalQuery) {
-			if (vis != null)
-				vis.selectNodes(Object.keys(nodeSelection), false);
-			nodeSelection = {};
-		}
-	});
 
 	var data = null,
 	    vis = null,
 	    lastBrushSelection = null;
 	function draw() {
+		function getSelectedEntityIds(lookupEntityId) {
+			var ids = [];
+			if (selectedViewFieldI != null) {
+				var field = entityFields[selectedViewFieldI];
+				facetsByField[field].facet.selection.each(function (value) {
+					ids.push(lookupEntityId(field, value));
+				});
+			} else {
+				$.each(facetsByField, function (field, facet) {
+					facet.facet.selection.each(function (value) {
+						var id = lookupEntityId(field, value);
+						if (id != null)
+							ids.push(id);
+					});
+				});
+			}
+			return ids;
+		}
 		if (data != null) {
 			svgElt.children().remove();
+			var outer = D3Utils.jqueryToD3(outerElt);
 			var svg = D3Utils.jqueryToD3(svgElt);
+			var legend = D3Utils.jqueryToD3(legendElt);
 			setLoadingIndicator(false);
 			outerSvgElt.show();
+			legendElt.show();
 			function onBrush(selection) {
 				lastBrushSelection = selection;
 			}
-			vis = drawAll(svg, detailBox, selectBox, data, lastBrushSelection, drawEntityTitlePrefixes, drawImportantEntities, entityColour, onSelectNode, onSelectEntityLine, onBrush);
-			if (cleanSelectionToMatchData())
-				constrainToNodeSelection();
-			vis.selectNodes(Object.keys(nodeSelection), true);
-			vis.selectEntities($.map(entityConstraints, function (r) { return $.map(r, function (ec) { return ec.entityId; }); }), true);
+			vis = drawAll(outer, svg, legend, detailBox, selectBox, data, lastBrushSelection, drawEntityTitlePrefixes, drawImportantEntities, entityColour, onSelectNode, onSelectEntityLine, onBrush);
+			cleanSelectionToMatchData();
+			vis.selectNodes(nodeSelection, true);
+			vis.selectEntities(getSelectedEntityIds(vis.lookupEntityId), true);
 			statusElt.html(
 				"showing "
 				+ queryEntities.length
@@ -880,7 +825,11 @@ function setup(container, globalQuery) {
 		}
 	}
 
-	function onResult(result) {
+	nodeSelection.on('change', function () {
+		vis.selectNodes(nodeSelection, true);
+	});
+
+	resultWatcher.setCallback(function onResult(result) {
 		if (result.plottimeline.hasOwnProperty('error')) {
 			data = null;
 			loadingIndicator.error('storyline', true);
@@ -892,10 +841,6 @@ function setup(container, globalQuery) {
 			outerSvgElt.show();
 			draw();
 		}
-	}
-
-	resultWatcher.setCallback(function (a) {
-		onResult(a);
 	});
 
 	updateElt.bind('click', function() {
@@ -926,7 +871,7 @@ function setup(container, globalQuery) {
 	$.each(storylineFields, function (fieldI, fieldInfo) {
 		if (fieldInfo.title.length > maxFieldTitleLen)
 			maxFieldTitleLen = fieldInfo.title.length;
-		$("<option value=\"" + fieldI + "\">" + fieldInfo.title + "</option>").appendTo(modeElt);
+		$("<option value=\"" + fieldI + "\">" + fieldInfo.title + " facet</option>").appendTo(modeElt);
 	});
 	$("<option value=\"query\">Manual query</option>").appendTo(modeElt);
 	modeElt.width("" + maxFieldTitleLen + "em");
@@ -958,7 +903,7 @@ function setup(container, globalQuery) {
 			selectedViewFieldI = newMode;
 		}
 		updateHelp(true);
-		clearOwnConstraints();
+		nodeSelection.clear();
 		updateQuery();
 	});
 	queryFormElt.hide();
@@ -985,26 +930,16 @@ function setup(container, globalQuery) {
 	}
 	$.each(storylineFields, function (fieldI, fieldInfo) {
 		var entityList = entityLists[fieldI];
-		entityList.on('select', function (value, fromEvent, itemElt) {
-			if (fromEvent != null)
-				fromEvent.stopPropagation();
-			itemElt.css('background-color', entityColour(value));
-			if (findEntity(fieldInfo.field, value) < 0)
-				queryEntities.push({ value: value, field: fieldInfo.field });
-			updateQuery();
-		});
-		entityList.on('unselect', function (value, fromEvent, itemElt) {
-			if (fromEvent != null)
-				fromEvent.stopPropagation();
-			itemElt.css('background-color', 'white');
-			queryEntities.splice(findEntity(fieldInfo.field, value), 1);
-			updateQuery();
-		});
-		entityList.on('more', function (value, fromEvent) {
-			fromEvent.stopPropagation();
-		});
-		entityList.on('clear-selection', function () {
-			queryEntities = [];
+		entityList.selection.on('change', function (added, removed, newLength) {
+			for (var valueI = 0; valueI < added.length; valueI++) {
+				var value = added[valueI];
+				if (findEntity(fieldInfo.field, value) < 0)
+					queryEntities.push({ value: value, field: fieldInfo.field });
+			}
+			for (var valueI = 0; valueI < removed.length; valueI++) {
+				var value = removed[valueI];
+				queryEntities.splice(findEntity(fieldInfo.field, value), 1);
+			}
 			updateQuery();
 		});
 	});
@@ -1013,6 +948,11 @@ function setup(container, globalQuery) {
 		if ($(e.target.getAttribute('href'))[0] === container[0] && vis != null)
 			vis.update();
 	});
+
+	return {
+		nodeSelection: nodeSelection,
+		selection: nodeSelection
+	};
 }
 
 return {
