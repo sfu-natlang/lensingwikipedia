@@ -11,4 +11,4 @@ ADD . /opt/lensing
 RUN cd /opt/lensing && make
 
 ENTRYPOINT ["/opt/lensing/build/backend"]
-CMD ["-i", "/data/data.index"]
+CMD ["-i", "/data/fullData.index"]
