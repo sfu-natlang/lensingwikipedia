@@ -1,16 +1,19 @@
 web:
     build: web
     ports:
-        # HOST:CONTAINER
+        # Format is HOST:CONTAINER
+        # Only change the HOST part
         - "80:80"
     restart: on-failure:10
 query:
     build: backend
     ports:
-        # HOST:CONTAINER
+        # Format is HOST:CONTAINER
+        # Only change the HOST part
         - "1500:1500"
     volumes:
-        # HOST:CONTAINER
+        # Format is HOST:CONTAINER
+        # Only change the HOST part
         - /opt/lensing/data:/data
     environment:
         CONFIG: wikipediahistory
