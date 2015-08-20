@@ -91,22 +91,50 @@ Welcome back, {{ g.user.email }}!
 				</div> \
 				<div class="selectorsarea"> \
 					<ul class="nav nav-pills" id="tabbar"> \
+                      {% if "facets" in config.TABS %}
 						<li class="active"><a href="#facetstab" data-toggle="tab" title="Facets view">Facets</a></li> \
+                      {% endif %}
+                      {% if "storyline" in config.TABS %}
 						<li><a href="#storyline" data-toggle="tab" title="Storyline">Storyline</a></li> \
+                      {% endif %}
+                      {% if "timeline" in config.TABS %}
 						<li><a href="#timelinetab" data-toggle="tab" title="Timeline view">Timeline</a></li> \
+                      {% endif %}
+                      {% if "comparison" in config.TABS %}
 						<li><a href="#comparetab" data-toggle="tab" title="Comparison view">Comparison</a></li> \
+                      {% endif %}
+                      {% if "map" in config.TABS %}
 						<li><a href="#maptab" data-toggle="tab" title="Map view">Map</a></li> \
+                      {% endif %}
+                      {% if "cluster" in config.TABS %}
 						<li><a href="#tsnetab" data-toggle="tab" title="Cluster view">Cluster</a></li> \
+                      {% endif %}
+                      {% if "text" in config.TABS %}
 						<li><a href="#textsearchtab" data-toggle="tab" title="Text search">Text search</a></li> \
+                      {% endif %}
 					</ul> \
 					<div class="tab-content" id="tabcontents"> \
+                      {% if "facets" in config.TABS %}
 						<div class="tab-pane active" id="facetstab"></div> \
+                      {% endif %}
+                      {% if "storyline" in config.TABS %}
 						<div class="tab-pane" id="storyline"></div> \
+                      {% endif %}
+                      {% if "timeline" in config.TABS %}
 						<div class="tab-pane" id="timelinetab"></div> \
+                      {% endif %}
+                      {% if "comparison" in config.TABS %}
 						<div class="tab-pane" id="comparetab"></div> \
+                      {% endif %}
+                      {% if "map" in config.TABS %}
 						<div class="tab-pane" id="maptab"></div> \
+                      {% endif %}
+                      {% if "cluster" in config.TABS %}
 						<div class="tab-pane" id="tsnetab"></div> \
+                      {% endif %}
+                      {% if "text" in config.TABS %}
 						<div class="tab-pane" id="textsearchtab"></div> \
+                      {% endif %}
 					</div> \
 				</div> \
 			</div>').appendTo($('body'));
@@ -138,21 +166,52 @@ Welcome back, {{ g.user.email }}!
 					}));
 				}
 			});
-			LayoutUtils.setupSplitMakeElements($('#facetstab'), 'horizontal', facetMakers);
-			Storyline.setup($('#storyline'), globalQuery, facetsExpanded, fieldSelections);
-			Timeline.setup($('#timelinetab'), initialQuery, globalQuery);
-			Compare.setup($('#comparetab'), globalQuery, facetsExpanded);
-			Map.setup($('#maptab'), initialQuery, globalQuery, mapDataUrl, FrontendConfig.minMapZoom, FrontendConfig.maxMapZoom);
-			Tsne.setup($('#tsnetab'), initialQuery, globalQuery, FrontendConfig.minMapZoom, FrontendConfig.maxMapZoom);
-			TextSearch.setup($('#textsearchtab'), globalQuery);
 
-			LayoutUtils.fillElement($('.tab-content'), $('#facetstab'), 'vertical');
-			LayoutUtils.fillElement($('.tab-content'), $('#storyline'), 'vertical');
-			LayoutUtils.fillElement($('.tab-content'), $('#timelinetab'), 'vertical');
-			LayoutUtils.fillElement($('.tab-content'), $('#comparetab'), 'vertical');
-			LayoutUtils.fillElement($('.tab-content'), $('#maptab'), 'vertical');
-			LayoutUtils.fillElement($('.tab-content'), $('#tsnetab'), 'vertical');
-			LayoutUtils.fillElement($('.tab-content'), $('#textsearchtab'), 'vertical');
+            {% if "facets" in config.TABS %}
+              LayoutUtils.setupSplitMakeElements($('#facetstab'), 'horizontal', facetMakers);
+            {% endif %}
+            {% if "storyline" in config.TABS %}
+              Storyline.setup($('#storyline'), globalQuery, facetsExpanded, fieldSelections);
+            {% endif %}
+            {% if "timeline" in config.TABS %}
+              Timeline.setup($('#timelinetab'), initialQuery, globalQuery);
+            {% endif %}
+            {% if "comparison" in config.TABS %}
+              Compare.setup($('#comparetab'), globalQuery, facetsExpanded);
+            {% endif %}
+            {% if "map" in config.TABS %}
+              Map.setup($('#maptab'), initialQuery, globalQuery, mapDataUrl, FrontendConfig.minMapZoom, FrontendConfig.maxMapZoom);
+            {% endif %}
+            {% if "cluster" in config.TABS %}
+              Tsne.setup($('#tsnetab'), initialQuery, globalQuery, FrontendConfig.minMapZoom, FrontendConfig.maxMapZoom);
+            {% endif %}
+            {% if "text" in config.TABS %}
+              TextSearch.setup($('#textsearchtab'), globalQuery);
+            {% endif %}
+
+
+            {% if "facets" in config.TABS %}
+              LayoutUtils.fillElement($('.tab-content'), $('#facetstab'), 'vertical');
+            {% endif %}
+            {% if "storyline" in config.TABS %}
+              LayoutUtils.fillElement($('.tab-content'), $('#storyline'), 'vertical');
+            {% endif %}
+            {% if "timeline" in config.TABS %}
+              LayoutUtils.fillElement($('.tab-content'), $('#timelinetab'), 'vertical');
+            {% endif %}
+            {% if "comparison" in config.TABS %}
+              LayoutUtils.fillElement($('.tab-content'), $('#comparetab'), 'vertical');
+            {% endif %}
+            {% if "map" in config.TABS %}
+              LayoutUtils.fillElement($('.tab-content'), $('#maptab'), 'vertical');
+            {% endif %}
+            {% if "cluster" in config.TABS %}
+              LayoutUtils.fillElement($('.tab-content'), $('#tsnetab'), 'vertical');
+            {% endif %}
+            {% if "text" in config.TABS %}
+              LayoutUtils.fillElement($('.tab-content'), $('#textsearchtab'), 'vertical');
+            {% endif %}
+
 			LayoutUtils.fillElement($('.tab-content'), $('#abouttab'), 'vertical');
 
 			// Update the queries only after setting up all the controls
