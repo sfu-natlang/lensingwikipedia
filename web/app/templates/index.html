@@ -5,13 +5,10 @@
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/loadingindicator.css') }}">
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/constraintslist.css') }}">
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/eventdescriptionslist.css') }}">
-  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/facets.css') }}">
-  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/timeline.css') }}">
-  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/comparison.css') }}">
-  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/map.css') }}">
-  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/cluster.css') }}">
-  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/textsearch.css') }}">
-  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/storyline.css') }}">
+
+  {% for tab, tabname in config.TABS %}
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/' + tab + '.css') }}">
+  {% endfor %}
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/main.css') }}">
 
   <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
@@ -23,14 +20,16 @@
   <script src="{{ url_for('static', filename='js/queries.js') }}"></script>
   <script src="{{ url_for('static', filename='js/constraintslist.js') }}"></script>
   <script src="{{ url_for('static', filename='js/eventdescriptionslist.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/facets.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/timeline.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/comparison.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/map.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/cluster.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/textsearch.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/storylinelayout.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/storyline.js') }}"></script>
+
+  {% for tab, tabname in config.TABS %}
+    {# hack that'll have to work for now #}
+    {% if tab == "storyline" %}
+      <script src="{{ url_for('static', filename='js/storylinelayout.js') }}"></script>
+    {% endif %}
+
+    <script src="{{ url_for('static', filename='js/' + tab + '.js') }}"></script>
+  {% endfor %}
+
   <script src="{{ url_for('static', filename='js/textreplacements.js') }}"></script>
 
 
