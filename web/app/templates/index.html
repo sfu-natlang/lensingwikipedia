@@ -5,11 +5,11 @@
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/loadingindicator.css') }}">
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/constraintslist.css') }}">
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/eventdescriptionslist.css') }}">
-  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/facet.css') }}">
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/facets.css') }}">
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/timeline.css') }}">
-  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/compare.css') }}">
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/comparison.css') }}">
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/map.css') }}">
-  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/tsne.css') }}">
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/cluster.css') }}">
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/textsearch.css') }}">
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/storyline.css') }}">
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/main.css') }}">
@@ -23,11 +23,11 @@
   <script src="{{ url_for('static', filename='js/queries.js') }}"></script>
   <script src="{{ url_for('static', filename='js/constraintslist.js') }}"></script>
   <script src="{{ url_for('static', filename='js/eventdescriptionslist.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/facet.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/facets.js') }}"></script>
   <script src="{{ url_for('static', filename='js/timeline.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/compare.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/comparison.js') }}"></script>
   <script src="{{ url_for('static', filename='js/map.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/tsne.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/cluster.js') }}"></script>
   <script src="{{ url_for('static', filename='js/textsearch.js') }}"></script>
   <script src="{{ url_for('static', filename='js/storylinelayout.js') }}"></script>
   <script src="{{ url_for('static', filename='js/storyline.js') }}"></script>
@@ -91,50 +91,14 @@ Welcome back, {{ g.user.email }}!
 				</div> \
 				<div class="selectorsarea"> \
 					<ul class="nav nav-pills" id="tabbar"> \
-                      {% if "facets" in config.TABS %}
-						<li class="active"><a href="#facetstab" data-toggle="tab" title="Facets view">Facets</a></li> \
-                      {% endif %}
-                      {% if "storyline" in config.TABS %}
-						<li><a href="#storyline" data-toggle="tab" title="Storyline">Storyline</a></li> \
-                      {% endif %}
-                      {% if "timeline" in config.TABS %}
-						<li><a href="#timelinetab" data-toggle="tab" title="Timeline view">Timeline</a></li> \
-                      {% endif %}
-                      {% if "comparison" in config.TABS %}
-						<li><a href="#comparetab" data-toggle="tab" title="Comparison view">Comparison</a></li> \
-                      {% endif %}
-                      {% if "map" in config.TABS %}
-						<li><a href="#maptab" data-toggle="tab" title="Map view">Map</a></li> \
-                      {% endif %}
-                      {% if "cluster" in config.TABS %}
-						<li><a href="#tsnetab" data-toggle="tab" title="Cluster view">Cluster</a></li> \
-                      {% endif %}
-                      {% if "text" in config.TABS %}
-						<li><a href="#textsearchtab" data-toggle="tab" title="Text search">Text search</a></li> \
-                      {% endif %}
+                      {% for tab, tabname in config.TABS %}
+                        <li {% if loop.first %}class="active"{% endif %}><a href="#{{ tab }}tab" data-toggle="tab">{{ tabname }}</a></li> \
+                      {% endfor %}
 					</ul> \
 					<div class="tab-content" id="tabcontents"> \
-                      {% if "facets" in config.TABS %}
-						<div class="tab-pane active" id="facetstab"></div> \
-                      {% endif %}
-                      {% if "storyline" in config.TABS %}
-						<div class="tab-pane" id="storyline"></div> \
-                      {% endif %}
-                      {% if "timeline" in config.TABS %}
-						<div class="tab-pane" id="timelinetab"></div> \
-                      {% endif %}
-                      {% if "comparison" in config.TABS %}
-						<div class="tab-pane" id="comparetab"></div> \
-                      {% endif %}
-                      {% if "map" in config.TABS %}
-						<div class="tab-pane" id="maptab"></div> \
-                      {% endif %}
-                      {% if "cluster" in config.TABS %}
-						<div class="tab-pane" id="tsnetab"></div> \
-                      {% endif %}
-                      {% if "text" in config.TABS %}
-						<div class="tab-pane" id="textsearchtab"></div> \
-                      {% endif %}
+                      {% for tab, tabname in config.TABS %}
+                        <div class="tab-pane active" id="{{ tab }}tab"></div> \
+                      {% endfor %}
 					</div> \
 				</div> \
 			</div>').appendTo($('body'));
@@ -156,61 +120,37 @@ Welcome back, {{ g.user.email }}!
 			}
 			setupSidebar($(".sidebar"), globalQuery);
 
-			var fieldSelections = new Facet.FieldSelections(globalQuery);
+			var fieldSelections = new Facets.FieldSelections(globalQuery);
 			var facetsExpanded = [];
 			var facetMakers = $.map(FrontendConfig.facets, function (facet) {
 				return function (container) {
 					fieldSelections.setName(facet.field, facet.title);
 					facetsExpanded.push(Utils.extendObject([facet], {
-						facet: Facet.setup(container, globalQuery, facet.title, facet.field, fieldSelections.get(facet.field))
+						facet: Facets.setup(container, globalQuery, facet.title, facet.field, fieldSelections.get(facet.field))
 					}));
 				}
 			});
 
-            {% if "facets" in config.TABS %}
-              LayoutUtils.setupSplitMakeElements($('#facetstab'), 'horizontal', facetMakers);
-            {% endif %}
-            {% if "storyline" in config.TABS %}
-              Storyline.setup($('#storyline'), globalQuery, facetsExpanded, fieldSelections);
-            {% endif %}
-            {% if "timeline" in config.TABS %}
-              Timeline.setup($('#timelinetab'), initialQuery, globalQuery);
-            {% endif %}
-            {% if "comparison" in config.TABS %}
-              Compare.setup($('#comparetab'), globalQuery, facetsExpanded);
-            {% endif %}
-            {% if "map" in config.TABS %}
-              Map.setup($('#maptab'), initialQuery, globalQuery, mapDataUrl, FrontendConfig.minMapZoom, FrontendConfig.maxMapZoom);
-            {% endif %}
-            {% if "cluster" in config.TABS %}
-              Tsne.setup($('#tsnetab'), initialQuery, globalQuery, FrontendConfig.minMapZoom, FrontendConfig.maxMapZoom);
-            {% endif %}
-            {% if "text" in config.TABS %}
-              TextSearch.setup($('#textsearchtab'), globalQuery);
-            {% endif %}
+            var parameters = {
+              globalQuery: globalQuery,
+              facetsExpanded: facetsExpanded,
+              fieldSelections: fieldSelections,
+              initialQuery: initialQuery,
+              mapDataUrl: mapDataUrl,
+              minMapZoom: FrontendConfig.minMapZoom,
+              maxMapZoom: FrontendConfig.maxMapZoom
+            }
 
+            {# always show the facets tab #}
+            LayoutUtils.setupSplitMakeElements($('#facetstab'), 'horizontal', facetMakers);
 
-            {% if "facets" in config.TABS %}
-              LayoutUtils.fillElement($('.tab-content'), $('#facetstab'), 'vertical');
-            {% endif %}
-            {% if "storyline" in config.TABS %}
-              LayoutUtils.fillElement($('.tab-content'), $('#storyline'), 'vertical');
-            {% endif %}
-            {% if "timeline" in config.TABS %}
-              LayoutUtils.fillElement($('.tab-content'), $('#timelinetab'), 'vertical');
-            {% endif %}
-            {% if "comparison" in config.TABS %}
-              LayoutUtils.fillElement($('.tab-content'), $('#comparetab'), 'vertical');
-            {% endif %}
-            {% if "map" in config.TABS %}
-              LayoutUtils.fillElement($('.tab-content'), $('#maptab'), 'vertical');
-            {% endif %}
-            {% if "cluster" in config.TABS %}
-              LayoutUtils.fillElement($('.tab-content'), $('#tsnetab'), 'vertical');
-            {% endif %}
-            {% if "text" in config.TABS %}
-              LayoutUtils.fillElement($('.tab-content'), $('#textsearchtab'), 'vertical');
-            {% endif %}
+            {% for tab, tabname in config.TABS[1:] %}
+              {{ tab|capitalize }}.setup($('#{{ tab }}tab'), parameters);
+            {% endfor %}
+
+            {% for tab, tabname in config.TABS %}
+              LayoutUtils.fillElement($('.tab-content'), $('#{{ tab }}tab'), 'vertical');
+            {% endfor %}
 
 			LayoutUtils.fillElement($('.tab-content'), $('#abouttab'), 'vertical');
 

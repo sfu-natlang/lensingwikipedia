@@ -435,7 +435,13 @@ function syncMarkerStylesWithSelection(svg, selection) {
  * minZoom: minimum allowed zoom level
  * maxZoom: maximum allowed zoom level
  */
-function setup(container, initialQuery, globalQuery, mapDataUrl, minZoom, maxZoom) {
+function setup(container, parameters) {
+    var initialQuery = parameters.initialQuery;
+    var globalQuery = parameters.globalQuery;
+    var mapDataUrl = parameters.mapDataUrl;
+    var minZoom = parameters.minMapZoom;
+    var maxZoom = parameters.maxMapZoom;
+
 	// The view space for SVG; this doesn't have to correspond to screen units.
 	var viewBox = { x: 0, y : 0, width: 1024, height: 768 };
 	// Margins for the map.

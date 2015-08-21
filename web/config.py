@@ -17,14 +17,17 @@ DOMAIN = "wikipediahistory"
 BACKEND_URL = "http://natlang-web.cs.sfu.ca:1500"
 
 # This selects which tabs you want to show up in the interface
+# Format: (internal_name, display_name)
+# XXX The code relies on the fact that the name of the modules is capitalized
+#     internal_name
 TABS = [
-    "facets",
-    "storyline",
-    "timeline",
-    "comparison",
-    "map",
-    "cluster",
-    "text"
+    ("facets", "Facets"),
+    ("storyline", "Storyline"),
+    ("timeline", "Timeline"),
+    ("comparison", "Comparison"),
+    ("map", "Map"),
+    ("cluster", "Cluster"),
+    ("textsearch", "Text Search")
 ]
 
 try:

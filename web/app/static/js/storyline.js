@@ -542,7 +542,11 @@ function drawAll(outer, svg, legend, detailBox, selectBox, data, initialBrushExt
  * initialQuery: the initial (empty) query
  * globalQuery: the global query
  */
-function setup(container, globalQuery, facets, fieldSelections) {
+function setup(container, parameters) {
+    var globalQuery = parameters.globalQuery;
+    var facets = parameters.facetsExpanded;
+    var fieldSelections = parameters.fieldSelections;
+
 	// The view space for SVG; this doesn't have to correspond to screen units.
 	var viewBox = { x: 0, y : 0, width: 1024, height: 768 };
 	// Margins for the graph
@@ -623,7 +627,7 @@ function setup(container, globalQuery, facets, fieldSelections) {
 
 	var entityLists = $.map(storylineFields, function (fieldInfo, fieldI) {
 		var entitySelection = new Selections.SimpleSetSelection();
-		var entityList = new Facet.FacetListBox(entityListMenuElts[fieldI], globalQuery, fieldInfo.field, entitySelection);
+		var entityList = new Facets.FacetListBox(entityListMenuElts[fieldI], globalQuery, fieldInfo.field, entitySelection);
 		entityList.on('element-selection-change', function (value, itemElt, isSelected) {
 			itemElt.css('background-color', isSelected ? entityColour(value) : 'white');
 		});

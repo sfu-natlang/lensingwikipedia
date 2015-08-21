@@ -2,14 +2,16 @@
  * Text search control.
  */
 
-var TextSearch = (function () {
+var Textsearch = (function () {
 
 /*
  * Setup the control in some container element.
  * container: container element as a jquery selection
  * globalQuery: the global query
  */
-function setup(container, globalQuery) {
+function setup(container, parameters) {
+    var globalQuery = parameters.globalQuery;
+
 	var outerElt = $('<div class="textsearch"></div>').appendTo(container);
 
 	var formElt = $('<form></form>').appendTo(outerElt);

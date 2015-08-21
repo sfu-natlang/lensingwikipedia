@@ -2,7 +2,7 @@
  * Facet control.
  */
 
-var Facet = (function () {
+var Facets = (function () {
 
 /*
  * UI list of values for a field.
