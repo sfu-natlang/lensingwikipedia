@@ -34,7 +34,7 @@ default_server_settings = dict(backend_settings_defaults.settings['server'].iter
 domain_default_server_settings = dict(backend_domain_settings_defaults.settings['server'].iteritems())
 ServerSettings = backend_settings.make_settings_structure(default_server_settings, domain_default_server_settings)
 
-logging.basicConfig(filename="lensing.log",
+logging.basicConfig(stream=sys.stdout,
                     level=logging.DEBUG)
 
 class State:
