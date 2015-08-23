@@ -5,6 +5,9 @@ web:
         # Only change the HOST part
         - "8080:80"
     restart: on-failure:10
+    log_driver: "syslog"
+    log_opt:
+        syslog-tag: "web"
 query:
     build: backend
     ports:
@@ -18,3 +21,6 @@ query:
     environment:
         CONFIG: wikipediahistory
     restart: on-failure:10
+    log_driver: "syslog"
+    log_opt:
+        syslog-tag: "query"
