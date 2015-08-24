@@ -96,3 +96,9 @@ Then run the following commands:
 
 To update the site, pull the new version from github and rebuild the docker images (using the same commands above).
 
+When updating to a new docker image, you should check if the previous image was terminated gracefully:
+
+    sudo docker ps
+    sudo docker kill CONTAINER-ID
+
+
