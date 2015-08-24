@@ -101,4 +101,25 @@ When updating to a new docker image, you should check if the previous image was 
     sudo docker ps
     sudo docker kill CONTAINER-ID
 
+## Deleting all Docker images and containers
 
+### Containers
+
+If you wish to remove all containers on the host, run the following command:
+
+    sudo docker rm -f $(sudo docker ps -aq)
+
+The `-f` means 'force' and is optional; it is useful when some containers are
+still running, and you want to delete those too. Without `-f`, this command
+won't kill running containers.
+
+`docker ps` lists containers, `-a` means "all" (including stopped containers),
+`-q` means "quiet" (only show IDs).
+
+### Images
+
+If you wish to remove all Docker images on the host, run the following command:
+
+    sudo docker rmi $(sudo docker images -q)
+
+`docker images` lists images, `-q` means "quiet" (only show IDs).
