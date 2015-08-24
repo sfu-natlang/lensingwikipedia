@@ -176,7 +176,6 @@ def serve(hostname, port, settings_path):
   new_state_thread.start()
 
   def app(environ, start_response):
-    logging.debug()
     logging.debug("request at %s" % (str(datetime.datetime.now())))
 
     need_update = state.any_unset()
