@@ -74,15 +74,7 @@ will be similar.
     python2.7 cluster /var/www/html/data/wikipedia/latest/fullData.index
     python2.7 tsne /var/www/html/data/wikipedia/latest/fullData.index
 
-## Build the docker images
-
-When building the docker images, make sure the index you want to use is in
-`/opt/lensing/data`, and then run the following command:
-
-    cd repo
-    sudo docker-compose build
-
-## Configuring your images
+## Configure and build the docker images
 
 For the backend, the only configuration option available is whether you want
 the 'wikipediahistory' or 'avherald' domains to be used. This can be chosen by
@@ -93,12 +85,14 @@ in `web/README.md`. Place the `local_config.py` file in the same directory as
 `config.py` before you run `docker-compose build`, and it'll be added to the
 image.
 
-## Run the docker containers
+The defaults are set up to reflect the current directory structure and open ports on `natlang-web.cs.sfu.ca`
 
-    cd repo
-    sudo docker-compose up
+Then run the following commands:
+
+    sudo /usr/local/bin/docker-compose build
+    sudo /usr/local/bin/docker-compose up
 
 ## Updating the site.
 
-To update the site, rebuild the docker images (using the same commands above).
+To update the site, pull the new version from github and rebuild the docker images (using the same commands above).
 
