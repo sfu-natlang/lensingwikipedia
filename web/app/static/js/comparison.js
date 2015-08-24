@@ -1,4 +1,4 @@
-var Compare = (function () {
+var Comparison = (function () {
 
 var currentFacet;
 var topCount = 5;
@@ -18,7 +18,10 @@ var current_domain = null;
  * initialQuery: the initial (empty) query
  * globalQuery: the global query
  */
-function setup(container, globalQuery, facets) {
+function setup(container, parameters) {
+    var globalQuery = parameters.globalQuery;
+    var facets = parameters.facetsExpanded;
+
 	/************************** CONSTANTS *****************************/
 	// The view space for SVG; this doesn't have to correspond to screen units.
 	var viewBox = { x: 0, y : 0, width: 1024, height: 768 };
@@ -43,7 +46,7 @@ function setup(container, globalQuery, facets) {
 
 	/************************* BEGIN BUILD UI *************************/
 
-	var outerElt = $('<div class="compare"></div>').appendTo(container);
+	var outerElt = $('<div class="comparison"></div>').appendTo(container);
 
 	var controlsElt = $('<div class="controls"></div>').appendTo(outerElt);
 	var clearSelElt = $('<button type="button" class="btn btn-mini btn-warning clear mapclear" title="Clear">Clear selection</button>').appendTo(controlsElt);
@@ -74,7 +77,7 @@ function setup(container, globalQuery, facets) {
 	// legend needs to come before outersvg because we've got float:right on it
 	var legendElt = $('<div class="legend"><ul></ul></div>').appendTo(outerElt);
 	var outerSvgElt = $('<svg class="outersvg"></svg>').appendTo(outerElt);
-	var svgElt = $('<svg id="comparesvg"</svg>').appendTo(outerSvgElt);
+	var svgElt = $('<svg id="comparisonsvg"</svg>').appendTo(outerSvgElt);
 
 
 	var loadingIndicator = new LoadingIndicator.LoadingIndicator(outerElt);
@@ -417,9 +420,9 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 
 	var parseDate = d3.time.format("%Y").parse;
 
-	d3.select("#comparesvg").selectAll("*").remove();
+	d3.select("#comparisonsvg").selectAll("*").remove();
 
-	var svg = d3.select("#comparesvg")
+	var svg = d3.select("#comparisonsvg")
 			.attr("viewBox", [viewBox.x, viewBox.y, viewBox.width, viewBox.height].join(" "))
 			.attr("preserveAspectRatio", "none");
 
@@ -439,11 +442,11 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 
 	var focus = svg.append("g")
 			.attr("transform", "translate(" + margins.left + "," + detailBox.y + ")")
-			.attr("id", "compare-focus");
+			.attr("id", "comparison-focus");
 
 	var context = svg.append("g")
 			.attr("transform", "translate(" + margins.left + "," + selectBox.y + ")")
-			.attr("id", "compare-context");
+			.attr("id", "comparison-context");
 
 	var x = d3.time.scale().range([0, detailBox.width]);
 	var x2 = d3.time.scale().range([0, selectBox.width]);

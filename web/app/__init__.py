@@ -25,4 +25,10 @@ manager.add_command('db', MigrateCommand)
 lm = LoginManager()
 lm.init_app(app)
 
+# Don't leave empty lines where the blocks were.
+# This allows us to have if statements within multiline Javascript strings,
+# which, although a bad idea, might sometimes be necessary.
+app.jinja_env.trim_blocks = True
+app.jinja_env.lstrip_blocks = True
+
 from app import views, models, forms

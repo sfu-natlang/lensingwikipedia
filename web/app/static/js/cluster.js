@@ -1,6 +1,11 @@
-var Tsne = (function () {
+var Cluster = (function () {
 
-function setup(container, initialQuery, globalQuery, minZoom, maxZoom) {
+function setup(container, parameters) {
+    var initialQuery = parameters.initialQuery;
+    var globalQuery = parameters.globalQuery;
+    var minZoom = parameters.minMapZoom;
+    var maxZoom = parameters.maxMapZoom;
+
     var width = 1024,
     height = 768;
     // The view space for SVG; this doesn't have to correspond to screen units.
@@ -8,7 +13,7 @@ function setup(container, initialQuery, globalQuery, minZoom, maxZoom) {
     // Margins for the map.
     var margins = { left: 10, right: 10, top: 10, bottom: 10, between: 10 };
 
-    var outerElt = $("<div class=\"tsne\"></div>").appendTo(container);
+    var outerElt = $("<div class=\"cluster\"></div>").appendTo(container);
     var topBoxElt = $("<div class=\"topbox\"></div>").appendTo(outerElt);
     var svgElt = $("<svg viewBox=\"" + viewBox.x + " " + viewBox.y + " " + viewBox.width + " " + viewBox.height + "\" preserveAspectRatio=\"xMidYMid meet\"></svg>").appendTo(outerElt);
 

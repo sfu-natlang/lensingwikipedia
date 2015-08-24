@@ -300,7 +300,10 @@ function drawAll(svgElt, svg, detailBox, selectBox, data, selection) {
  * initialQuery: the initial (empty) query
  * globalQuery: the global query
  */
-function setup(container, initialQuery, globalQuery) {
+function setup(container, parameters) {
+    var initialQuery = parameters.initialQuery;
+    var globalQuery = parameters.globalQuery;
+
 	// The view space for SVG; this doesn't have to correspond to screen units.
 	var viewBox = { x: 0, y : 0, width: 1024, height: 768 };
 	// Margins for the main graphs (but not for the axes and axes labels, which go in the margin space).

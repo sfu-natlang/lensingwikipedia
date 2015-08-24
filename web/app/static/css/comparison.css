@@ -2,29 +2,29 @@ body {
 	overflow: hidden;
 }
 
-.compare {
+.comparison {
 	width: 100%;
 	margin: 0;
 	padding: 0;
 	overflow: hidden;
 }
 
-.compare .topbox {
+.comparison .topbox {
 	margin: 0;
 	padding: 0 10px 0 10px;
 }
 
-.compare svg {
+.comparison svg {
 	width: 100%;
 	margin: 0;
 	padding: 0;
 }
 
-.compare .outersvg {
+.comparison .outersvg {
 	width: calc(100% - 150px);
 }
 
-.compare .legend {
+.comparison .legend {
 	width: 150px;
 	float: right;
 
@@ -33,11 +33,11 @@ body {
 	overflow-x: hidden;
 }
 
-.compare .legend ul {
+.comparison .legend ul {
 	margin-left: 0;
 }
 
-.compare .legend ul li {
+.comparison .legend ul li {
 	list-style: none;
 }
 
