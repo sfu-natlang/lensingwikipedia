@@ -21,6 +21,7 @@ import datetime
 import traceback
 import threading
 import copy
+import logging
 import Queue
 import whoosh, whoosh.index
 import wsgiref, wsgiref.simple_server
@@ -32,6 +33,9 @@ default_port = 1500
 default_server_settings = dict(backend_settings_defaults.settings['server'].iteritems())
 domain_default_server_settings = dict(backend_domain_settings_defaults.settings['server'].iteritems())
 ServerSettings = backend_settings.make_settings_structure(default_server_settings, domain_default_server_settings)
+
+logging.basicConfig(stream=sys.stdout,
+                    level=logging.DEBUG)
 
 class State:
   """
@@ -61,52 +65,52 @@ def clear_queue(queue):
       return
 
 def consider_settings(settings_path, current_settings):
-  print >> sys.stderr, "considering settings"
+  logging.debug("considering settings")
   if settings_path is None:
-    print >> sys.stderr, "no settings file"
+    logging.debug("no settings file")
     return current_settings
   else:
-    print >> sys.stderr, "updating settings from %s" % (settings_path)
+    logging.debug("updating settings from %s" % (settings_path))
     file_settings = backend_settings.read_new_from_file(settings_path, current_settings)
     if file_settings != current_settings:
-      print >> sys.stderr, "using new settings"
+      logging.debug("using new settings")
       new_settings = file_settings
     else:
       new_settings = None
     return new_settings
 
 def consider_index(index_path, current_index, server_settings):
-    print >> sys.stderr, "considering index"
+    logging.debug("considering index")
     if server_settings.index_dir_path is not None and server_settings.index_dir_path != index_path:
       index_path = server_settings.index_dir_path
       current_index = None
-      print >> sys.stderr, "changing to new index file"
+      logging.debug("changing to new index file")
     if current_index is None:
-      print >> sys.stderr, "opening index from %s" % (index_path)
-      print >> sys.stderr, "using new index"
+      logging.debug("opening index from %s" % (index_path))
+      logging.debug("using new index")
       new_index = whoosh.index.open_dir(index_path)
     else:
       new_index = None
     return index_path, new_index
 
 def consider_querier_reset(current_querier, server_settings, all_settings, index, reset_index_last_modified):
-  print >> sys.stderr, "considering resetting querier"
+  logging.debug("considering resetting querier")
   if current_querier is None:
-    print >> sys.stderr, "need initial querier"
+    logging.debug("need initial querier")
   elif server_settings.always_reset:
-    print >> sys.stderr, "reset forced by always_reset setting"
+    logging.debug("reset forced by always_reset setting")
     current_querier = None
   else:
     index_last_modified = index.last_modified()
     if index_last_modified > reset_index_last_modified:
-      print >> sys.stderr, "index modified since last reset"
+      logging.debug("index modified since last reset")
       current_querier = None
   if current_querier is None:
-    print >> sys.stderr, "using fresh querier"
+    logging.debug("using fresh querier")
     new_querier = queries.Querier(index, **(all_settings.get('querier') or {}))
-    print >> sys.stderr, "priming"
+    logging.debug("priming")
     new_querier.prime()
-    print >> sys.stderr, "priming complete"
+    logging.debug("priming complete")
   else:
     new_querier = None
   return new_querier
@@ -135,7 +139,7 @@ def state_watcher(settings_path, exit_event, change_queue):
       server_settings = ServerSettings(**(all_settings.get('server') or {}))
 
     if server_settings.index_dir_path is None:
-      print >> sys.stderr, "error: no index path specified"
+      logging.debug("error: no index path specified")
       running = False
       raise backend_settings.MissingRequiredSetting('index_dir_path')
     index_path, new_index = consider_index(index_path, index, server_settings)
@@ -151,7 +155,7 @@ def state_watcher(settings_path, exit_event, change_queue):
       reset_index_last_modified = index.last_modified()
 
     if changed:
-      print >> sys.stderr, "pushing new state"
+      logging.debug("pushing new state")
       if change_queue.full():
         clear_queue(change_queue)
       change_queue.put(State(server_settings=server_settings, querier=querier))
@@ -172,17 +176,17 @@ def serve(hostname, port, settings_path):
   new_state_thread.start()
 
   def app(environ, start_response):
-    print >> sys.stderr
-    print >> sys.stderr, "request at %s" % (str(datetime.datetime.now()))
+    logging.debug()
+    logging.debug("request at %s" % (str(datetime.datetime.now())))
 
     need_update = state.any_unset()
     while not new_state_queue.empty() or need_update:
       try:
         if need_update:
-          print >> sys.stderr, "waiting to get complete state"
+          logging.debug("waiting to get complete state")
         new_state = new_state_queue.get(block=need_update)
         state.update(new_state)
-        print >> sys.stderr, "applying new state"
+        logging.debug("applying new state")
         need_update = state.any_unset()
       except Queue.Empty:
         # It's ok if there are no state changes
@@ -192,7 +196,7 @@ def serve(hostname, port, settings_path):
       if environ['REQUEST_METHOD'] == 'POST':
         body = str(environ['wsgi.input'].read(int(environ['CONTENT_LENGTH'])))
         if state.server_settings.verbose:
-          print >> sys.stderr, "query: %s" % (body)
+          logging.debug("query: %s" % (body))
         query = json.loads(body)
       else:
         query = {}
@@ -203,14 +207,14 @@ def serve(hostname, port, settings_path):
         else:
           response = json.dumps(state.querier.handle(query))
           if state.server_settings.verbose:
-            print >> sys.stderr, "response: %s" % (response)
+            logging.debug("response: %s" % (response))
           start_response("200 OK", [("Content-type", "application/json"), ("Access-Control-Allow-Origin", "*")])
           return [response]
       except:
-        print >> sys.stderr, "query response failed:"
+        logging.debug("query response failed:")
         traceback.print_exc(file=sys.stderr)
     except:
-      print >> sys.stderr, "couldn't read query from post:"
+      logging.debug("couldn't read query from post:")
       traceback.print_exc(file=sys.stderr)
 
     # Fail if we haven't returned already
@@ -219,7 +223,7 @@ def serve(hostname, port, settings_path):
 
   try:
     httpd = wsgiref.simple_server.make_server(hostname, port, app)
-    print >> sys.stderr, "serving"
+    logging.debug("serving")
     httpd.serve_forever()
   except:
     exit_event.set()
@@ -234,7 +238,7 @@ if __name__ == '__main__':
       raise getopt.GetoptError("wrong number of positional arguments")
     opts = dict(opts)
   except getopt.GetoptError:
-    print >> sys.stderr, __doc__.strip('\n\r') % (sys.argv[0], default_port)
+    logging.debug(__doc__.strip('\n\r') % (sys.argv[0], default_port))
     sys.exit(1)
 
   hostname = opts['-h'] if '-h' in opts else ""
