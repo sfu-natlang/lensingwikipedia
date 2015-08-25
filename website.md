@@ -98,13 +98,34 @@ Download Docker Toolbox and follow instructions on this page:
 
     https://docs.docker.com/installation/mac/
     
-Run `Docker Terminal` and enter the following commands:
+Run `/Applications/Docker/Docker Quickstart Terminal` and you should see a Terminal window that looks like this:
+
+                            ##         .
+                      ## ## ##        ==
+                   ## ## ## ## ##    ===
+               /"""""""""""""""""\___/ ===
+          ~~~ {~~ ~~~~ ~~~ ~~~~ ~~~ ~ /  ===- ~~~
+               \______ o           __/
+                 \    \         __/
+                  \____\_______/
+    docker is configured to use the default machine with IP 192.168.99.100
+    For help getting started, check out the docs at https://docs.docker.com
+
+You will use the IP address shown above to connect to the lensing server. 
+
+Checkout the repository and download the data index files. Update `web/local_config.py` and `docker-compose.yml` to run as IP address shown above and provide the location of the data index files. Remove the `log_driver` and `log_opt` options from `docker-compose.yml` otherwise `docker-compose up` will terminate with an error. 
+
+Make sure that `BACKEND_URL` in `local_config.py` uses the IP address from above, e.g.: 
+
+    BACKEND_URL = "http://192.168.99.100:1500"
+
+Then enter the following commands:
 
     docker run hello-world # to see if the install worked
     docker-compose build
     docker-compose up
 
-Checkout the repository and download the data index files. Update `web/local_config.py` and `docker-compose.yml` to run as localhost and provide the location of the data index files. Remove the `log_driver` and `log_opt` options from `docker-compose.yml` otherwise `docker-compose up` will terminate with an error.
+Visit the IP address for your docker container at the port you selected in `docker-compose.yml` and you should see an running version of lensingwikipedia. Troubleshooting: run `docker-compose build --no-cache` and see if that fixes any 404 problems.
 
 ## Updating the site.
 
