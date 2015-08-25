@@ -92,7 +92,7 @@ Then run the following commands:
     sudo /usr/local/bin/docker-compose build
     sudo /usr/local/bin/docker-compose up
 
-## Installation on macosx
+## Localhost installation on macosx for offline demos
 
 Download Docker Toolbox and follow instructions on this page:
 
