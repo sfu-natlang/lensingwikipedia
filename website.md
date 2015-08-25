@@ -92,6 +92,20 @@ Then run the following commands:
     sudo /usr/local/bin/docker-compose build
     sudo /usr/local/bin/docker-compose up
 
+## Installation on macosx
+
+Download Docker Toolbox and follow instructions on this page:
+
+    https://docs.docker.com/installation/mac/
+    
+Run `Docker Terminal` and enter the following commands:
+
+    docker run hello-world # to see if the install worked
+    docker-compose build
+    docker-compose up
+
+Checkout the repository and download the data index files. Update `web/local_config.py` and `docker-compose.yml` to run as localhost and provide the location of the data index files. Remove the `log_driver` and `log_opt` options from `docker-compose.yml` otherwise `docker-compose up` will terminate with an error.
+
 ## Updating the site.
 
 To update the site, pull the new version from github and rebuild the docker images (using the same commands above).
