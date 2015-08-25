@@ -93,6 +93,10 @@ ports on `natlang-web.cs.sfu.ca`
 
 Make sure you have permissions 664 on files and 755 on directories in `web/`
 
+    cd repo
+    find web -print -type f -exec chmod 664 {} \;
+    find web -print -type d -exec chmod 755 {} \;
+
 Then run the following commands:
 
     sudo /usr/local/bin/docker-compose build
