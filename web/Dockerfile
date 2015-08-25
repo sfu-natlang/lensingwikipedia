@@ -9,8 +9,6 @@ RUN apt-get update && \
 
 ADD . /opt/lensing
 RUN chown -R www-data:www-data /opt/lensing
-RUN find /opt/lensing -type f -exec chmod 664 "{}" \;
-RUN find /opt/lensing -type d -exec chmod 775 "{}" \;
 
 RUN cp /opt/lensing/app.wsgi /var/www/lensing.wsgi
 RUN chown -R www-data:www-data /var/www
@@ -23,6 +21,8 @@ ADD deploy-config/ubuntu-virtualhost.conf /etc/apache2/sites-available/001-lensi
 RUN a2enmod wsgi
 RUN a2ensite 001-lensing
 
-# THIS CHMOD HAS TO BE HERE OR ELSE PYTHON CODE WON'T BE ABLE TO OPEN THE FILES
-# EVEN THOUGH THE PERMISSIONS ARE 664 ON THESE FILES
-CMD chmod 664 /opt/lensing/app/templates/* && apache2ctl -D FOREGROUND
+# - Reason for `rm`: If the container isn't stopped gracefully, and Apache
+#   didn't delete its lock files, it won't start up again (it'll say httpd is
+#   already running).
+CMD rm -rf /var/run/apache2/* /var/lock/apache2/* \
+    && apache2ctl -D FOREGROUND
