@@ -40,11 +40,14 @@ and URLs as needed.
 
 ## Set up docker on Ubuntu or CentOS 6/7
 
-Set up docker version 1.7.1 or greater on Ubuntu on CentOS 6 or CentOS 7. Installing on Ubuntu in easy. To install on CentOS follow the instructions in the following page:
+Set up docker version 1.7.1 or greater on Ubuntu on CentOS 6 or CentOS 7.
+Installing on Ubuntu in easy. To install on CentOS follow the instructions in
+the following page:
 
     http://blog.docker.com/2015/07/new-apt-and-yum-repos/
 
-After you have installed using `sudo yum install docker-engine` then install `docker-compose`:
+After you have installed using `sudo yum install docker-engine` then install
+`docker-compose`:
 
     sudo /usr/local/bin/pip-2.7 install docker-compose
 
@@ -85,7 +88,10 @@ in `web/README.md`. Place the `local_config.py` file in the same directory as
 `config.py` before you run `docker-compose build`, and it'll be added to the
 image.
 
-The defaults are set up to reflect the current directory structure and open ports on `natlang-web.cs.sfu.ca`
+The defaults are set up to reflect the current directory structure and open
+ports on `natlang-web.cs.sfu.ca`
+
+Make sure you have permissions 664 on files and 755 on directories in `web/`
 
 Then run the following commands:
 
@@ -129,9 +135,11 @@ Visit the IP address for your docker container at the port you selected in `dock
 
 ## Updating the site.
 
-To update the site, pull the new version from github and rebuild the docker images (using the same commands above).
+To update the site, pull the new version from github and rebuild the docker
+images (using the same commands above).
 
-When updating to a new docker image, you should check if the previous image was terminated gracefully:
+When updating to a new docker image, you should check if the previous image was
+terminated gracefully:
 
     sudo docker ps
     sudo docker kill CONTAINER-ID
