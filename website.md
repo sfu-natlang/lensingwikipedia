@@ -135,7 +135,7 @@ Then enter the following commands:
     docker-compose build
     docker-compose up
 
-Visit the IP address for your docker container at the port you selected in `docker-compose.yml` and you should see an running version of lensingwikipedia. Troubleshooting: run `docker-compose build --no-cache` and see if that fixes any 404 problems.
+Visit the IP address for your docker container at the port you selected in `docker-compose.yml` and you should see an running version of lensingwikipedia. Troubleshooting: if `nc -z 192.168.99.100 8080` reports that port 8080 is not serving requests then follow the instructions below to remove all containers and then run `docker-compose up` to see if that fixes the problem.
 
 ## Updating the site.
 
