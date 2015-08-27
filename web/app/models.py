@@ -21,5 +21,8 @@ class User(db.Model, UserMixin):
     def is_active(self):
         return self.status == STATUS['regular']
 
+    def is_banned(self):
+        return self.status == STATUS['banned']
+
     def __repr__(self):
         return '<User %r>' % self.email

@@ -9,6 +9,8 @@
     <tr>
       <th>Username</th>
       <th>Email</th>
+      <th>Admin?</th>
+      <th>Banned?</th>
     </tr>
   </thead>
   <tbody>
@@ -16,6 +18,8 @@
   <tr>
     <td>{{ user.username }}</td>
     <td><a href="{{ url_for('user', id=user.id) }}">{{ user.email }}</a></td>
+    <td>{% if user.is_admin() %}yes{% else %}no{% endif %}</td>
+    <td>{% if user.is_active() %}no{% else %}yes{% endif %}</td>
   </tr>
   {% endfor %}
   </tbody>

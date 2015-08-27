@@ -6,7 +6,7 @@ from functools import wraps
 import textwrap
 import datetime
 from . import app, db, lm, forms
-from .models import User
+from .models import User, ROLE, STATUS
 
 def admin_required(f):
     @wraps(f)
@@ -66,13 +66,16 @@ def user(id):
         abort(403)
 
     user = User.query.get_or_404(id)
-    ban_user_form = forms.BanUser()
+    modify_user_form = forms.ModifyUser(role=str(user.role),
+                                        status=str(user.status))
 
-    if ban_user_form.validate_on_submit():
-        user.status = STATUS['banned']
+    if modify_user_form.validate_on_submit():
+        user.role = int(modify_user_form.role.data)
+        user.status = int(modify_user_form.status.data)
+
         db.session.commit()
 
     return render_template("admin/user.html",
             title="User %d = %s" % (id, user.username),
             user=user,
-            ban_user_form=ban_user_form)
+            form=modify_user_form)
