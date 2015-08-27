@@ -16,7 +16,7 @@ class User(db.Model, UserMixin):
 
     def is_admin(self):
         return (self.role == ROLE['admin'] or
-                self.email == app.config['MAIN_ADMIN'])
+                self.email in app.config['ADMINS'])
 
     def is_active(self):
         return self.status == STATUS['regular']

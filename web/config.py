@@ -32,11 +32,17 @@ TABS = [
 
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = '***'
 SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = '***'
+
+# DO NOT TOUCH
 SOCIAL_AUTH_USER_MODEL = 'app.models.User'
 SOCIAL_AUTH_AUTHENTICATION_BACKENDS = ('social.backends.google.GoogleOAuth2',)
 SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/'
 
-MAIN_ADMIN = '***'
+# List of email addresses for the admins.
+# This is for a user who will never be able to lose admin rights, and is going
+# to be the first admin. You can set multiple users, but it's probably best if
+# you only have one.
+ADMINS = []
 
 SITE_URL = "lensingwikipedia.cs.sfu.ca"
 
