@@ -6,6 +6,14 @@ import datetime
 ROLE = {'user': 0, 'admin': 1}
 STATUS = {'regular': 0, 'banned': 1}
 
+tabs = db.Table('tabs',
+    db.Column('tab_name', db.Integer, db.ForeignKey('tab.name')),
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id'))
+)
+
+class Tab(db.Model):
+    name = db.Column(db.String, unique=True, primary_key=True)
+
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(200))
@@ -13,6 +21,10 @@ class User(db.Model, UserMixin):
     role = db.Column(db.SmallInteger, default=ROLE['user'])
     status = db.Column(db.SmallInteger, default=STATUS['regular'])
     last_seen = db.Column(db.DateTime)
+    notes = db.Column(db.Text)
+
+    tabs = db.relationship('Tab', secondary=tabs,
+                           backref=db.backref('users', lazy='dynamic'))
 
     def is_admin(self):
         return (self.role == ROLE['admin'] or

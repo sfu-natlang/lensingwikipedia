@@ -6,7 +6,7 @@ from functools import wraps
 import textwrap
 import datetime
 from . import app, db, lm, forms
-from .models import User, ROLE, STATUS
+from .models import User, Tab, ROLE, STATUS
 
 def admin_required(f):
     @wraps(f)
@@ -43,7 +43,24 @@ def commit_on_success(error=None):
 
 @app.route('/')
 def index():
-    return render_template("index.html", title="index")
+    if g.user.is_authenticated():
+        if not g.user.tabs:
+            # if there are no tabs set, the user should be able to see all tabs
+            for tab in Tab.query.all():
+                g.user.tabs.append(tab)
+
+            db.session.commit()
+
+    visible_tabs = app.config['TABS']
+
+    if g.user.is_authenticated():
+        visible_tabs = []
+        config_tabs = dict(app.config['TABS'])
+        for tab in g.user.tabs:
+            if tab.name in config_tabs.keys():
+                visible_tabs.append((tab.name, config_tabs[tab.name]))
+
+    return render_template("index.html", title="index", tabs=visible_tabs)
 
 @app.route("/logout")
 def logout():
@@ -66,12 +83,24 @@ def user(id):
         abort(403)
 
     user = User.query.get_or_404(id)
+
+    user_tabs_names = map(lambda x: x.name, user.tabs)
+
     modify_user_form = forms.ModifyUser(role=str(user.role),
-                                        status=str(user.status))
+                                        status=str(user.status),
+                                        tabs=user_tabs_names)
 
     if modify_user_form.validate_on_submit():
         user.role = int(modify_user_form.role.data)
         user.status = int(modify_user_form.status.data)
+
+        for t in user.tabs:
+            user.tabs.remove(t)
+            db.session.commit()
+
+        for tab in modify_user_form.tabs:
+            if tab.checked:
+                user.tabs.append(Tab.query.filter_by(name=tab.data).first())
 
         db.session.commit()
 
