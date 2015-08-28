@@ -79,11 +79,11 @@ function addToDescriptionList(descriptions, listElt) {
 		var ddElt = $("<dd>" + shortDesc + "</dd>").appendTo(listElt);
 		dtElt.find("a").attr('target', '_blank');
 		ddElt.find("a").attr('target', '_blank');
-		var expandFullElt = $("<span class=\"icon-plus\"></span>").appendTo(ddElt);
+		var expandFullElt = $("<span class=\"glyphicon-plus-sign\"></span>").appendTo(ddElt);
 		var fullElt = $("<div class=\"eventfulldescription\">" + longDesc + "</div>").appendTo(ddElt);
 		refsElt.appendTo(ddElt);
 		expandFullElt.click(function () {
-			$(this).toggleClass('icon-plus icon-minus');
+			$(this).toggleClass('glyphicon-plus-sign glyphicon-minus-sign');
 			fullElt.toggleClass('expanded');
 		});
 	});
