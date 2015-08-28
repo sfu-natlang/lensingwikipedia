@@ -137,6 +137,14 @@ Then enter the following commands:
 
 Visit the IP address for your docker container at the port you selected in `docker-compose.yml` and you should see an running version of lensingwikipedia. Troubleshooting: if `nc -z 192.168.99.100 8080` reports that port 8080 is not serving requests then follow the instructions below to remove all containers and then run `docker-compose up` to see if that fixes the problem.
 
+If you experience DNS issues, you can force Docker to use Google DNS servers by doing the following:
+
+    eval "$(docker-machine env default)"
+    DOCKER_OPTS="-dns 8.8.8.8 -dns 8.8.4.4"
+    docker-machine restart default
+    eval "$(docker-machine env default)"
+    docker-machine ssh default
+
 ## Updating the site.
 
 To update the site, pull the new version from github and rebuild the docker
