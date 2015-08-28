@@ -79,7 +79,7 @@ function addToDescriptionList(descriptions, listElt) {
 		var ddElt = $("<dd>" + shortDesc + "</dd>").appendTo(listElt);
 		dtElt.find("a").attr('target', '_blank');
 		ddElt.find("a").attr('target', '_blank');
-		var expandFullElt = $("<span class=\"glyphicon-plus-sign\"></span>").appendTo(ddElt);
+		var expandFullElt = $("<span class=\"glyphicon glyphicon-plus-sign\"></span>").appendTo(ddElt);
 		var fullElt = $("<div class=\"eventfulldescription\">" + longDesc + "</div>").appendTo(ddElt);
 		refsElt.appendTo(ddElt);
 		expandFullElt.click(function () {
