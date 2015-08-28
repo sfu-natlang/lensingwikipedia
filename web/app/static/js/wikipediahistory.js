@@ -74,10 +74,14 @@ function addToDescriptionList(descriptions, listElt) {
 
 		// Expansion to long description
 		if (event.description != event.sentence) {
-			var expandFullElt = $("<span class=\"icon-plus\"></span>").appendTo(ddElt);
+			var expandFullElt = $("<span class='expand-desc-btn'>[+]</span>").appendTo(ddElt);
 			var fullElt = $("<div class=\"eventfulldescription\">" + longDesc + "</div>").appendTo(ddElt);
 			expandFullElt.click(function () {
-				$(this).toggleClass('icon-plus icon-minus');
+                if (fullElt.hasClass('expanded')) {
+                    expandFullElt.html('[+]');
+                } else {
+                    expandFullElt.html('[-]');
+                }
 				fullElt.toggleClass('expanded');
 			});
 		}

@@ -24,3 +24,9 @@
 .eventdescriptionslist .predicate {
 	font-weight: bold;
 }
+
+.expand-desc-btn {
+    font-family: monospace;
+    font-weight: bold;
+    margin-left: 10px;
+}
