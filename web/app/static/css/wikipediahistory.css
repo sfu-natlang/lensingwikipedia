@@ -29,4 +29,10 @@
     font-family: monospace;
     font-weight: bold;
     margin-left: 10px;
+    color: black;
+}
+
+.expand-desc-btn:hover {
+    color: black;
+    text-decoration: none;
 }

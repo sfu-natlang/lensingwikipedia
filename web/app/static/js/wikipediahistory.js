@@ -74,7 +74,7 @@ function addToDescriptionList(descriptions, listElt) {
 
 		// Expansion to long description
 		if (event.description != event.sentence) {
-			var expandFullElt = $("<span class='expand-desc-btn'>[+]</span>").appendTo(ddElt);
+			var expandFullElt = $("<a href='#' class='expand-desc-btn'>[+]</a>").appendTo(ddElt);
 			var fullElt = $("<div class=\"eventfulldescription\">" + longDesc + "</div>").appendTo(ddElt);
 			expandFullElt.click(function () {
                 if (fullElt.hasClass('expanded')) {
