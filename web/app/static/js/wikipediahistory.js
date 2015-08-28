@@ -74,7 +74,7 @@ function addToDescriptionList(descriptions, listElt) {
 
 		// Expansion to long description
 		if (event.description != event.sentence) {
-			var expandFullElt = $("<span class=\"glyphicon glyphicon-plus-sign\"></span>").appendTo(ddElt);
+			var expandFullElt = $("<span class=\"glyphicon-plus-sign\"></span>").appendTo(ddElt);
 			var fullElt = $("<div class=\"eventfulldescription\">" + longDesc + "</div>").appendTo(ddElt);
 			expandFullElt.click(function () {
 				$(this).toggleClass('glyphicon-plus-sign glyphicon-minus-sign');
