@@ -77,6 +77,30 @@ will be similar.
     python2.7 cluster /var/www/html/data/wikipedia/latest/fullData.index
     python2.7 tsne /var/www/html/data/wikipedia/latest/fullData.index
 
+## Set up database for user accounts
+
+Using `virtualenv` is optional, but highly recommended.
+
+Make sure that you've got the correct database path in `local_config.py`. The
+URI in `config.py` points to the location the database is in the container.
+When you're creating a database, you want to give it a path that exists. An
+good example is the following:
+
+    basedir = os.path.abspath(os.path.dirname(__file__))
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'app.db')
+
+After setting up your `local_config.py`, run the following commands
+
+    cd web/
+    virtualenv venv
+    . venv/bin/activate
+    pip install -r requirements
+    ./db_create.py
+
+Now you should have an app.db in `web/`.
+
+    mv app.db /opt/lensing/database/
+
 ## Configure and build the docker images
 
 For the backend, the only configuration option available is whether you want

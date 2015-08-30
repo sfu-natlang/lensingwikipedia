@@ -4,6 +4,10 @@ web:
         # Format is HOST:CONTAINER
         # Only change the HOST part
         - "8080:80"
+    volumes:
+        # Format is HOST:CONTAINER
+        # Only change the HOST part
+        - /var/www/html/database:/data
     restart: on-failure:10
     log_driver: "syslog"
     log_opt:
