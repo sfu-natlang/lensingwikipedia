@@ -10,6 +10,9 @@ RUN apt-get update && \
 ADD . /opt/lensing
 RUN chown -R www-data:www-data /opt/lensing
 
+RUN mkdir -p /var/www/html/databases
+RUN chown -R www-data:www-data /var/www
+
 RUN cp /opt/lensing/app.wsgi /var/www/lensing.wsgi
 RUN chown -R www-data:www-data /var/www
 

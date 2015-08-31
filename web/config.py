@@ -10,7 +10,7 @@ SECRET_KEY = os.urandom(32)
 
 # This is the default location when this site is running within a Docker
 # container
-SQLALCHEMY_DATABASE_URI = 'sqlite:////data/app.db'
+SQLALCHEMY_DATABASE_URI = 'sqlite:////var/www/html/databases/app.db'
 
 # override this in the local_config, but we need a default
 DOMAIN = "wikipediahistory"
