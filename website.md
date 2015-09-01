@@ -106,6 +106,9 @@ Now you should have an app.db wherever you specified above. Of course, you can
 set the `local_config.py` and `docker-compose.yml` paths differently, you'll
 just need to move the file to where it needs to be.
 
+**Note:** Make sure `app.db` and its containing directory are both owned by
+`www-data`.
+
 ## Configure and build the docker images
 
 For the backend, the only configuration option available is whether you want
