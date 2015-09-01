@@ -12,3 +12,14 @@
     border: none;
     padding-top: 0;
 }
+
+#inputTabs, #inputStatus {
+    list-style-type: none;
+}
+
+#inputTabs li *,
+#inputStatus li * {
+    margin: 0;
+    display: inline;
+    line-height: 2;
+}

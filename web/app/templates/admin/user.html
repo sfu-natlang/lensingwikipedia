@@ -52,7 +52,12 @@
         </div>
     </div>
 
-    {{ form.tabs() }}
+    <div class="control-group">
+        <label class="control-label" for="inputTabs">Visible tabs</label>
+        <div class="controls control-row">
+          {{ form.tabs(id="inputTabs") }}
+        </div>
+    </div>
 
     <div class="control-group {% if form.confirm.errors %}error{% endif %}">
         <label class="control-label" for="inputConfirm">Confirm</label>
