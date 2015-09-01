@@ -103,6 +103,7 @@ def user(id):
                 user.tabs.append(Tab.query.filter_by(name=tab.data).first())
 
         db.session.commit()
+        flash("Saved user settings")
 
     return render_template("admin/user.html",
             title="User %d = %s" % (id, user.username),
