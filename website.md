@@ -123,6 +123,10 @@ Run `/Applications/Docker/Docker Quickstart Terminal` and you should see a Termi
 
 You will use the IP address shown above to connect to the lensing server. 
 
+For first time setup: set up the databases directory with the right permissions (more detailed instructions to come later). Then add the following line to `/etc/hosts`
+
+    192.168.99.100  lensingwikipedia.me
+
 Checkout the repository and download the data index files. Update `web/local_config.py` and `docker-compose.yml` to run as IP address shown above and provide the location of the data index files. Remove the `log_driver` and `log_opt` options from `docker-compose.yml` otherwise `docker-compose up` will terminate with an error. 
 
 Make sure that `BACKEND_URL` in `local_config.py` uses the IP address from above, e.g.: 
