@@ -15,8 +15,7 @@ SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'app.db')
 # override this in the local_config, but we need a default
 DOMAIN = os.environ.get("LENSING_DOMAIN", "wikipediahistory")
 
-# XXX This will definitely need to be overridden in local_config.py
-BACKEND_URL = "http://natlang-web.cs.sfu.ca:1500"
+BACKEND_URL = os.environ.get("LENSING_BACKEND_URL", "http://natlang-web.cs.sfu.ca:1500")
 
 # This selects which tabs you want to show up in the interface
 # Format: (internal_name, display_name)
@@ -47,4 +46,4 @@ SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/'
 # you only have one.
 ADMINS = []
 
-SITE_URL = "lensingwikipedia.cs.sfu.ca"
+SITE_URL = os.environ.get("LENSING_SITE_URL", "lensingwikipedia.cs.sfu.ca")
