@@ -11,7 +11,7 @@ ADD ./web/app.db /data/db/
 RUN chown -R www-data:www-data /data/db
 
 RUN mkdir -p /data/index
-ADD ${INDEX_PATH} /data/index
+ADD build/index /data/index
 RUN chown -R lensing:lensing /data/index
 
 VOLUME ["/data/index", "/data/db"]

@@ -17,5 +17,4 @@ RUN cd /opt/lensing && make
 
 USER lensing
 
-ENTRYPOINT ["/opt/lensing/build/backend"]
-CMD ["-i", "/data/index/fullData.index"]
+CMD /opt/lensing/build/backend -i /data/index/fullData.index
