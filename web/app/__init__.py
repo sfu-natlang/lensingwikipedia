@@ -12,6 +12,7 @@ from social.apps.flask_app.default.models import init_social
 
 app = Flask(__name__)
 app.config.from_object('config')
+app.config.from_object('local_config')
 
 try:
     app.config.from_envvar('LENSING_SETTINGS')

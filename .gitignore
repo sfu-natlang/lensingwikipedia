@@ -4,6 +4,8 @@
 *.swp
 *.swo
 
+keys.env
+
 web/app.db
 web/local_config.py
 venv/

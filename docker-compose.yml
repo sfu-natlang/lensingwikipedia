@@ -4,10 +4,14 @@ web:
         # Format is HOST:CONTAINER
         # Only change the HOST part
         - "8080:80"
-    volumes:
-        # Format is HOST:CONTAINER
-        # Only change the HOST part
-        - /var/www/html/databases:/var/www/html/databases
+    volumes_from:
+        - data
+    environment:
+        # DO NOT CHANGE (Docker container path)
+        LENSING_SETTINGS: /opt/lensing/docker_config.py
+    env_file:
+        - ./config.env
+        - ./keys.env
     restart: on-failure:10
     log_driver: "syslog"
     log_opt:
@@ -18,13 +22,16 @@ query:
         # Format is HOST:CONTAINER
         # Only change the HOST part
         - "1500:1500"
-    volumes:
-        # Format is HOST:CONTAINER
-        # Only change the HOST part
-        - /var/www/html/data/wikipedia/latest:/data
-    environment:
-        CONFIG: wikipediahistory
+    volumes_from:
+        - data
+    env_file:
+        - ./config.env
     restart: on-failure:10
     log_driver: "syslog"
     log_opt:
         syslog-tag: "query"
+data:
+    build: .
+    dockerfile: Dockerfile-data
+    env_file:
+        - ./config.env

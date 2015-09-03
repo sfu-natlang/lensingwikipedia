@@ -10,10 +10,10 @@ SECRET_KEY = os.urandom(32)
 
 # This is the default location when this site is running within a Docker
 # container
-SQLALCHEMY_DATABASE_URI = 'sqlite:////var/www/html/databases/app.db'
+SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'app.db')
 
 # override this in the local_config, but we need a default
-DOMAIN = "wikipediahistory"
+DOMAIN = os.environ.get("LENSING_DOMAIN", "wikipediahistory")
 
 # XXX This will definitely need to be overridden in local_config.py
 BACKEND_URL = "http://natlang-web.cs.sfu.ca:1500"
@@ -32,8 +32,9 @@ TABS = [
     ("textsearch", "Text Search")
 ]
 
-SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = '***'
-SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = '***'
+# It's fine if these are None when running db_create.py, so we shouldn't use []
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.environ.get('SOCIAL_AUTH_GOOGLE_OAUTH2_KEY')
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.environ.get('SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET')
 
 # DO NOT TOUCH
 SOCIAL_AUTH_USER_MODEL = 'app.models.User'
@@ -47,8 +48,3 @@ SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/'
 ADMINS = []
 
 SITE_URL = "lensingwikipedia.cs.sfu.ca"
-
-try:
-    from local_config import *
-except ImportError:
-    pass

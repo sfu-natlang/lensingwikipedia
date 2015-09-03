@@ -81,33 +81,14 @@ will be similar.
 
 Using `virtualenv` is optional, but highly recommended.
 
-Make sure that you've got the correct database path in `local_config.py`. The
-URI in `config.py` points to the location the database is in the container and
-on the natlang-web. If you're running this locally, you'll want a different
-path (making sure you also set it in `docker-compose.yml`). A good example is
-the following:
-
-    import os
-    basedir = os.path.abspath(os.path.dirname(__file__))
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'app.db')
-
-**WARNING:** Don't leave that in your `local_config.py` when building the
-images!
-
-After setting up your `local_config.py`, run the following commands
-
     cd web/
     virtualenv venv
     . venv/bin/activate
     pip install -r requirements.txt
     ./db_create.py
 
-Now you should have an app.db wherever you specified above. Of course, you can
-set the `local_config.py` and `docker-compose.yml` paths differently, you'll
-just need to move the file to where it needs to be.
-
-**Note:** Make sure `app.db` and its containing directory are both owned by
-`www-data`.
+Now you should have an app.db in the same directory. This will be copied into
+the 'data' container, so leave it there.
 
 ## Configure and build the docker images
 

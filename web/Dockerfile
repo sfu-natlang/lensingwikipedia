@@ -2,6 +2,11 @@ FROM ubuntu:14.04
 MAINTAINER Andrei Vacariu <andrei@avacariu.me>
 EXPOSE 80
 
+# MAINTAIN THE SAME ORDER OF USER CREATION BETWEEN ALL DOCKERFILES SO THAT THEY
+# ALL END UP WITH THE SAME UID/GID
+RUN groupadd -r lensing \
+  && useradd -r -s /bin/false -g lensing lensing
+
 ENV DEBIAN_FRONTEND noninteractive
 
 RUN apt-get update && \
@@ -9,9 +14,6 @@ RUN apt-get update && \
 
 ADD . /opt/lensing
 RUN chown -R www-data:www-data /opt/lensing
-
-RUN mkdir -p /var/www/html/databases
-RUN chown -R www-data:www-data /var/www
 
 RUN cp /opt/lensing/app.wsgi /var/www/lensing.wsgi
 RUN chown -R www-data:www-data /var/www
