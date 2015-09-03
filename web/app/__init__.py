@@ -12,7 +12,13 @@ from social.apps.flask_app.default.models import init_social
 
 app = Flask(__name__)
 app.config.from_object('config')
-app.config.from_object('local_config')
+
+try:
+    app.config.from_object('local_config')
+except ImportError:
+    # This will occur when there's no local_config.py, and that's an acceptable
+    # situation.
+    pass
 
 try:
     app.config.from_envvar('LENSING_SETTINGS')
