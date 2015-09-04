@@ -634,7 +634,7 @@ function setup(container, parameters) {
 		// This is a bit messy since we rely on the structure of the FacetListBox elements
 		var facet = facetsByField[fieldInfo.field];
 		function updateMenu() {
-			var menuQuery = new Queries.Query(globalQuery.backendUrl(), 'copy', facet.facet.contextQuery);
+			var menuQuery = new Queries.Query(globalQuery.backendUrl(), 'copy', globalQuery);
 			entityList.setupWatchQuery(menuQuery);
 			menuQuery.update();
 		}

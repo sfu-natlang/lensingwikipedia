@@ -291,11 +291,12 @@ function setup(container, globalQuery, name, field, fieldSelection) {
 	$("<h1>" + name + "</h1>").appendTo(topBoxElt);
 	var clearElt = $("<button type=\"button\" class=\"btn btn-block btn-mini btn-warning\" title=\"Clear the facet selection.\">Clear selection</button></ul>").appendTo(topBoxElt);
 	var listBox = new FacetListBox(facetElt, fieldSelection.contextQuery, field, fieldSelection.selection);
-	listBox.setupWatchQuery(fieldSelection.contextQuery);
+	listBox.setupWatchQuery(globalQuery);
 	var searchElt = listBox.makeSearchElement();
 	searchElt.appendTo(topBoxElt);
 	LayoutUtils.fillElement(container, facetElt, 'vertical');
 	LayoutUtils.setupPanelled(facetElt, topBoxElt, listBox.outerElt, 'vertical', 0, false);
+	setupSelectionClearButton(clearElt, fieldSelection.selection);
 
 	return {
 		ownCnstrQuery: fieldSelection.ownCnstrQuery,
