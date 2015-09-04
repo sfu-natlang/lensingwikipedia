@@ -78,9 +78,9 @@ function addToDescriptionList(descriptions, listElt) {
 			var fullElt = $("<div class=\"eventfulldescription\">" + longDesc + "</div>").appendTo(ddElt);
 			expandFullElt.click(function () {
                 if (fullElt.hasClass('expanded')) {
-                    expandFullElt.html('[+]');
+                    expandFullElt.text('[+]');
                 } else {
-                    expandFullElt.html('[-]');
+                    expandFullElt.text('[-]');
                 }
 				fullElt.toggleClass('expanded');
 			});
