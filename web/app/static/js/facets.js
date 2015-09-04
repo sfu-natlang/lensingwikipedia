@@ -296,6 +296,7 @@ function setup(container, globalQuery, name, field, fieldSelection) {
 	searchElt.appendTo(topBoxElt);
 	LayoutUtils.fillElement(container, facetElt, 'vertical');
 	LayoutUtils.setupPanelled(facetElt, topBoxElt, listBox.outerElt, 'vertical', 0, false);
+	setupSelectionClearButton(clearElt, fieldSelection.selection);
 
 	return {
 		ownCnstrQuery: fieldSelection.ownCnstrQuery,
