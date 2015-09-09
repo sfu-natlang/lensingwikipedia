@@ -1,11 +1,5 @@
 web:
     build: web
-    ports:
-        # Format is HOST:CONTAINER
-        # Only change the HOST part
-        - "8080:80"
-    volumes_from:
-        - data
     environment:
         # DO NOT CHANGE (Docker container path)
         LENSING_SETTINGS: /opt/lensing/docker_config.py
@@ -13,23 +7,11 @@ web:
         - ./config.env
         - ./keys.env
     restart: on-failure:10
-    log_driver: "syslog"
-    log_opt:
-        syslog-tag: "web"
 query:
     build: backend
-    ports:
-        # Format is HOST:CONTAINER
-        # Only change the HOST part
-        - "1500:1500"
-    volumes_from:
-        - data
     env_file:
         - ./config.env
     restart: on-failure:10
-    log_driver: "syslog"
-    log_opt:
-        syslog-tag: "query"
 data:
     build: .
     dockerfile: Dockerfile-data
