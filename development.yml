@@ -4,6 +4,9 @@ web:
     extends:
         file: common.yml
         service: web
+    environment:
+        # set to "true" or "yes" to enable debugging
+        DEBUG: "true"
     labels:
         com.sfu.cs.lensingwikipedia.type: "development"
     ports:

@@ -47,3 +47,5 @@ SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/'
 ADMINS = []
 
 SITE_URL = os.environ.get("LENSING_SITE_URL", "lensingwikipedia.cs.sfu.ca")
+
+DEBUG = os.environ.get("DEBUG", "false").lower() in ['true', 'yes']
