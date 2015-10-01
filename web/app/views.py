@@ -11,7 +11,7 @@ from .models import User, Tab, ROLE, STATUS
 def admin_required(f):
     @wraps(f)
     def decorated_view(*args, **kwargs):
-        if not (current_user.is_authenticated and current_user.is_admin()):
+        if not (current_user.is_authenticated and current_user.is_admin):
             abort(403)
         return f(*args, **kwargs)
     return decorated_view
@@ -79,7 +79,7 @@ def users():
 @app.route("/user/<int:id>", methods=['GET', 'POST'])
 @login_required
 def user(id):
-    if not (g.user.is_admin() or g.user.id == id):
+    if not (g.user.is_admin or g.user.id == id):
         abort(403)
 
     user = User.query.get_or_404(id)

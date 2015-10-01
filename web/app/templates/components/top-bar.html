@@ -2,14 +2,14 @@
   <div class="navbar-inner">
     <a class="brand" href="{{ url_for('index') }}">Lensing</a>
     <ul class="nav">
-      {% if g.user.is_authenticated() %}
-      {% if g.user.is_admin() %}
+      {% if g.user.is_authenticated %}
+      {% if g.user.is_admin %}
       <li><a href="{{ url_for('users') }}">Users</a></li>
       {% endif %}
       {% endif %}
     </ul>
     <ul class="nav pull-right">
-      {% if g.user.is_authenticated() %}
+      {% if g.user.is_authenticated %}
       <li><a href="{{ url_for('user', id=g.user.id) }}">{{ g.user.email }}</a></li>
       <li><a href="{{ url_for('logout') }}">Log out</a></li>
       {% else %}
