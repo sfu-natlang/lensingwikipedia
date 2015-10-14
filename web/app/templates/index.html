@@ -79,8 +79,6 @@ Welcome back, {{ g.user.email }}!
 {% endif %}
 #}
 
-<div class="header">
-</div>
 
 		<script>
 			$('<div class="contentarea"> \
@@ -150,8 +148,6 @@ Welcome back, {{ g.user.email }}!
             {% for tab, tabname in config.TABS %}
               LayoutUtils.fillElement($('.tab-content'), $('#{{ tab }}tab'), 'vertical');
             {% endfor %}
-
-			LayoutUtils.fillElement($('.tab-content'), $('#abouttab'), 'vertical');
 
 			// Update the queries only after setting up all the controls
 			initialQuery.update();
