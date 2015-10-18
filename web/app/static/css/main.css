@@ -4,13 +4,13 @@ body,html {
 	height: 100%;
 }
 
-.header {
+header {
 	background-color: AntiqueWhite;
 	color: black;
 	margin: 0;
 	padding: 2px 1em 2px 1em;
 }
-.header .about {
+header .about {
 	float: right;
 }
 .contentarea {
@@ -86,6 +86,6 @@ noscript {
 	text-align: center;
 }
 
-body.about {
-	margin: 1em;
+body.about #content {
+	padding: 1em;
 }

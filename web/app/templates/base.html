@@ -19,8 +19,14 @@
   {% endblock %}
 
   </head>
-  <body>
+  <body {% if body_class %}class="{{ body_class }}"{% endif %}>
+  <header>
+    <a href="{{ url_for('index') }}">Lensing Wikipedia</a>
+    <a class="about" href="{{ url_for('about') }}">About</a>
+  </header>
+  <div id="content">
   {% block content %}
   {% endblock content %}
+  <div>
   </body>
 </html>

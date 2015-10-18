@@ -29,6 +29,10 @@ def index():
             title="index",
             login_form=login_form)
 
+@app.route('/about')
+def about():
+    return render_template("about.html", title="About Lensing Wikipedia")
+
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
