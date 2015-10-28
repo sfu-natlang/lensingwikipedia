@@ -21,18 +21,18 @@
     <td>
       {% if user.email in config.ADMINS %}
         eternal
-      {% elif user.is_admin %}
+      {% elif user.is_admin() %}
         yes
       {% else %}
         no
       {% endif %}
     </td>
-    <td>{% if user.is_active %}no{% else %}yes{% endif %}</td>
+    <td>{% if user.is_active() %}no{% else %}yes{% endif %}</td>
   </tr>
   </tbody>
 </table>
 
-{% if g.user.is_admin %}
+{% if g.user.is_admin() %}
 <form action="" method="POST" class="form-horizontal" name="modify_user_form">
     {{ form.hidden_tag() }}
     <legend>Modify user</legend>

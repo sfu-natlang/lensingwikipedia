@@ -26,16 +26,13 @@ class User(db.Model, UserMixin):
     tabs = db.relationship('Tab', secondary=tabs,
                            backref=db.backref('users', lazy='dynamic'))
 
-    @property
     def is_admin(self):
         return (self.role == ROLE['admin'] or
                 self.email in app.config['ADMINS'])
 
-    @property
     def is_active(self):
         return self.status == STATUS['regular']
 
-    @property
     def is_banned(self):
         return self.status == STATUS['banned']
 

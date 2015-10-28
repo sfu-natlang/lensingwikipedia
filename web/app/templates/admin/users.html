@@ -21,13 +21,13 @@
     <td>
       {% if user.email in config.ADMINS %}
         eternal
-      {% elif user.is_admin %}
+      {% elif user.is_admin() %}
         yes
       {% else %}
         no
       {% endif %}
     </td>
-    <td>{% if user.is_active %}no{% else %}yes{% endif %}</td>
+    <td>{% if user.is_active() %}no{% else %}yes{% endif %}</td>
   </tr>
   {% endfor %}
   </tbody>
