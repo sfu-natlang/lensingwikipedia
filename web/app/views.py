@@ -11,7 +11,7 @@ from .models import User, Tab, ROLE, STATUS
 def admin_required(f):
     @wraps(f)
     def decorated_view(*args, **kwargs):
-        if not (current_user.is_authenticated and current_user.is_admin()):
+        if not (current_user.is_authenticated() and current_user.is_admin()):
             abort(403)
         return f(*args, **kwargs)
     return decorated_view
@@ -28,7 +28,7 @@ def before_request():
     # so that we can access the current user wherever
     g.user = current_user
 
-    if g.user.is_authenticated:
+    if g.user.is_authenticated():
         g.user.last_seen = datetime.datetime.utcnow()
         # TODO: is the line below necessary?
         db.session.add(g.user)
@@ -43,7 +43,7 @@ def commit_on_success(error=None):
 
 @app.route('/')
 def index():
-    if g.user.is_authenticated:
+    if g.user.is_authenticated():
         if not g.user.tabs:
             # if there are no tabs set, the user should be able to see all tabs
             for tab in Tab.query.all():
@@ -53,7 +53,7 @@ def index():
 
     visible_tabs = app.config['TABS']
 
-    if g.user.is_authenticated:
+    if g.user.is_authenticated():
         visible_tabs = []
         config_tabs = dict(app.config['TABS'])
         for tab in g.user.tabs:
