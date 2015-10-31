@@ -49,3 +49,6 @@ ADMINS = []
 SITE_URL = os.environ.get("LENSING_SITE_URL", "lensingwikipedia.cs.sfu.ca")
 
 DEBUG = os.environ.get("DEBUG", "false").lower() in ['true', 'yes']
+
+# TODO set this to 'strong' when it stops being broken in flask-login
+SESSION_PROTECTION = None

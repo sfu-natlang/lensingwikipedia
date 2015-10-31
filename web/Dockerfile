@@ -20,6 +20,8 @@ RUN chown -R www-data:www-data /opt/lensing
 RUN cp /opt/lensing/app.wsgi /var/www/lensing.wsgi
 RUN chown -R www-data:www-data /var/www
 
+# Get a new version of pip so we can use the fancy new requirements specifiers
+RUN pip install --upgrade pip
 RUN pip install -r /opt/lensing/requirements.txt
 
 RUN a2dissite 000-default
