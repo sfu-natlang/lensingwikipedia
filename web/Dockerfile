@@ -9,6 +9,8 @@ RUN groupadd -r lensing \
 
 ENV DEBIAN_FRONTEND noninteractive
 
+RUN sed -i 's/archive\.ubuntu\.com/mirror.its.sfu.ca\/mirror/' /etc/apt/sources.list
+
 RUN apt-get update && \
     apt-get install -y git python-pip apache2 libapache2-mod-wsgi
 

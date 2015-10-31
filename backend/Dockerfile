@@ -8,6 +8,9 @@ RUN groupadd -r lensing \
   && useradd -r -s /bin/false -g lensing lensing
 
 ENV DEBIAN_FRONTEND noninteractive
+
+RUN sed -i 's/archive\.ubuntu\.com/mirror.its.sfu.ca\/mirror/' /etc/apt/sources.list
+
 RUN apt-get update && apt-get install -y build-essential python2.7 python-pip libatlas-dev libatlas3-base libatlas-base-dev
 RUN pip install whoosh
 
