@@ -44,7 +44,7 @@ SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/'
 # This is for a user who will never be able to lose admin rights, and is going
 # to be the first admin. You can set multiple users, but it's probably best if
 # you only have one.
-ADMINS = []
+ADMINS = ['anoop.sarkar@natlang.net', 'andrei@avacariu.me']
 
 SITE_URL = os.environ.get("LENSING_SITE_URL", "lensingwikipedia.cs.sfu.ca")
 
