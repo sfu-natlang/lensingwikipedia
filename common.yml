@@ -1,8 +1,8 @@
 web:
     build: web
     environment:
-        # DO NOT CHANGE (Docker container path)
-        LENSING_SETTINGS: /opt/lensing/docker_config.py
+        # DO NOT CHANGE, UNLESS YOU MAKE THE SAME CHANGE EVERYWHERE
+        LENSING_DB_URI: 'sqlite:////data/db/app.db'
     env_file:
         - ./config.env
         - ./keys.env

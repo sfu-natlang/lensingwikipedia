@@ -1,6 +1,7 @@
 # XXX DON'T PUT LOCAL SETTINGS IN HERE.
 # THIS FILE IS ONLY FOR DEFAULTS SO THAT THE CODE RUNS.
-# PUT LOCAL SETTINGS IN local_config.py!
+# PUT LOCAL SETTINGS IN local_config.py, if you're running this using the Flask
+# dev server, or pass things in through environment variables
 
 import os
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -8,19 +9,19 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 WTF_CSRF_ENABLED = True
 SECRET_KEY = os.urandom(32)
 
-# This is the default location when this site is running within a Docker
-# container
-SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'app.db')
+SQLALCHEMY_DATABASE_URI = os.environ.get("LENSING_DB_URI",
+    'sqlite:///' + os.path.join(basedir, 'app.db'))
 
-# override this in the local_config, but we need a default
 DOMAIN = os.environ.get("LENSING_DOMAIN", "wikipediahistory")
 
-BACKEND_URL = os.environ.get("LENSING_BACKEND_URL", "http://natlang-web.cs.sfu.ca:1500")
+BACKEND_URL = os.environ.get("LENSING_BACKEND_URL",
+                             "http://natlang-web.cs.sfu.ca:1500")
 
 # This selects which tabs you want to show up in the interface
 # Format: (internal_name, display_name)
 # XXX The code relies on the fact that the name of the modules is capitalized
 #     internal_name
+# TODO: Can we pass this in through env variables? Maybe JSON?
 TABS = [
     ("facets", "Facets"),
     ("storyline", "Storyline"),
@@ -31,7 +32,6 @@ TABS = [
     ("textsearch", "Text Search")
 ]
 
-# It's fine if these are None when running db_create.py, so we shouldn't use []
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.environ.get('SOCIAL_AUTH_GOOGLE_OAUTH2_KEY')
 SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.environ.get('SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET')
 
