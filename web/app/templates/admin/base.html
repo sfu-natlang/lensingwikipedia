@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <title>{% block title %}{% if title %}{{ title }}{% endif %}{% endblock %}</title>
+
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}">
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/base.css') }}">
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/admin.css') }}">
+
+  <script src="{{ url_for('static', filename='vendor/jquery.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.min.js') }}"></script>
+
+  {% block head %}
+  {% endblock %}
+
+  </head>
+  <body>
+
+  {% include "components/top-bar.html" %}
+  {% include "components/flashes.html" %}
+
+  <section id="page-content">
+    {% block content %}
+    {% endblock content %}
+  </section>
+
+  {% block bottom_scripts %}
+  {% endblock %}
+
+  </body>
+  </html>

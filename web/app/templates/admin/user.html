@@ -1,0 +1,76 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+
+<div class="page-header">
+  <h1>User {{ user.username }}</h1>
+</div>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Username</th>
+      <th>Email</th>
+      <th>Admin?</th>
+      <th>Banned?</th>
+    </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td>{{ user.username }}</td>
+    <td>{{ user.email }}</td>
+    <td>
+      {% if user.email in config.ADMINS %}
+        eternal
+      {% elif user.is_admin() %}
+        yes
+      {% else %}
+        no
+      {% endif %}
+    </td>
+    <td>{% if user.is_active() %}no{% else %}yes{% endif %}</td>
+  </tr>
+  </tbody>
+</table>
+
+{% if g.user.is_admin() %}
+<form action="" method="POST" class="form-horizontal" name="modify_user_form">
+    {{ form.hidden_tag() }}
+    <legend>Modify user</legend>
+    {% if user.email not in config.ADMINS %}
+    <div class="control-group">
+        <label class="control-label" for="inputRole">Role</label>
+        <div class="controls control-row">
+            {{form.role(id="inputRole")}}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="control-group">
+        <label class="control-label" for="inputStatus">Status</label>
+        <div class="controls control-row">
+            {{form.status(id="inputStatus")}}
+        </div>
+    </div>
+
+    <div class="control-group">
+        <label class="control-label" for="inputTabs">Visible tabs</label>
+        <div class="controls control-row">
+          {{ form.tabs(id="inputTabs") }}
+        </div>
+    </div>
+
+    <div class="control-group {% if form.confirm.errors %}error{% endif %}">
+        <label class="control-label" for="inputConfirm">Confirm</label>
+        <div class="controls control-row">
+          {{ form.confirm(id="inputConfirm") }}
+          {% if form.confirm.errors %}
+            <span class="help-block">{{ form.confirm.errors[0] }}</span>
+          {% endif %}
+        </div>
+    </div>
+    <div class="form-actions">
+        <button class="btn btn-primary" type="submit" name='button'>Save</button>
+    </div>
+</form>
+{% endif %}
+{% endblock content %}

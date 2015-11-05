@@ -1,0 +1,37 @@
+# TO BE USED ONLY FOR LOCAL DEVELOPMENT!
+
+web:
+    extends:
+        file: common.yml
+        service: web
+    environment:
+        # set to "true" or "yes" to enable debugging
+        DEBUG: "true"
+    labels:
+        com.sfu.cs.lensingwikipedia.type: "development"
+    ports:
+        # Format is HOST:CONTAINER
+        # Only change the HOST part
+        - "8000:80"
+    volumes_from:
+        - data
+
+query:
+    extends:
+        file: common.yml
+        service: query
+    labels:
+        com.sfu.cs.lensingwikipedia.environment: "development"
+    ports:
+        # Format is HOST:CONTAINER
+        # Only change the HOST part
+        - "1501:1500"
+    volumes_from:
+        - data
+
+data:
+    extends:
+        file: common.yml
+        service: data
+    labels:
+        com.sfu.cs.lensingwikipedia.type: "development"

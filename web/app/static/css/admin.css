@@ -1,0 +1,25 @@
+.page-header {
+    margin-top: 50px;
+}
+
+.navbar .brand {
+    margin-left: 0;
+}
+
+.form-actions {
+    margin-top: auto;
+    background-color: inherit;
+    border: none;
+    padding-top: 0;
+}
+
+#inputTabs, #inputStatus {
+    list-style-type: none;
+}
+
+#inputTabs li *,
+#inputStatus li * {
+    margin: 0;
+    display: inline;
+    line-height: 2;
+}

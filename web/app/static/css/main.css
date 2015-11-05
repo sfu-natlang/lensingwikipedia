@@ -4,15 +4,6 @@ body,html {
 	height: 100%;
 }
 
-header {
-	background-color: AntiqueWhite;
-	color: black;
-	margin: 0;
-	padding: 2px 1em 2px 1em;
-}
-header .about {
-	float: right;
-}
 .contentarea {
 	margin: 0;
 	padding: 0;

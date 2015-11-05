@@ -307,7 +307,7 @@ function setup(container, parameters) {
 	// The view space for SVG; this doesn't have to correspond to screen units.
 	var viewBox = { x: 0, y : 0, width: 1024, height: 768 };
 	// Margins for the main graphs (but not for the axes and axes labels, which go in the margin space).
-	var margins = { left: 50, right: 30, top: 40, bottom: 35, between: 40 };
+	var margins = { left: 50, right: 30, top: 40, bottom: 70, between: 40 };
 	// Vertical size of the detail area as a fraction of the total.
 	var split = 0.6;
 

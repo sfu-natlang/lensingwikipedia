@@ -77,6 +77,19 @@ will be similar.
     python2.7 cluster /var/www/html/data/wikipedia/latest/fullData.index
     python2.7 tsne /var/www/html/data/wikipedia/latest/fullData.index
 
+## Set up database for user accounts
+
+Using `virtualenv` is optional, but highly recommended.
+
+    cd web/
+    virtualenv venv
+    . venv/bin/activate
+    pip install -r requirements.txt
+    ./db_create.py
+
+Now you should have an app.db in the same directory. This will be copied into
+the 'data' container, so leave it there.
+
 ## Configure and build the docker images
 
 For the backend, the only configuration option available is whether you want
@@ -107,8 +120,9 @@ Then run the following commands:
 Download Docker Toolbox and follow instructions on this page:
 
     https://docs.docker.com/installation/mac/
-    
-Run `/Applications/Docker/Docker Quickstart Terminal` and you should see a Terminal window that looks like this:
+
+Run `/Applications/Docker/Docker Quickstart Terminal` and you should see a
+Terminal window that looks like this:
 
                             ##         .
                       ## ## ##        ==
@@ -121,15 +135,20 @@ Run `/Applications/Docker/Docker Quickstart Terminal` and you should see a Termi
     docker is configured to use the default machine with IP 192.168.99.100
     For help getting started, check out the docs at https://docs.docker.com
 
-You will use the IP address shown above to connect to the lensing server. 
+You will use the IP address shown above to connect to the lensing server.
 
 For first time setup: set up the databases directory with the right permissions (more detailed instructions to come later). Then add the following line to `/etc/hosts`
 
     192.168.99.100  lensingwikipedia.me
 
-Checkout the repository and download the data index files. Update `web/local_config.py` and `docker-compose.yml` to run as IP address shown above and provide the location of the data index files. Remove the `log_driver` and `log_opt` options from `docker-compose.yml` otherwise `docker-compose up` will terminate with an error. 
+Checkout the repository and download the data index files. Update
+`web/local_config.py` and `docker-compose.yml` to run as IP address shown above
+and provide the location of the data index files. Remove the `log_driver` and
+`log_opt` options from `docker-compose.yml` otherwise `docker-compose up` will
+terminate with an error.
 
-Make sure that `BACKEND_URL` in `local_config.py` uses the IP address from above, e.g.: 
+Make sure that `BACKEND_URL` in `local_config.py` uses the IP address from
+above, e.g.:
 
     BACKEND_URL = "http://192.168.99.100:1500"
 
@@ -139,9 +158,14 @@ Then enter the following commands:
     docker-compose build
     docker-compose up
 
-Visit the IP address for your docker container at the port you selected in `docker-compose.yml` and you should see an running version of lensingwikipedia. Troubleshooting: if `nc -z 192.168.99.100 8080` reports that port 8080 is not serving requests then follow the instructions below to remove all containers and then run `docker-compose up` to see if that fixes the problem.
+Visit the IP address for your docker container at the port you selected in
+`docker-compose.yml` and you should see an running version of lensingwikipedia.
+Troubleshooting: if `nc -z 192.168.99.100 8080` reports that port 8080 is not
+serving requests then follow the instructions below to remove all containers
+and then run `docker-compose up` to see if that fixes the problem.
 
-If you experience DNS issues, you can force Docker to use Google DNS servers by doing the following:
+If you experience DNS issues, you can force Docker to use Google DNS servers by
+doing the following:
 
     eval "$(docker-machine env default)"
     DOCKER_OPTS="-dns 8.8.8.8 -dns 8.8.4.4"

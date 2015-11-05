@@ -1,0 +1,40 @@
+# TO BE USED ON THE MAIN SERVER AS A PRODUCTION SETUP
+
+web:
+    extends:
+        file: common.yml
+        service: web
+    labels:
+        com.sfu.cs.lensingwikipedia.type: "production"
+    ports:
+        # Format is HOST:CONTAINER
+        # Only change the HOST part
+        - "80:80"
+    volumes_from:
+        - data
+    log_driver: "syslog"
+    log_opt:
+        syslog-tag: "web"
+
+query:
+    extends:
+        file: common.yml
+        service: query
+    labels:
+        com.sfu.cs.lensingwikipedia.environment: "production"
+    ports:
+        # Format is HOST:CONTAINER
+        # Only change the HOST part
+        - "1500:1500"
+    volumes_from:
+        - data
+    log_driver: "syslog"
+    log_opt:
+        syslog-tag: "web"
+
+data:
+    extends:
+        file: common.yml
+        service: data
+    labels:
+        com.sfu.cs.lensingwikipedia.type: "production"

@@ -6,7 +6,7 @@
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/constraintslist.css') }}">
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/eventdescriptionslist.css') }}">
 
-  {% for tab, tabname in config.TABS %}
+  {% for tab, tabname in tabs %}
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/' + tab + '.css') }}">
   {% endfor %}
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/main.css') }}">
@@ -21,7 +21,7 @@
   <script src="{{ url_for('static', filename='js/constraintslist.js') }}"></script>
   <script src="{{ url_for('static', filename='js/eventdescriptionslist.js') }}"></script>
 
-  {% for tab, tabname in config.TABS %}
+  {% for tab, tabname in tabs %}
     {# hack that'll have to work for now #}
     {% if tab == "storyline" %}
       <script src="{{ url_for('static', filename='js/storylinelayout.js') }}"></script>
@@ -60,25 +60,8 @@
 
 {% block content %}
 
-{#
-{% if g.user.is_authenticated() %}
-
-Welcome back, {{ g.user.email }}!
-<a href="{{ url_for("logout") }}">Log out</a>
-
-{% else %}
-
-<form action="" method="POST" name="login_form">
-  {{ login_form.hidden_tag() }}
-  {{ login_form.email(id="inputEmail", placeholder="Email") }}
-  {{ login_form.password(id="inputPassword", placeholder="Password") }}
-  <button type="submit" class="btn">Sign in</button>
-  <a href="{{ url_for("register") }}">Register?</a>
-</form>
-
-{% endif %}
-#}
-
+<div class="header">
+</div>
 
 		<script>
 			$('<div class="contentarea"> \
@@ -88,12 +71,12 @@ Welcome back, {{ g.user.email }}!
 				</div> \
 				<div class="selectorsarea"> \
 					<ul class="nav nav-pills" id="tabbar"> \
-                      {% for tab, tabname in config.TABS %}
+                      {% for tab, tabname in tabs %}
                         <li {% if loop.first %}class="active"{% endif %}><a href="#{{ tab }}tab" data-toggle="tab">{{ tabname }}</a></li> \
                       {% endfor %}
 					</ul> \
 					<div class="tab-content" id="tabcontents"> \
-                      {% for tab, tabname in config.TABS %}
+                      {% for tab, tabname in tabs %}
                         <div class="tab-pane active" id="{{ tab }}tab"></div> \
                       {% endfor %}
 					</div> \
@@ -141,11 +124,11 @@ Welcome back, {{ g.user.email }}!
             {# always show the facets tab #}
             LayoutUtils.setupSplitMakeElements($('#facetstab'), 'horizontal', facetMakers);
 
-            {% for tab, tabname in config.TABS[1:] %}
+            {% for tab, tabname in tabs[1:] %}
               {{ tab|capitalize }}.setup($('#{{ tab }}tab'), parameters);
             {% endfor %}
 
-            {% for tab, tabname in config.TABS %}
+            {% for tab, tabname in tabs %}
               LayoutUtils.fillElement($('.tab-content'), $('#{{ tab }}tab'), 'vertical');
             {% endfor %}
 

@@ -1,3 +1,41 @@
 button.btn {
     margin-bottom: 10px;
 }
+
+#login {
+    float: right;
+    margin: 10px 10px 0 0;
+}
+
+#loginModal button.close {
+    margin: 5px 10px 0 0;
+}
+
+#loginModal .tab-content {
+    height: auto !important;
+}
+
+.navbar-inner {
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.navbar .brand {
+    margin-left: 0;
+}
+
+.navbar {
+    margin-bottom: 0;
+}
+
+section#page-content {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+.flashes .alert {
+    width: 500px;
+    margin: 0 auto;
+}

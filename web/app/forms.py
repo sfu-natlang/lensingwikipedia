@@ -1,31 +1,18 @@
 from flask.ext.wtf import Form
-from wtforms import TextField, PasswordField
-from wtforms.validators import Required, ValidationError
+from wtforms import widgets, RadioField, BooleanField, SelectMultipleField
+from wtforms.validators import Required, Optional
 
-from .models import User
+from . import app
+from .models import ROLE, STATUS
 
-class Login(Form):
-    email = TextField("email", validators=[Required()])
-    password = PasswordField("password", validators=[Required()])
+class MultiCheckboxField(SelectMultipleField):
+    widget = widgets.ListWidget(prefix_label=False)
+    option_widget = widgets.CheckboxInput()
 
-    def validate(self):
-        rv = Form.validate(self)
-        if not rv:
-            return False
+class ModifyUser(Form):
+    role = RadioField("Role", choices=[(str(v),k) for k,v in ROLE.items()],
+            validators=[Optional()])
+    status = RadioField("Status", choices=[(str(v),k) for k,v in STATUS.items()])
+    tabs = MultiCheckboxField('Tabs', choices=app.config['TABS'])
 
-        user = User.query.filter_by(email=self.email.data).first()
-
-        if user is None:
-            self.password.errors.append("Email doesn't exist")
-            return False
-
-        if not user.check_password(self.password.data):
-            self.password.errors.append("Incorrect password")
-            return False
-
-        self.user = user
-        return True
-
-class Register(Form):
-    email = TextField("email", validators=[Required()])
-    password = PasswordField("password", validators=[Required()])
+    confirm = BooleanField("confirm", validators=[Required()])

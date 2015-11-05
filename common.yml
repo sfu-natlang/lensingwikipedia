@@ -1,0 +1,19 @@
+web:
+    build: web
+    environment:
+        # DO NOT CHANGE (Docker container path)
+        LENSING_SETTINGS: /opt/lensing/docker_config.py
+    env_file:
+        - ./config.env
+        - ./keys.env
+    restart: on-failure:10
+query:
+    build: backend
+    env_file:
+        - ./config.env
+    restart: on-failure:10
+data:
+    build: .
+    dockerfile: Dockerfile-data
+    env_file:
+        - ./config.env
