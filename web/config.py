@@ -18,19 +18,11 @@ BACKEND_URL = os.environ.get("LENSING_BACKEND_URL",
                              "http://natlang-web.cs.sfu.ca:1500")
 
 # This selects which tabs you want to show up in the interface
-# Format: (internal_name, display_name)
-# XXX The code relies on the fact that the name of the modules is capitalized
-#     internal_name
-# TODO: Can we pass this in through env variables? Maybe JSON?
-TABS = [
-    ("facets", "Facets"),
-    ("storyline", "Storyline"),
-    ("timeline", "Timeline"),
-    ("comparison", "Comparison"),
-    ("map", "Map"),
-    ("cluster", "Cluster"),
-    ("textsearch", "Text Search")
-]
+TABS = ["facets", "storyline", "timeline", "comparison", "map", "textsearch"]
+_env_tabs = os.environ.get("LENSING_TABS")
+if _env_tabs:
+    import json
+    TABS = json.loads(_env_tabs)
 
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.environ.get('SOCIAL_AUTH_GOOGLE_OAUTH2_KEY')
 SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.environ.get('SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET')

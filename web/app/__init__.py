@@ -67,7 +67,7 @@ if not isfile(db_path):
     from models import Tab
 
     # Make sure we have all the tabs in the database.
-    for tab, tabname in app.config['TABS']:
+    for tab in app.config['TABS']:
         if Tab.query.filter_by(name=tab).count() == 0:
             t = Tab(name=tab)
             db.session.add(t)

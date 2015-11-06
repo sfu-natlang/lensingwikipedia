@@ -6,7 +6,7 @@ from functools import wraps
 import textwrap
 import datetime
 from . import app, db, lm, forms
-from .models import User, Tab, ROLE, STATUS
+from .models import User, Tab, ROLE, STATUS, TAB_NAMES
 
 def admin_required(f):
     @wraps(f)
@@ -51,16 +51,21 @@ def index():
 
             db.session.commit()
 
-    visible_tabs = app.config['TABS']
+    config_tabs = app.config['TABS']
+    visible_tabs = []
 
+    # we only want to show the user the intersection between config_tabs and
+    # the tabs they're allowed to see.
     if g.user.is_authenticated():
-        visible_tabs = []
-        config_tabs = dict(app.config['TABS'])
         for tab in g.user.tabs:
-            if tab.name in config_tabs.keys():
-                visible_tabs.append((tab.name, config_tabs[tab.name]))
+            if tab.name in config_tabs:
+                visible_tabs.append(tab.name)
+    else:
+        visible_tabs = config_tabs
 
-    return render_template("index.html", title="index", tabs=visible_tabs)
+    tabs_with_names = [(tab, TAB_NAMES[tab]) for tab in visible_tabs]
+
+    return render_template("index.html", title="index", tabs=tabs_with_names)
 
 @app.route('/about')
 def about():

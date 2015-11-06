@@ -6,6 +6,18 @@ import datetime
 ROLE = {'user': 0, 'admin': 1}
 STATUS = {'regular': 0, 'banned': 1}
 
+# maps internal tab names to user-visible tab names
+TAB_NAMES = {
+    "facets": "Facets",
+    "storyline": "Storyline",
+    "timeline": "Timeline",
+    "comparison": "Comparison",
+    "map": "Map",
+    "cluster": "Cluster",
+    "textsearch": "Text Search"
+}
+
+# tab_name is the keys in TAB_NAMES above
 tabs = db.Table('tabs',
     db.Column('tab_name', db.Integer, db.ForeignKey('tab.name')),
     db.Column('user_id', db.Integer, db.ForeignKey('user.id'))
