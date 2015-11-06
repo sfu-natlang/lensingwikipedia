@@ -9,7 +9,7 @@ web-staging:
     ports:
         # Format is HOST:CONTAINER
         # Only change the HOST part
-        - "8080:80"
+        - "8000:80"
     volumes_from:
         - data-staging
     log_driver: "syslog"
