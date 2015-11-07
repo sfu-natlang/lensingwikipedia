@@ -10,46 +10,9 @@ directory for the backend and frontend. For a different domain use the
 appropriate sub-directory in backend/domains/ instead, and adjust local paths
 and URLs as needed.
 
-## Set up packages on CentOS 6
+## Provision the server
 
-    sudo yum check-update
-    sudo yum install git
-    sudo yum install screen
-    sudo yum groupinstall "Development tools"
-    sudo yum install zlib-devel bzip2-devel openssl-devel ncurses-devel sqlite-devel readline-devel tk-devel atlas-devel
-
-## Set up Python 2.7
-
-    cd /tmp
-    wget http://python.org/ftp/python/2.7.8/Python-2.7.8.tgz
-    tar xf Python-2.7.8.tgz
-    cd Python-2.7.8
-    ./configure --prefix=/usr/local
-    make && sudo make altinstall
-
-## Set up easy_install, pip and whoosh
-
-    wget https://pypi.python.org/packages/source/d/distribute/distribute-0.6.49.tar.gz
-    tar xf distribute-0.6.49.tar.gz
-    cd distribute-0.6.49
-    sudo /usr/local/bin/python2.7 setup.py install
-    sudo /usr/local/bin/easy_install-2.7 pip
-    sudo /usr/local/bin/pip-2.7 install whoosh
-    sudo /usr/local/bin/pip-2.7 install numpy scipy scikit-learn nltk
-    sudo python2.7 -c 'import nltk; nltk.download("all")'
-
-## Set up docker on Ubuntu or CentOS 6/7
-
-Set up docker version 1.7.1 or greater on Ubuntu on CentOS 6 or CentOS 7.
-Installing on Ubuntu in easy. To install on CentOS follow the instructions in
-the following page:
-
-    http://blog.docker.com/2015/07/new-apt-and-yum-repos/
-
-After you have installed using `sudo yum install docker-engine` then install
-`docker-compose`:
-
-    sudo /usr/local/bin/pip-2.7 install docker-compose
+Run `./provision.sh` to provision your CentOS 6 server.
 
 ## Get the data from the nightly crawl
 
@@ -83,29 +46,12 @@ The result will be in `build/fullData.index`
 exist, but it also creates the `build/` directory, so you should run this every
 time.
 
-## Set up database for user accounts
-
-Using `virtualenv` is optional, but highly recommended.
-
-    cd web/
-    virtualenv venv
-    . venv/bin/activate
-    pip install -r requirements.txt
-    ./db_create.py
-
-Now you should have an app.db in the same directory. This will be copied into
-the 'data' container, so leave it there.
-
 ## Configure and build the docker images
 
-For the backend, the only configuration option available is whether you want
-the 'wikipediahistory' or 'avherald' domains to be used. This can be chosen by
-changing the `CONFIG` environment variable in `docker-compose.yml`.
+Configure the images by editing `config.env`.
 
-The frontend configuration is modified using the `local_config.py` as explained
-in `web/README.md`. Place the `local_config.py` file in the same directory as
-`config.py` before you run `docker-compose build`, and it'll be added to the
-image.
+Set your Google API keys in `keys.env`. Read `keys.env.sample` for details on
+what you need to fill in.
 
 The defaults are set up to reflect the current directory structure and open
 ports on `natlang-web.cs.sfu.ca`
