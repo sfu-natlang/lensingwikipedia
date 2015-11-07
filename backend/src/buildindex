@@ -22,7 +22,7 @@ import collections
 import sys
 
 # Use the domain config file.
-import backend_domain_config
+from domain_config import backend_domain_config
 
 text_analyzer = whoosh.analysis.RegexTokenizer() | whoosh.analysis.LowercaseFilter() | whoosh.analysis.CharsetFilter(whoosh.support.charset.accent_map) | whoosh.analysis.StopFilter() | whoosh.analysis.StemFilter()
 keyword_text_analyzer = whoosh.analysis.RegexTokenizer() | whoosh.analysis.LowercaseFilter() | whoosh.analysis.CharsetFilter(whoosh.support.charset.accent_map)

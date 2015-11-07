@@ -26,7 +26,12 @@ import Queue
 import whoosh, whoosh.index
 import wsgiref, wsgiref.simple_server
 import queries
-import backend_settings, backend_settings_defaults, backend_domain_settings_defaults
+
+logging.basicConfig(stream=sys.stdout,
+                    level=logging.DEBUG)
+
+import backend_settings, backend_settings_defaults
+from domain_config import backend_domain_settings_defaults
 
 default_port = 1500
 
@@ -34,8 +39,6 @@ default_server_settings = dict(backend_settings_defaults.settings['server'].iter
 domain_default_server_settings = dict(backend_domain_settings_defaults.settings['server'].iteritems())
 ServerSettings = backend_settings.make_settings_structure(default_server_settings, domain_default_server_settings)
 
-logging.basicConfig(stream=sys.stdout,
-                    level=logging.DEBUG)
 
 class State:
   """

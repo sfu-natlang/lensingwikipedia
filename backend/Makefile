@@ -3,22 +3,21 @@
 #
 # Put local changes to the makefile variables or system environment in
 # Makefile.local. Use = for variables (like PATH) that need to override the
-# environment, and ?= for any variables (like LENSING_DOMAIN) that you might
-# want to override with the environment or commandline.
+# environment, and ?= for any variables that you might want to override with
+# the environment or commandline.
 #
 
 -include Makefile.local
 
-SRC?=src
-LENSING_DOMAIN?=wikipediahistory
-OUT?=build
+SRC ?= src
+OUT ?= build
 
 build: python bhtsne
 
 python:
 	@mkdir -p $(OUT)
 	find $(SRC) -maxdepth 1 \( -name '*.py' -o -executable \) \( -not -type d \) -exec cp {} $(OUT) \;
-	find domains/$(LENSING_DOMAIN) -maxdepth 1 -name '*.py' -exec cp {} $(OUT) \;
+	cp -r domain_config $(OUT)
 
 bhtsne:
 	SRC=$(SRC)/bhtsne OUT=$(OUT)/bhtsne $(MAKE) -f $(SRC)/bhtsne/Makefile build

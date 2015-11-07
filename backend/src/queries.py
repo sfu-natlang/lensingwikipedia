@@ -10,10 +10,9 @@ import hashlib
 import time
 import json
 import caching
-import backend_settings, backend_settings_defaults, backend_domain_settings_defaults
-
-# Use the domain config file.
-import backend_domain_config
+import backend_settings, backend_settings_defaults
+from domain_config import (backend_domain_settings_defaults,
+        backend_domain_config)
 
 class QueryHandlingError(Exception):
   """
