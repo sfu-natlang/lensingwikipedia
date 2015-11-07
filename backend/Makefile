@@ -12,16 +12,35 @@
 SRC ?= src
 OUT ?= build
 
-build: python bhtsne
+all: query-backend bhtsne
 
-python:
+query-backend:
 	@mkdir -p $(OUT)
 	find $(SRC) -maxdepth 1 \( -name '*.py' -o -executable \) \( -not -type d \) -exec cp {} $(OUT) \;
 	cp -r domain_config $(OUT)
 
 bhtsne:
+	@mkdir -p $(OUT)
 	SRC=$(SRC)/bhtsne OUT=$(OUT)/bhtsne $(MAKE) -f $(SRC)/bhtsne/Makefile build
+
+build-image:
+	@mkdir -p $(OUT)
+	@if ! sudo docker images | grep -q lensing-index; then \
+		touch $(OUT)/.dockerignore; \
+		sudo docker build -f Dockerfile-makeindex -t lensing-index . ; \
+	else \
+		echo "Image already built. Run 'make rm-image' first to rebuild"; \
+	fi
+
+index: build-image
+	sudo docker run -v $(PWD)/build:/build lensing-index
+
+rm-image:
+	sudo docker rmi -f lensing-index
 
 clean:
 	SRC=$(SRC)/bhtsne OUT=$(OUT)/bhtsne $(MAKE) -f $(SRC)/bhtsne/Makefile clean
 	rm -rf $(OUT)
+	@$(MAKE) rm-image
+
+.PHONY: all query-backend bhtsne build-image index rm-image clean
