@@ -72,10 +72,16 @@ will be similar.
     chmod g+w data
     chmod g+s data
     cd data
-    # create full.index in data/wikipedia/latest (use current date) using instructions in the backend README
-    python2.7 buildindex /var/www/html/data/wikipedia/latest/fullData.index /var/www/html/data/wikipedia/latest/fullData.json
-    python2.7 cluster /var/www/html/data/wikipedia/latest/fullData.index
-    python2.7 tsne /var/www/html/data/wikipedia/latest/fullData.index
+    cd /var/www/html/checkouts/backend
+    make build-image # run this every time
+    cp /var/www/html/data/wikipedia/latest/fullData.json build/
+    make index
+
+The result will be in `build/fullData.index`
+
+**Note:** `make build-image` will only build the image if it doesn't already
+exist, but it also creates the `build/` directory, so you should run this every
+time.
 
 ## Set up database for user accounts
 
