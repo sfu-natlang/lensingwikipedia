@@ -33,10 +33,14 @@ build-image:
 	fi
 
 index: build-image
-	sudo docker run -v $(PWD)/build:/build lensing-index
+	@if [ ! -f ${OUT}/fullData.json ]; then \
+		echo "${OUT}/fullData.json is missing!"; \
+		exit 1; \
+	fi
+	sudo docker run -i -t -v $(PWD)/build:/build lensing-index
 
 rm-image:
-	sudo docker rmi -f lensing-index
+	sudo docker rmi -f lensing-index || true
 
 clean:
 	SRC=$(SRC)/bhtsne OUT=$(OUT)/bhtsne $(MAKE) -f $(SRC)/bhtsne/Makefile clean

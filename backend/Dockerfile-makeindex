@@ -11,15 +11,18 @@ ENV DEBIAN_FRONTEND noninteractive
 
 RUN sed -i 's/archive\.ubuntu\.com/mirror.its.sfu.ca\/mirror/' /etc/apt/sources.list
 
-RUN apt-get update && apt-get install -y build-essential python2.7 python2.7-dev python-pip libatlas-dev libatlas3-base libatlas-base-dev gfortran
-RUN pip install whoosh numpy scipy scikit-learn nltk
+# install numpy, scipy, scikit-learn, using APT so that we don't have to deal
+# with compilation issues such as CFLAGS being set because we're being run by a
+# Makefile
+RUN apt-get update && apt-get install -y build-essential python2.7 python2.7-dev python-pip libatlas-dev libatlas3-base libatlas-base-dev python-numpy python-scipy python-sklearn
+RUN pip install whoosh nltk
 RUN python2.7 -c 'import nltk; nltk.download("all")'
 
 ADD . /opt/lensing
 
 RUN cd /opt/lensing && make
 
-CMD rm -r /build/fullData.index || \
+CMD rm -rf /build/fullData.index && \
         /opt/lensing/build/buildindex /build/fullData.index /build/fullData.json && \
         /opt/lensing/build/cluster /build/fullData.index && \
         /opt/lensing/build/tsne /build/fullData.index
