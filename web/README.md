@@ -4,6 +4,10 @@ This code is implemented using Flask and SQLAlchemy using plugins listed in
 Setup
 =====
 
+**NOTE:** The details below only apply for development without using Docker. If
+you're using Docker, you don't have to worry about any of this; it happens
+automatically in the Dockerfile.
+
 If you're doing local development, you can setup the frontend by following
 these steps. If you're deploying a copy of the site, follow the complete
 instructions in the `website.md` file at the root of this repository.
@@ -50,6 +54,10 @@ Configuration
 =============
 
 ## Parameters
+
+**NOTE:** The details below only apply for development without using Docker. If
+you're using Docker, you can configure your settings using `config.env` in the
+parent directory.
 
 All default parameters are in `config.py`. If you want to override any of the
 defaults, create a `local_config.py` file in the same directory as `config.py`
