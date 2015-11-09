@@ -2,7 +2,7 @@
   <div class="navbar-inner">
     <a class="brand" href="{{ url_for('index') }}">{{ config.SITETITLE }}</a>
     <ul class="nav">
-      <li><a class="about" href="{{ url_for('about') }}">About</a></li>
+      <li><a href="#aboutModal" role="button" data-toggle="modal">About</a></li>
       {% if g.user.is_authenticated() %}
       {% if g.user.is_admin() %}
       <li><a href="{{ url_for('users') }}">Users</a></li>

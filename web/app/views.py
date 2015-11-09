@@ -63,11 +63,6 @@ def index():
     return render_template("index.html", title=app.config["SITETITLE"],
             tabs=visible_tabs)
 
-@app.route('/about')
-def about():
-    return render_template("about.html",
-            title="About | " + app.config["SITETITLE"])
-
 @app.route("/logout")
 def logout():
     logout_user()
