@@ -1,6 +1,6 @@
 <div class="navbar">
   <div class="navbar-inner">
-    <a class="brand" href="{{ url_for('index') }}">Lensing</a>
+    <a class="brand" href="{{ url_for('index') }}">{{ config.SITETITLE }}</a>
     <ul class="nav">
       <li><a class="about" href="{{ url_for('about') }}">About</a></li>
       {% if g.user.is_authenticated() %}

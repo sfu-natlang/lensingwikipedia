@@ -60,11 +60,13 @@ def index():
             if tab.name in config_tabs.keys():
                 visible_tabs.append((tab.name, config_tabs[tab.name]))
 
-    return render_template("index.html", title="index", tabs=visible_tabs)
+    return render_template("index.html", title=app.config["SITETITLE"],
+            tabs=visible_tabs)
 
 @app.route('/about')
 def about():
-    return render_template("about.html", title="About Lensing Wikipedia")
+    return render_template("about.html",
+            title="About | " + app.config["SITETITLE"])
 
 @app.route("/logout")
 def logout():

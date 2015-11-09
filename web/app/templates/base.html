@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-  <title>{% block title %}{% if title %}{{ title }}{% endif %}{% endblock %}</title>
+  <title>{% block title %}{% if title %}{{ title }}{% else %}{{ config.LENSING_SITETITLE }}{% endif %}{% endblock %}</title>
 
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}">
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/base.css') }}">
