@@ -3,7 +3,10 @@
 # choice put it). Just prepend paths as needed, and commit it.
 export PATH := /usr/local/bin:$(HOME)/.local/bin:$(PATH)
 
-deploy: DOCKER_HOST=tcp://lensingwikipedia.cs.sfu.ca:2376 DOCKER_TLS_VERIFY=1
+deploy: DOCKER_HOST = tcp://lensingwikipedia.cs.sfu.ca:2376
+deploy: DOCKER_TLS_VERIFY = 1
+deploy: DOCKER_CERT_PATH = $(PWD)/keys/
+deploy:
 	sudo env "PATH=${PATH}" docker-compose -f production.yml build web
 	sudo env "PATH=${PATH}" docker-compose -f production.yml build query
 	sudo env "PATH=${PATH}" docker-compose -f production.yml up -d
