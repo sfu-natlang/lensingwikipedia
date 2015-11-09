@@ -65,11 +65,8 @@ def index():
 
     tabs_with_names = [(tab, TAB_NAMES[tab]) for tab in visible_tabs]
 
-    return render_template("index.html", title="index", tabs=tabs_with_names)
-
-@app.route('/about')
-def about():
-    return render_template("about.html", title="About Lensing Wikipedia")
+    return render_template("index.html", title=app.config["SITETITLE"],
+            tabs=tabs_with_names)
 
 @app.route("/logout")
 def logout():
