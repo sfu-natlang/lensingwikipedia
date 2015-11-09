@@ -31,3 +31,4 @@ sudo yum check-update
 sudo yum install docker-engine
 
 sudo /usr/local/bin/pip2.7 install docker-compose
+sudo mkdir -p /etc/docker

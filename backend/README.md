@@ -40,9 +40,9 @@ Whoosh index. A Whoosh index is just a directory that Whoosh keeps its files
 in. The input to this step is a data file where each line of the file is a JSON
 object for a single event.
 
-To build the backend, first run
+To build the backend, first run (in the parent directory)
 
-    make build-image
+    make prepare-index-build
 
 That will create a `build/` directory and create the Docker image from which
 you'll run the container to build the index. This will check if the image is
@@ -50,6 +50,7 @@ already built (so it won't rebuilt it), but you should run this every time to
 create the `build/` directory.
 
 Next, copy your `fullData.json` file into the `build/` directory, and then run
+(in the parent directory)
 
     make index
 

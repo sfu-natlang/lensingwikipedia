@@ -35,8 +35,8 @@ will be similar.
     chmod g+w data
     chmod g+s data
     cd data
-    cd /var/www/html/checkouts/backend
-    make build-image # run this every time
+    cd /var/www/html/checkouts/
+    make prepare-index-build # run this every time
     cp /var/www/html/data/wikipedia/latest/fullData.json build/
     make index
 

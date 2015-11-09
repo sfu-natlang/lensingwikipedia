@@ -3,6 +3,8 @@
 # choice put it). Just prepend paths as needed, and commit it.
 export PATH := /usr/local/bin:$(HOME)/.local/bin:$(PATH)
 
+OUT ?= build
+
 deploy: DOCKER_HOST = tcp://lensingwikipedia.cs.sfu.ca:2376
 deploy: DOCKER_TLS_VERIFY = 1
 deploy: DOCKER_CERT_PATH = $(PWD)/keys/
@@ -26,8 +28,27 @@ dev:
 	sudo env "PATH=${PATH}" docker-compose -f development.yml build query
 	sudo env "PATH=${PATH}" docker-compose -f development.yml up
 
+prepare-index-build:
+	@mkdir -p $(OUT)
+	@if ! sudo docker images | grep -q lensing-index; then \
+		touch $(OUT)/.dockerignore; \
+		sudo docker build -f ./backend/Dockerfile-makeindex -t lensing-index ./backend ; \
+	else \
+		echo "Image already built. Run 'make rm-index-image' first to rebuild"; \
+	fi
+
+index: prepare-index-build
+	@if [ ! -f ${OUT}/fullData.json ]; then \
+		echo "${OUT}/fullData.json is missing!"; \
+		exit 1; \
+	fi
+	sudo docker run -i -t -v $(PWD)/build:/build lensing-index
+
+rm-index-image:
+	sudo docker rmi -f lensing-index || true
+
 clean:
-	rm -rf ./build
+	rm -rf $(OUT)
 
 remove-containers:
 	# || true because this will fail if there are no containers, but we want to

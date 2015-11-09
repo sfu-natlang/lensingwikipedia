@@ -22,7 +22,7 @@ ADD . /opt/lensing
 
 RUN cd /opt/lensing && make
 
-CMD rm -rf /build/fullData.index && \
-        /opt/lensing/build/buildindex /build/fullData.index /build/fullData.json && \
-        /opt/lensing/build/cluster /build/fullData.index && \
-        /opt/lensing/build/tsne /build/fullData.index
+CMD rm -rf /build/index && mkdir -p /build/index && \
+        /opt/lensing/build/buildindex /build/index/fullData.index /build/fullData.json && \
+        /opt/lensing/build/cluster /build/index/fullData.index && \
+        /opt/lensing/build/tsne /build/index/fullData.index
