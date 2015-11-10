@@ -39,7 +39,9 @@ def commit_on_success(error=None):
     if error is None:
         db.session.commit()
     else:
-        raise Exception(error)
+        db.session.rollback()
+
+    db.session.remove()
 
 @app.route('/')
 def index():

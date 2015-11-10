@@ -3,6 +3,11 @@
 # PUT LOCAL SETTINGS IN local_config.py, if you're running this using the Flask
 # dev server, or pass things in through environment variables
 
+# NOTE: All the .strip("'") are there because the config.env file has values
+# wrapped in single quotes. We can't remove the single quotes because
+# `source config.env` would break in Bash (since it would end up trying to
+# execute things because they're not prefixe with 'export').
+
 import os
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -23,7 +28,7 @@ TABS = ["facets", "storyline", "timeline", "comparison", "map", "textsearch"]
 _env_tabs = os.environ.get("LENSING_TABS")
 if _env_tabs:
     import json
-    TABS = json.loads(_env_tabs)
+    TABS = json.loads(_env_tabs.strip("'"))
 
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.environ.get('SOCIAL_AUTH_GOOGLE_OAUTH2_KEY')
 SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.environ.get('SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET')

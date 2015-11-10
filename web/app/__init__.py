@@ -4,7 +4,7 @@ from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.login import LoginManager
 
 from flask.ext.script import Manager
-from flask.ext.migrate import Migrate, MigrateCommand
+from flask.ext.migrate import upgrade, stamp, Migrate, MigrateCommand
 
 from social.apps.flask_app.routes import social_auth
 from social.apps.flask_app.template_filters import backends
@@ -12,21 +12,7 @@ from social.apps.flask_app.default.models import init_social
 
 app = Flask(__name__)
 app.config.from_object('config')
-
-try:
-    app.config.from_object('local_config')
-except ImportError:
-    # This will occur when there's no local_config.py, and that's an acceptable
-    # situation.
-    pass
-
-try:
-    app.config.from_envvar('LENSING_SETTINGS')
-except RuntimeError:
-    # This happens when the environment variable is not set.
-    # We can safely ignore this because we usually won't use this (unless we
-    # don't want to use local_config.py in a container).
-    pass
+app.config.from_envvar('LENSING_SETTINGS', silent=True)
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
@@ -49,10 +35,11 @@ app.jinja_env.lstrip_blocks = True
 from app import views, models, forms
 
 # CREATE ALL DATABASE + TABLES AT RUNTIME
-# THIS DEFINITELY CAN'T HANDLE MIGRATIONS
 from os.path import isfile
 from urlparse import urlparse
+import os
 
+basedir = os.path.abspath(os.path.dirname(__file__))
 db_path = urlparse(app.config['SQLALCHEMY_DATABASE_URI']).path
 
 if not isfile(db_path):
@@ -73,3 +60,10 @@ if not isfile(db_path):
             db.session.add(t)
 
     db.session.commit()
+
+    with app.app_context():
+        stamp(directory=os.path.join(basedir, '../migrations'))
+
+else:
+    with app.app_context():
+        upgrade(directory=os.path.join(basedir, '../migrations'))
