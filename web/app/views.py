@@ -34,15 +34,6 @@ def before_request():
         db.session.add(g.user)
         db.session.commit()
 
-@app.teardown_appcontext
-def commit_on_success(error=None):
-    if error is None:
-        db.session.commit()
-    else:
-        db.session.rollback()
-
-    db.session.remove()
-
 @app.route('/')
 def index():
     if g.user.is_authenticated():
