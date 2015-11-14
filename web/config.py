@@ -14,6 +14,7 @@ SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'app.db')
 
 # override this in the local_config, but we need a default
 DOMAIN = os.environ.get("LENSING_DOMAIN", "wikipediahistory")
+SITETITLE = os.environ.get("LENSING_SITETITLE", "Lensing Wikipedia").strip("'")
 
 BACKEND_URL = os.environ.get("LENSING_BACKEND_URL", "http://natlang-web.cs.sfu.ca:1500")
 
