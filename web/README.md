@@ -6,22 +6,15 @@ Setup
 
 **NOTE:** The details below only apply for development without using Docker. If
 you're using Docker, you don't have to worry about any of this; it happens
-automatically in the Dockerfile.
+automatically in the Dockerfile and docker-compose.yml.
 
 If you're doing local development, you can setup the frontend by following
 these steps. If you're deploying a copy of the site, follow the complete
 instructions in the `website.md` file at the root of this repository.
 
-The following steps aren't all mandatory.
-
-* For a barebones frontend, follow steps 1, 2, 7.
-* For a frontend with working database, follow steps 1, 2, 3, 7.
-* If you've made a change to the schema, execute steps 4, 5.
-
 If you're not familiar with database migrations, read the Flask-Migrate
-documentation at https://flask-migrate.readthedocs.org/en/latest/.
-
-If any of the files aren't executable for you, use `chmod u+x FILENAME`.
+documentation at https://flask-migrate.readthedocs.org/en/latest/, and the
+alembic documentation at http://alembic.readthedocs.org/en/latest/index.html.
 
 ### The steps
 
@@ -34,21 +27,27 @@ If any of the files aren't executable for you, use `chmod u+x FILENAME`.
 
     pip install -r requirements.txt
 
-3. To create a new database (used for user accounts):
+3. To create a new database. **NOTE:** Don't run this after making changes to
+   the schema. You want to create the database first, then make your changes in
+   `models.py`, and then run `db migrate` to autogenerate the migration
+   scripts.
 
-    ./db_create.py
+    python run.py create_db
 
-4. To create a migration (after making some changes to the schema):
+4. To create a migration (after making some changes to the schema). Make sure
+   you go through the migration script and remove the python-social-auth
+   changes; it doesn't detect those models so it think they got removed. Make
+   sure they don't get removed!
 
-    ./run.py db migrate
+    python run.py db migrate -m MESSAGE
 
 5. To apply a migration:
 
-    ./run.py db upgrade
+    python run.py db upgrade
 
 6. To run the server with debugging output on:
 
-    ./run.py runserver -d
+    python run.py runserver -p PORT -d
 
 Configuration
 =============
@@ -64,7 +63,9 @@ defaults, create a `local_config.py` file in the same directory as `config.py`
 and put your parameters in there. The names should match the ones in
 `config.py`. If you want to add *new* parameters, create a default one in
 `config.py` first so that anyone running the code is guaranteed to have it
-execute successfully.
+execute successfully. Also, make sure that you're allowing the parameters in
+`config.py` to be overridden using environment variables (i.e. use
+`os.environ.get` everywhere).
 
 The parameters in `config.py` are available as `config.PARAMETER` in the Python
 code and in the templates.

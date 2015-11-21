@@ -38,6 +38,7 @@ def before_request():
 def commit_on_success(error=None):
     # XXX: DO NOT REMOVE
     #      This makes it so that logging in works.
+    # This is taken from here: https://github.com/omab/python-social-auth/blob/master/examples/flask_example/__init__.py
     # TODO: Figure out why we can't remove this.
     if error is None:
         db.session.commit()
