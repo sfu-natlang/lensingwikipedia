@@ -54,3 +54,8 @@ SESSION_PROTECTION = None
 # test changes to your models (you won't be able to create a db without
 # creating the migration files first)
 AUTO_DB_MANAGEMENT = os.environ.get("LENSING_AUTO_DB_MANAGEMENT", "false").lower() in ['true', 'yes']
+
+try:
+    from local_config import *
+except ImportError:
+    pass
