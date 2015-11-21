@@ -16,7 +16,7 @@ RUN pip install whoosh
 
 ADD . /opt/lensing
 
-RUN cd /opt/lensing && make python
+RUN cd /opt/lensing && make query-backend
 
 USER lensing
 

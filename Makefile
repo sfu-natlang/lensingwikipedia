@@ -9,24 +9,14 @@ deploy: DOCKER_HOST = tcp://lensingwikipedia.cs.sfu.ca:2376
 deploy: DOCKER_TLS_VERIFY = 1
 deploy: DOCKER_CERT_PATH = $(PWD)/keys/
 deploy:
-	sudo env "PATH=${PATH}" docker-compose -f production.yml build web
-	sudo env "PATH=${PATH}" docker-compose -f production.yml build query
-	sudo env "PATH=${PATH}" docker-compose -f production.yml up -d
-
-production:
-	sudo env "PATH=${PATH}" docker-compose -f production.yml build web
-	sudo env "PATH=${PATH}" docker-compose -f production.yml build query
-	sudo env "PATH=${PATH}" docker-compose -f production.yml up -d
-
-staging:
-	sudo env "PATH=${PATH}" docker-compose -f staging.yml build web
-	sudo env "PATH=${PATH}" docker-compose -f staging.yml build query
-	sudo env "PATH=${PATH}" docker-compose -f staging.yml up
+	sudo env "PATH=${PATH}" docker-compose build web
+	sudo env "PATH=${PATH}" docker-compose build query
+	sudo env "PATH=${PATH}" docker-compose up -d
 
 dev:
-	sudo env "PATH=${PATH}" docker-compose -f development.yml build web
-	sudo env "PATH=${PATH}" docker-compose -f development.yml build query
-	sudo env "PATH=${PATH}" docker-compose -f development.yml up
+	sudo env "PATH=${PATH}" docker-compose build web
+	sudo env "PATH=${PATH}" docker-compose build query
+	sudo env "PATH=${PATH}" docker-compose up
 
 prepare-index-build:
 	@mkdir -p $(OUT)
@@ -42,7 +32,8 @@ index: prepare-index-build
 		echo "${OUT}/fullData.json is missing!"; \
 		exit 1; \
 	fi
-	sudo docker run -i -t -v $(PWD)/build:/build lensing-index
+	sudo docker run -i -t -v $(OUT):/build lensing-index
+	sudo chown -R ${USER} ${OUT}
 
 rm-index-image:
 	sudo docker rmi -f lensing-index || true

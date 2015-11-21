@@ -7,11 +7,27 @@ web:
         - ./config.env
         - ./keys.env
     restart: on-failure:10
+    ports:
+        # Format is HOST:CONTAINER
+        # Only change the HOST part
+        - "8080:80"
+    volumes_from:
+        - data
+    log_driver: "${LENSING_DOCKER_LOG_DRIVER}"
+
 query:
     build: backend
     env_file:
         - ./config.env
     restart: on-failure:10
+    ports:
+        # Format is HOST:CONTAINER
+        # Only change the HOST part
+        - "1500:1500"
+    volumes_from:
+        - data
+    log_driver: "${LENSING_DOCKER_LOG_DRIVER}"
+
 data:
     build: .
     dockerfile: Dockerfile-data
