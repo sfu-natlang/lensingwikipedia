@@ -30,10 +30,8 @@ will be similar.
 
     cd /var/www/html
     sudo mkdir data
-    sudo chown anoop data
-    chgrp cs-natlang data
-    chmod g+w data
-    chmod g+s data
+    sudo chown anoop:cs-natlang data
+    chmod g+ws data
     cd data
     cd /var/www/html/checkouts/
     make prepare-index-build # run this every time
@@ -62,10 +60,11 @@ Make sure you have permissions 664 on files and 755 on directories in `web/`
     find web -print -type f -exec chmod 664 {} \;
     find web -print -type d -exec chmod 755 {} \;
 
-Then run the following commands:
+Then run the following:
 
-    sudo /usr/local/bin/docker-compose build
-    sudo /usr/local/bin/docker-compose up
+    make dev
+
+This will now create all the necessary docker images, and run the containers.
 
 ## Localhost installation on macosx for offline demos
 
@@ -89,7 +88,9 @@ Terminal window that looks like this:
 
 You will use the IP address shown above to connect to the lensing server.
 
-For first time setup: set up the databases directory with the right permissions (more detailed instructions to come later). Then add the following line to `/etc/hosts`
+For first time setup: set up the databases directory with the right permissions
+(more detailed instructions to come later). Then add the following line to
+`/etc/hosts`
 
     192.168.99.100  lensingwikipedia.me
 
@@ -127,8 +128,9 @@ doing the following:
 
 ## Updating the site.
 
-To update the site, pull the new version from github and rebuild the docker
-images (using the same commands above).
+To update the site, pull the new version from github and re-run:
+
+    make dev
 
 When updating to a new docker image, you should check if the previous image was
 terminated gracefully:
@@ -138,23 +140,11 @@ terminated gracefully:
 
 ## Deleting all Docker images and containers
 
-### Containers
+To remove containers and images, run `make remove-containers` and `make
+remove-images`, respectively.
 
-If you wish to remove all containers on the host, run the following command:
-
-    sudo docker rm -f $(sudo docker ps -aq)
-
-The `-f` means 'force' and is optional; it is useful when some containers are
-still running, and you want to delete those too. Without `-f`, this command
-won't kill running containers.
-
-`docker ps` lists containers, `-a` means "all" (including stopped containers),
-`-q` means "quiet" (only show IDs).
-
-### Images
-
-If you wish to remove all Docker images on the host, run the following command:
-
-    sudo docker rmi $(sudo docker images -q)
-
-`docker images` lists images, `-q` means "quiet" (only show IDs).
+When you run `make remove-images` you might get an error message (which is
+ignored) from `docker rm` that you need to pass at least one parameter to it.
+Don't worry about this; it just happens before the `remove-images` target
+depends on `remove-containers` and you'll get the error message when there are
+no containers to remove.
