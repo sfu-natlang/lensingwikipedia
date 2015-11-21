@@ -36,13 +36,15 @@ from app import views, models, forms
 
 @manager.command
 def create_db():
+    import os
+
     db.create_all()
 
     # create the tables for python-social-auth
     from sqlalchemy import create_engine
-    from social.apps.flask_app.default import models
+    from social.apps.flask_app.default import models as PSA_models
     engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'])
-    models.PSABase.metadata.create_all(engine)
+    PSA_models.PSABase.metadata.create_all(engine)
 
     from models import Tab
 
@@ -53,6 +55,10 @@ def create_db():
             db.session.add(t)
 
     db.session.commit()
+
+    with app.app_context():
+        basedir = os.path.abspath(os.path.dirname(__file__))
+        stamp(directory=os.path.join(basedir, '../migrations'))
 
     print("Database created.")
 
@@ -70,9 +76,6 @@ if app.config['AUTO_DB_MANAGEMENT']:
 
     if not isfile(db_path):
         create_db()
-
-        with app.app_context():
-            stamp(directory=os.path.join(basedir, '../migrations'))
 
     else:
         with app.app_context():
