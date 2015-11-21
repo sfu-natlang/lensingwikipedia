@@ -50,6 +50,19 @@ div.selectorsarea {
 	padding: 0;
 }
 
+.modal #notesInput {
+    /* these values depend on the width of .modal which is fixed within
+     * Bootstrap
+     */
+    width: 515px;
+    height: 300px;
+}
+
+.modal-footer .modal-status {
+    color: gray;
+    padding: 15px;
+}
+
 /* Change the spacing on bootstrap's tab elements to make vertical sizing */
 .nav-pills {
 	margin: 0;

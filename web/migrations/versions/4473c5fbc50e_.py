@@ -1,4 +1,4 @@
-"""empty message
+"""Add 'tab' table. Remove 'query' table.
 
 Revision ID: 4473c5fbc50e
 Revises: 21df4e5effd4

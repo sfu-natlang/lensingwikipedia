@@ -1,12 +1,12 @@
 from flask import request, url_for, render_template, g, session, redirect, \
-        flash, abort
+        flash, abort, jsonify
 from flask.ext.login import login_required, logout_user, current_user
 from social.apps.flask_app import routes
 from functools import wraps
 import textwrap
 import datetime
 from . import app, db, lm, forms
-from .models import User, Tab, ROLE, STATUS, TAB_NAMES
+from .models import User, Tab, Note, ROLE, STATUS, TAB_NAMES
 
 def admin_required(f):
     @wraps(f)
@@ -33,6 +33,18 @@ def before_request():
         # TODO: is the line below necessary?
         db.session.add(g.user)
         db.session.commit()
+
+@app.teardown_appcontext
+def commit_on_success(error=None):
+    # XXX: DO NOT REMOVE
+    #      This makes it so that logging in works.
+    # TODO: Figure out why we can't remove this.
+    if error is None:
+        db.session.commit()
+    else:
+        db.session.rollback()
+
+    db.session.remove()
 
 @app.route('/')
 def index():
@@ -108,3 +120,38 @@ def user(id):
             title="User %d = %s" % (id, user.username),
             user=user,
             form=modify_user_form)
+
+@app.route('/api/notes', methods=['POST', 'GET'])
+@login_required
+def user_notes():
+    # we only have one note for now, but we'll have more in the future, so
+    # return a list of notes anyways
+
+    if request.method == "POST":
+        note = Note(user_id=g.user.id, raw_contents=request.form['contents'])
+        db.session.add(note)
+        db.session.commit()
+        return jsonify(id=note.id)
+
+    return jsonify(ids=[note.id for note in g.user.notes.all()])
+
+@app.route('/api/notes/<int:id>', methods=['DELETE', 'PUT', 'GET'])
+@login_required
+def user_note(id):
+
+    note = Note.query.get(id)
+
+    if note is None or note.user_id != g.user.id:
+        response = jsonify(status="error", message="Note not found")
+        response.status_code = 404
+        return response
+
+    if request.method == "DELETE":
+        db.session.delete(note)
+        db.session.commit()
+        return jsonify(status="success")
+    elif request.method == "PUT":
+        note.raw_contents = request.form['contents']
+        return jsonify(status="success")
+
+    return jsonify(id=note.id, contents=note.raw_contents)

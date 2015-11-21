@@ -33,10 +33,11 @@ class User(db.Model, UserMixin):
     role = db.Column(db.SmallInteger, default=ROLE['user'])
     status = db.Column(db.SmallInteger, default=STATUS['regular'])
     last_seen = db.Column(db.DateTime)
-    notes = db.Column(db.Text)
 
     tabs = db.relationship('Tab', secondary=tabs,
                            backref=db.backref('users', lazy='dynamic'))
+
+    notes = db.relationship('Note', backref='user', lazy='dynamic')
 
     def is_admin(self):
         return (self.role == ROLE['admin'] or
@@ -50,3 +51,8 @@ class User(db.Model, UserMixin):
 
     def __repr__(self):
         return '<User %r>' % self.email
+
+class Note(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    raw_contents = db.Column(db.Text)

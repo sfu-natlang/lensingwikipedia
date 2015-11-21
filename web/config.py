@@ -46,7 +46,11 @@ ADMINS = ['anoop.sarkar@natlang.net', 'andrei@avacariu.me']
 
 SITE_URL = os.environ.get("LENSING_SITE_URL", "lensingwikipedia.cs.sfu.ca")
 
-DEBUG = os.environ.get("DEBUG", "false").lower() in ['true', 'yes']
-
 # TODO set this to 'strong' when it stops being broken in flask-login
 SESSION_PROTECTION = None
+
+# Automatically create and migrate the database as needed
+# This should only be enabled when it's deployed, since it won't allow you to
+# test changes to your models (you won't be able to create a db without
+# creating the migration files first)
+AUTO_DB_MANAGEMENT = os.environ.get("LENSING_AUTO_DB_MANAGEMENT", "false").lower() in ['true', 'yes']

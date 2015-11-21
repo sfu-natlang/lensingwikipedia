@@ -34,15 +34,8 @@ app.jinja_env.lstrip_blocks = True
 
 from app import views, models, forms
 
-# CREATE ALL DATABASE + TABLES AT RUNTIME
-from os.path import isfile
-from urlparse import urlparse
-import os
-
-basedir = os.path.abspath(os.path.dirname(__file__))
-db_path = urlparse(app.config['SQLALCHEMY_DATABASE_URI']).path
-
-if not isfile(db_path):
+@manager.command
+def create_db():
     db.create_all()
 
     # create the tables for python-social-auth
@@ -61,9 +54,26 @@ if not isfile(db_path):
 
     db.session.commit()
 
-    with app.app_context():
-        stamp(directory=os.path.join(basedir, '../migrations'))
+    print("Database created.")
 
-else:
-    with app.app_context():
-        upgrade(directory=os.path.join(basedir, '../migrations'))
+
+if app.config['AUTO_DB_MANAGEMENT']:
+    # CREATE ALL DATABASE + TABLES AT RUNTIME
+    # This should only be done while running within Docker, otherwise you'll
+    # have problems generating migrations
+    from os.path import isfile
+    from urlparse import urlparse
+    import os
+
+    basedir = os.path.abspath(os.path.dirname(__file__))
+    db_path = urlparse(app.config['SQLALCHEMY_DATABASE_URI']).path
+
+    if not isfile(db_path):
+        create_db()
+
+        with app.app_context():
+            stamp(directory=os.path.join(basedir, '../migrations'))
+
+    else:
+        with app.app_context():
+            upgrade(directory=os.path.join(basedir, '../migrations'))
