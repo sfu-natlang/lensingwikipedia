@@ -14,6 +14,8 @@ import backend_settings, backend_settings_defaults
 from domain_config import (backend_domain_settings_defaults,
         backend_domain_config)
 
+import logging
+
 class QueryHandlingError(Exception):
   """
   Exception for errors in query handling that should send an error message to
@@ -119,7 +121,7 @@ class Querier:
     Generate the Whoosh query object for the constraints.
     """
     def handle_constraint(cnstr_id, cnstr):
-      print >> sys.stderr, "handling constraint \"%s\" of type \"%s\"" % (cnstr_id, cnstr['type'])
+      logging.info("handling constraint \"%s\" of type \"%s\"" % (cnstr_id, cnstr['type']))
       return self.constraint_to_whoosh_query(cnstr)
     return whoosh.query.And([handle_constraint(cid, c) for cid, c in query['constraints'].iteritems()]) if len (query['constraints']) > 0 else whoosh.query.Every()
 
@@ -129,14 +131,14 @@ class Querier:
     multiple-valued field are counted.
     """
 
-    print >> sys.stderr, "generating field counts for fields: %s" % (' '.join(v['field'] for v in views.itervalues()))
+    logging.info("generating field counts for fields: %s" % (' '.join(v['field'] for v in views.itervalues())))
 
     for view_id, view in views.iteritems():
       response[view_id] = { 'counts': {} }
 
     with self.whoosh_index.searcher() as searcher:
       hits = searcher.search(whoosh_query, limit=None)
-      print >> sys.stderr, "whoosh search results: %s" % (repr(hits))
+      logging.info("whoosh search results: %s" % (repr(hits)))
       for hit in hits:
         for view_id, view in views.iteritems():
           field = view['field']
@@ -161,7 +163,7 @@ class Querier:
       def format(hit):
         return dict((f, hit[f]) for f in backend_domain_config.description_field_names)
       hits = searcher.search_page(whoosh_query, page_num + 1, pagelen=self.description_page_size, sortedby='year', reverse=True)
-      print >> sys.stderr, "whoosh pre-paginated search results: %s" % (repr(hits.results))
+      logging.info("whoosh pre-paginated search results: %s" % (repr(hits.results)))
       result['descriptions'] = [format(h) for h in hits]
       if hits.is_last_page():
         result['more'] = False
@@ -171,7 +173,7 @@ class Querier:
     link_counts = {}
     with self.whoosh_index.searcher() as searcher:
       hits = searcher.search(whoosh_query, limit=None)
-      print >> sys.stderr, "whoosh search results: %s" % (repr(hits))
+      logging.info("whoosh search results: %s" % (repr(hits)))
       for hit in hits:
         refpoints = whooshutils.split_keywords(hit['referencePoints'])
         for i, refpoint1 in enumerate(refpoints):
@@ -189,7 +191,7 @@ class Querier:
     coordinates = {}
     with self.whoosh_index.searcher() as searcher:
       hits = searcher.search(whoosh_query, limit=None)
-      print >> sys.stderr, "whoosh search results: %s" % (repr(hits))
+      logging.info("whoosh search results: %s" % (repr(hits)))
       for hit in hits:
         if '2DtSNECoordinates' in hit:
           refpoints = whooshutils.split_keywords(hit['2DtSNECoordinates'])
@@ -307,8 +309,7 @@ class Querier:
           response[view_id] = self.handle_independent_view(view, whoosh_query)
         except Exception, e:
           response[view_id] = { 'error': e.value if isinstance(e, QueryHandlingError) else True }
-          print >> sys.stderr, "error while generating a view:"
-          traceback.print_exc(file=sys.stderr)
+          logging.exception("error while generating a view:")
 
     if len(field_count_views) > 0:
       try:
@@ -317,8 +318,7 @@ class Querier:
         message = e.value if isinstance(e, QueryHandlingError) else True
         for view_id in field_count_views:
           response[view_id] = { 'error': message }
-        print >> sys.stderr, "error while generating count views:"
-        traceback.print_exc(file=sys.stderr)
+        logging.exception("error while generating count views:")
 
     return response
 
@@ -386,7 +386,7 @@ class Querier:
         method_str = "generating view"
         needed_views[view_id] = view
 
-      print >> sys.stderr, "handling view \"%s\" of type \"%s\": %s" % (view_id, view['type'], method_str)
+      logging.info("handling view \"%s\" of type \"%s\": %s" % (view_id, view['type'], method_str))
 
     # Get results for all views that were not cached.
     self.generate_views(response, needed_views, whoosh_query)
@@ -398,7 +398,7 @@ class Querier:
         # Update the caches.
         if view_id in views_should_cache:
           if 'error' in result:
-            print >> sys.stderr, "not caching due to error"
+            logging.error("not caching due to error")
           else:
             self.response_cache[views_cache_key[view_id]] = result
         elif how_to_paginate_result is not None:
@@ -448,16 +448,15 @@ class Querier:
     try:
       whoosh_query = self.handle_all_constraints(query)
       if self.verbose:
-        print >> sys.stderr, "whoosh query: %s" % (repr(whoosh_query))
+        logging.info("whoosh query: %s" % (repr(whoosh_query)))
       response = self.handle_all_views(query, whoosh_query)
     except Exception, e:
       message = e.value if isinstance(e, QueryHandlingError) else True
       response = {}
       for view_id in query['views']:
         response[view_id] = { 'error': message }
-      print >> sys.stderr, "error while handling query:"
-      traceback.print_exc(file=sys.stderr)
+      logging.exception("error while handling query:")
     if self.verbose:
       done_time = time.time()
-      print >> sys.stderr, "query handling time: %0.4f" % (done_time - start_time)
+      logging.info("query handling time: %0.4f" % (done_time - start_time))
     return response
