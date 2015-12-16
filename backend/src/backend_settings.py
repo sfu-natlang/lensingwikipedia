@@ -29,17 +29,6 @@ def read_from_file(path):
     check_settings(settings, backend_settings_defaults.settings)
     return settings
 
-def read_new_from_file(path, old_settings, old_settings_name="previous"):
-  """
-  Try to read new settings from a file, falling back on old settings if there is
-  any problem parsing the new.
-  """
-  try:
-    return read_from_file(path)
-  except Exception, e:
-    print >> sys.stderr, "error parsing new settings, retaining %s settings instead: %s" % (old_settings_name, str(e))
-    return old_settings
-
 def apply(dest, settings, *defaults):
   """
   Apply settings as properties of an object, falling back on defaults as needed.

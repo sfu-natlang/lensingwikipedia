@@ -8,9 +8,11 @@ import whoosh, whoosh.index, whoosh.query, whoosh.qparser
 # Message for a commit on a large change
 large_change_commit_message = "committing (may take a long time)"
 
-# Separator for parts of the merged fields (must be something that whoosh will count as a distinct but otherwise unknown token, and not as whitespace)
+# Separator for parts of the merged fields (must be something that whoosh will
+# count as a distinct but otherwise unknown token, and not as whitespace)
 merge_field_sep = " _SEP_ "
-# Suffix for the field name of a text field mirroring a keyword field for searching purposes
+# Suffix for the field name of a text field mirroring a keyword field for
+# searching purposes
 keyword_field_free_text_suffix = "_freeText"
 # Field name for merged version of all text and keyword fields
 all_text_merge_field = "all%s"% (keyword_field_free_text_suffix)
@@ -45,7 +47,8 @@ class TextQueryParser(whoosh.qparser.QueryParser):
 
   def parse(self, text):
     # We need to adjust the field names and make search terms lowercase.
-    # Note that commas here will already be interpreted by the query parser as whitespace, so we don't need to escape them.
+    # Note that commas here will already be interpreted by the query parser as
+    # whitespace, so we don't need to escape them.
     def alter(node):
       new_node = node
       if hasattr(node, 'fieldname'):
@@ -78,7 +81,8 @@ def split_keywords(value):
 
 def copy_all(input_index, output_writer, modify_doc):
   """
-  Copies all documents in a index with updates made by a modify function that is given each document and changes it in-place.
+  Copies all documents in a index with updates made by a modify function that is
+  given each document and changes it in-place.
   """
   with input_index.searcher() as searcher:
     for hit in searcher.search(whoosh.query.Every(), limit=None):
@@ -88,14 +92,22 @@ def copy_all(input_index, output_writer, modify_doc):
 
 def update_all_in_place(index, writer, modify_doc, order_num_field, buffer_size=100):
   """
-  Updates all documents in an index in-place. Requires a numeric field which is unique (to avoid issues with reading and writing at the same time), and buffers some number of documents in memory at once. Otherwise should work like copy_all().
+  Updates all documents in an index in-place. Requires a numeric field which is
+  unique (to avoid issues with reading and writing at the same time), and
+  buffers some number of documents in memory at once. Otherwise should work like
+  copy_all().
   """
   with writer.searcher() as searcher:
-    # We use manual pagination by counting on the unique numeric field because using whoosh's pagination causes some documents to be skipped if we modify documents during the search
+    # We use manual pagination by counting on the unique numeric field because
+    # using whoosh's pagination causes some documents to be skipped if we modify
+    # documents during the search
     page_num = 0
     while True:
       page_start = page_num * buffer_size
-      hits = searcher.search(whoosh.query.NumericRange(order_num_field, page_start, page_start + buffer_size - 1), limit=None, sortedby=order_num_field)
+      hits = searcher.search(whoosh.query.NumericRange(order_num_field,
+                                                       page_start,
+                                                       page_start + buffer_size - 1),
+                             limit=None, sortedby=order_num_field)
       if hits.is_empty():
         break
       buf = [h.fields() for h in hits]

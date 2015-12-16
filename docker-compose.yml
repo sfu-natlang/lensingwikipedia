@@ -26,6 +26,8 @@ query:
         - "1500:1500"
     volumes_from:
         - data
+    links:
+        - redis
     log_driver: "${LENSING_DOCKER_LOG_DRIVER}"
 
 data:
@@ -33,3 +35,6 @@ data:
     dockerfile: Dockerfile-data
     env_file:
         - ./config.env
+
+redis:
+    image: redis
