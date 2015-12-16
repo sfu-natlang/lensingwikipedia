@@ -15,3 +15,5 @@ web/app/static/js/wikipediahistory_config_local.js
 
 build/
 keys/
+
+.ropeproject/
