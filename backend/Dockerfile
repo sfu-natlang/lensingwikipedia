@@ -12,9 +12,9 @@ ENV DEBIAN_FRONTEND noninteractive
 RUN sed -i 's/archive\.ubuntu\.com/mirror.its.sfu.ca\/mirror/' /etc/apt/sources.list
 
 RUN apt-get update && apt-get install -y python2.7 python-pip
-RUN pip install whoosh
 
 ADD . /opt/lensing
+RUN pip install -r /opt/lensing/requirements.txt
 
 RUN cd /opt/lensing && make query-backend
 
