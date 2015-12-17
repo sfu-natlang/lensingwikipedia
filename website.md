@@ -38,7 +38,7 @@ will be similar.
     cp /var/www/html/data/wikipedia/latest/fullData.json build/
     make index
 
-The result will be in `build/fullData.index`
+The result will be in `build/index/fullData.index`
 
 **Note:** `make build-image` will only build the image if it doesn't already
 exist, but it also creates the `build/` directory, so you should run this every
