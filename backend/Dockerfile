@@ -20,4 +20,4 @@ RUN cd /opt/lensing && make query-backend
 
 USER lensing
 
-CMD /opt/lensing/build/backend -i /data/index/fullData.index -r redis
+CMD /opt/lensing/build/backend -r redis /data/index/fullData.index
