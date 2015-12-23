@@ -39,7 +39,11 @@ class Request(RequestBase, JSONRequestMixin):
 
 def create_app(index, redis_address, redis_port):
     """ Creates an app, given an index path."""
-    whoosh_index = whoosh.index.open_dir(index)
+    try:
+        whoosh_index = whoosh.index.open_dir(index)
+    except whoosh.index.EmptyIndexError:
+        logging.error("No index found at {}".format(index))
+        sys.exit(1)
     cache = RedisCache(redis_address, port=redis_port, default_timeout=0,
                        key_prefix="query_cache")
     querier = queries.Querier(whoosh_index, cache,
@@ -49,7 +53,6 @@ def create_app(index, redis_address, redis_port):
 
     @Request.application
     def application(request):
-        whoosh_index = whoosh.index.open_dir(index)
         querier = queries.Querier(whoosh_index, cache,
                                   **backend_domain_settings_defaults.settings.get('querier', {})) # noqa
 
@@ -91,7 +94,7 @@ def main(hostname, port, index, redis):
     redis_port = int(redis_host[1])
 
     app = create_app(index, redis_address, redis_port)
-    run_simple(hostname, port, app, threaded=False)
+    run_simple(hostname, port, app, threaded=True)
 
 if __name__ == '__main__':
     main()
