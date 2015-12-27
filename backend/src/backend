@@ -1,254 +1,114 @@
 #!/usr/bin/env python2
 
 """
-Usage: %s [opts]
-
-Options
--h STRING  Hostname for server. Defaults to empty.
--p INT     Port for server. Defaults to %i.
--c FILE    Config file to load settings from. If this option is not given, then
-  the -i option must be given, all settings are left at defaults, and there is
-  no way to change settings without restarting the backend.
--i DIR     Default index directory to use for data. Will be overridden by any
-  value given in the settings file.
-
 Runs the backend as a server.
+
+To see the available options, use --help
 """
 
 import sys
-import json
-import datetime
-import traceback
-import threading
-import copy
 import logging
-import Queue
-import whoosh, whoosh.index
-import wsgiref, wsgiref.simple_server
+import whoosh
+import whoosh.index
 import queries
+
+import click
+
+from werkzeug.wrappers import BaseRequest
+from werkzeug.wrappers import Response
+from werkzeug.exceptions import BadRequest
+from werkzeug.utils import cached_property
+from werkzeug.contrib.cache import RedisCache
+
+try:
+    import simplejson as json
+except ImportError:
+    import json
+
+# import backend_settings
+# import backend_settings_defaults
+# handles which domain to choose based on environment variables internally
+from domain_config import backend_domain_settings_defaults
 
 logging.basicConfig(stream=sys.stdout,
                     level=logging.DEBUG)
 
-import backend_settings, backend_settings_defaults
-from domain_config import backend_domain_settings_defaults
 
-default_port = 1500
+# TODO: try to use JSONRequestMixin
+#       It currently doens't work because we're getting the json in request.form
+#       not in request.data
+class QueryRequest(BaseRequest):
+    # we shouldn't get a query that's more than 2M
+    max_content_length = 2 * 1024 * 1024
 
-default_server_settings = dict(backend_settings_defaults.settings['server'].iteritems())
-domain_default_server_settings = dict(backend_domain_settings_defaults.settings['server'].iteritems())
-ServerSettings = backend_settings.make_settings_structure(default_server_settings, domain_default_server_settings)
+    @cached_property
+    def json(self):
+        try:
+            return json.loads(self.form.items()[0][0])
+        except ValueError:
+            # Let the user deal with the exception and respond with an
+            # appropriate error message.
+            # We're using BadRequest here to be consistent with the other
+            # request wrappers provided by werkzeug.
+            raise BadRequest("Invalid json")
 
 
-class State:
-  """
-  Structure class to store server state and state changes.
-  """
-  def __init__(self, **opts):
-    self.server_settings = None
-    self.querier = None
-    for key, value in opts.iteritems():
-      setattr(self, key, value)
-
-  def any_unset(self):
-    return any(v is None for v in self.__dict__.itervalues())
-
-  def update(self, other):
-    for key, value in other.__dict__.iteritems():
-      setattr(self, key, value)
-
-def clear_queue(queue):
-  """
-  Clear a thread-safe queue.
-  """
-  while True:
+def create_app(index, redis_address, redis_port):
+    """ Creates an app, given an index path."""
     try:
-      x = queue.get_nowait()
-    except Queue.Empty:
-      return
+        whoosh_index = whoosh.index.open_dir(index)
+    except whoosh.index.EmptyIndexError:
+        logging.error("No index found at {}".format(index))
+        sys.exit(1)
+    cache = RedisCache(redis_address, port=redis_port, default_timeout=0,
+                       key_prefix="query_cache")
+    querier = queries.Querier(whoosh_index, cache,
+                              **backend_domain_settings_defaults.settings.get('querier', {})) # noqa
 
-def consider_settings(settings_path, current_settings):
-  logging.debug("considering settings")
-  if settings_path is None:
-    logging.debug("no settings file")
-    return current_settings
-  else:
-    logging.debug("updating settings from %s" % (settings_path))
-    file_settings = backend_settings.read_new_from_file(settings_path, current_settings)
-    if file_settings != current_settings:
-      logging.debug("using new settings")
-      new_settings = file_settings
-    else:
-      new_settings = None
-    return new_settings
+    querier.prime()
 
-def consider_index(index_path, current_index, server_settings):
-    logging.debug("considering index")
-    if server_settings.index_dir_path is not None and server_settings.index_dir_path != index_path:
-      index_path = server_settings.index_dir_path
-      current_index = None
-      logging.debug("changing to new index file")
-    if current_index is None:
-      logging.debug("opening index from %s" % (index_path))
-      logging.debug("using new index")
-      new_index = whoosh.index.open_dir(index_path)
-    else:
-      new_index = None
-    return index_path, new_index
+    @QueryRequest.application
+    def application(request):
+        querier = queries.Querier(whoosh_index, cache,
+                                  **backend_domain_settings_defaults.settings.get('querier', {})) # noqa
 
-def consider_querier_reset(current_querier, server_settings, all_settings, index, reset_index_last_modified):
-  logging.debug("considering resetting querier")
-  if current_querier is None:
-    logging.debug("need initial querier")
-  elif server_settings.always_reset:
-    logging.debug("reset forced by always_reset setting")
-    current_querier = None
-  else:
-    index_last_modified = index.last_modified()
-    if index_last_modified > reset_index_last_modified:
-      logging.debug("index modified since last reset")
-      current_querier = None
-  if current_querier is None:
-    logging.debug("using fresh querier")
-    new_querier = queries.Querier(index, **(all_settings.get('querier') or {}))
-    logging.debug("priming")
-    new_querier.prime()
-    logging.debug("priming complete")
-  else:
-    new_querier = None
-  return new_querier
+        try:
+            query = request.json
+        except BadRequest, e:
+            logging.warn(e)
+            return Response('{ "status": "error", "message": "invalid json" }',
+                            mimetype='application/json', status=400)
 
-def state_watcher(settings_path, exit_event, change_queue):
-  """
-  Watch for state changes due to settings reloads, and send them out on a
-  thread-safe queue.
-  """
+        query_response = querier.handle(query)
 
-  all_settings = {}
-  server_settings = ServerSettings()
-  index_path = None
-  index = None
-  querier = None
-  reset_index_last_modified = -1
-  running = True
+        response = Response(json.dumps(query_response),
+                            mimetype='application/json')
+        response.headers.add('Access-Control-Allow-Origin', '*')
 
-  while running:
-    changed = False
+        return response
 
-    new_settings = consider_settings(settings_path, all_settings)
-    if new_settings is not None:
-      changed = True
-      all_settings = new_settings
-      server_settings = ServerSettings(**(all_settings.get('server') or {}))
+    return application
 
-    if server_settings.index_dir_path is None:
-      logging.debug("error: no index path specified")
-      running = False
-      raise backend_settings.MissingRequiredSetting('index_dir_path')
-    index_path, new_index = consider_index(index_path, index, server_settings)
-    if new_index is not None:
-      changed = True
-      index = new_index
-      reset_index_last_modified = -1
 
-    new_querier = consider_querier_reset(querier, server_settings, all_settings, index, reset_index_last_modified)
-    if new_querier is not None:
-      changed = True
-      querier = new_querier
-      reset_index_last_modified = index.last_modified()
+@click.command()
+@click.option('--hostname', default="0.0.0.0",
+              help="the hostname to bind to")
+@click.option('-p', '--port', default=1500, type=int,
+              help="the port to bind to")
+@click.option('-r', '--redis', default="localhost:6379",
+              help="address of the Redis server.")
+@click.argument('index', type=click.Path(exists=True))
+def main(hostname, port, index, redis):
+    from werkzeug.serving import run_simple
 
-    if changed:
-      logging.debug("pushing new state")
-      if change_queue.full():
-        clear_queue(change_queue)
-      change_queue.put(State(server_settings=server_settings, querier=querier))
+    # add default redis port to the end in case it's not already there
+    # if it's already there, it's going to be ignored, so it's not an issue
+    redis_host = (redis + ":6379").split(":")
+    redis_address = redis_host[0]
+    redis_port = int(redis_host[1])
 
-    running = not exit_event.wait(server_settings.settings_timeout)
-
-def serve(hostname, port, settings_path):
-  """
-  Serve the backend.
-  """
-
-  state = State()
-
-  new_state_queue = Queue.LifoQueue(1)
-  exit_event = threading.Event()
-  new_state_thread = threading.Thread(target=state_watcher, args=(settings_path, exit_event, new_state_queue))
-  new_state_thread.daemon = True
-  new_state_thread.start()
-
-  def app(environ, start_response):
-    logging.debug("request at %s" % (str(datetime.datetime.now())))
-
-    need_update = state.any_unset()
-    while not new_state_queue.empty() or need_update:
-      try:
-        if need_update:
-          logging.debug("waiting to get complete state")
-        new_state = new_state_queue.get(block=need_update)
-        state.update(new_state)
-        logging.debug("applying new state")
-        need_update = state.any_unset()
-      except Queue.Empty:
-        # It's ok if there are no state changes
-        pass
-
-    try:
-      if environ['REQUEST_METHOD'] == 'POST':
-        body = str(environ['wsgi.input'].read(int(environ['CONTENT_LENGTH'])))
-        if state.server_settings.verbose:
-          logging.debug("query: %s" % (body))
-        query = json.loads(body)
-      else:
-        query = {}
-      try:
-        if state.querier is None:
-          start_response("404 Not Found", [])
-          return ["Could not handle query; server may be reloading data."]
-        else:
-          response = json.dumps(state.querier.handle(query))
-          if state.server_settings.verbose:
-            logging.debug("response: %s" % (response))
-          start_response("200 OK", [("Content-type", "application/json"), ("Access-Control-Allow-Origin", "*")])
-          return [response]
-      except:
-        logging.debug("query response failed:")
-        traceback.print_exc(file=sys.stderr)
-    except:
-      logging.debug("couldn't read query from post:")
-      traceback.print_exc(file=sys.stderr)
-
-    # Fail if we haven't returned already
-    start_response("404 Not Found", [])
-    return ["Could not handle query."]
-
-  try:
-    httpd = wsgiref.simple_server.make_server(hostname, port, app)
-    logging.debug("serving")
-    httpd.serve_forever()
-  except:
-    exit_event.set()
-    raise
+    app = create_app(index, redis_address, redis_port)
+    run_simple(hostname, port, app, threaded=True)
 
 if __name__ == '__main__':
-  import getopt
-
-  try:
-    opts, args = getopt.getopt(sys.argv[1:], "h:p:c:i:")
-    if len(args) != 0:
-      raise getopt.GetoptError("wrong number of positional arguments")
-    opts = dict(opts)
-  except getopt.GetoptError:
-    logging.debug(__doc__.strip('\n\r') % (sys.argv[0], default_port))
-    sys.exit(1)
-
-  hostname = opts['-h'] if '-h' in opts else ""
-  port = int(opts['-p']) if '-p' in opts else default_port
-  settings_path = opts['-c'] if '-c' in opts else None
-  index_path = opts['-i'] if '-i' in opts else None
-
-  if index_path is not None:
-    default_server_settings['index_dir_path'] = index_path
-
-  serve(hostname, port, settings_path)
+    main()
