@@ -1,14 +1,13 @@
 #!/bin/bash
-set -e
 
 if [ ! $UID -eq 0 ]; then
     echo "You must be root to execute this script!"
     exit 1
 fi
 
-yum install git screen wget
-yum groupinstall "Development tools"
-yum install zlib-devel bzip2-devel openssl-devel ncurses-devel sqlite-devel readline-devel tk-devel atlas-devel
+yum -y install git screen wget
+yum -y groupinstall "Development tools"
+yum -y install zlib-devel bzip2-devel openssl-devel ncurses-devel sqlite-devel readline-devel tk-devel atlas-devel
 
 cd $(mktemp -d)
 wget http://python.org/ftp/python/2.7.8/Python-2.7.8.tgz
@@ -32,8 +31,8 @@ gpgcheck=1
 gpgkey=https://yum.dockerproject.org/gpg
 EOF
 
-yum check-update
-yum install docker-engine
+yum -y check-update
+yum -y install docker-engine
 
 /usr/local/bin/pip2.7 install docker-compose
 mkdir -p /etc/docker
