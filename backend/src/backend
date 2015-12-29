@@ -108,7 +108,10 @@ def main(hostname, port, index, redis):
     redis_port = int(redis_host[1])
 
     app = create_app(index, redis_address, redis_port)
-    run_simple(hostname, port, app, threaded=True)
+    # XXX: Make sure threaded=False since Whoosh isn't as threadsafe as it
+    # should be. You'll get the following issue:
+    # https://bitbucket.org/mchaput/whoosh/issues/400/runtimeerror-dictionary-changed-size
+    run_simple(hostname, port, app, threaded=False)
 
 if __name__ == '__main__':
     main()
