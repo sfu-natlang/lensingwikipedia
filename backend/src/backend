@@ -7,6 +7,7 @@ To see the available options, use --help
 """
 
 import sys
+import os
 import logging
 import whoosh
 import whoosh.index
@@ -115,3 +116,11 @@ def main(hostname, port, index, redis):
 
 if __name__ == '__main__':
     main()
+# this env variable is set in our uWSGI config
+elif os.environ.get("RUNNING_IN_UWSGI", False):
+    logging.debug("RUNNING_IN_UWSGI")
+    # TODO change this to an env variable once docker-compose supports
+    # build-time env vars
+    INDEX_PATH = "/data/index/fullData.index"
+
+    app = create_app(INDEX_PATH, 'redis', '6379')
