@@ -177,50 +177,34 @@ class Querier:
         page_num = view['page'] if 'page' in view else 0
         result = {'more': True}
 
-        cache_key = hashlib.md5(json.dumps(view)+repr(whoosh_query)).hexdigest()
-        val_raw = self.cache.get(cache_key)
+        with self.whoosh_index.searcher() as searcher:
+            def format(hit):
+                return dict((f, hit[f]) for f in backend_domain_config.description_field_names)
+            hits = searcher.search_page(whoosh_query, page_num + 1, pagelen=self.description_page_size, sortedby='year', reverse=True)
+            logging.info("whoosh pre-paginated search results: %s" % (repr(hits.results)))
+            result['descriptions'] = [format(h) for h in hits]
+            if hits.is_last_page():
+                result['more'] = False
 
-        if val_raw is not None:
-            return json.loads(val_raw)
-        else:
-            with self.whoosh_index.searcher() as searcher:
-                def format(hit):
-                    return dict((f, hit[f]) for f in backend_domain_config.description_field_names)
-                hits = searcher.search_page(whoosh_query, page_num + 1, pagelen=self.description_page_size, sortedby='year', reverse=True)
-                logging.info("whoosh pre-paginated search results: %s" % (repr(hits.results)))
-                result['descriptions'] = [format(h) for h in hits]
-                if hits.is_last_page():
-                    result['more'] = False
-
-            self.cache.set(cache_key, json.dumps(result))
-            return result
+        return result
 
     def _handle_referencepointlinks_view(self, view, whoosh_query):
-        cache_key = hashlib.md5(json.dumps(view)+repr(whoosh_query)).hexdigest()
-        counts_raw = self.cache.get(cache_key)
-
-        if counts_raw is not None:
-            return json.loads(counts_raw)
-        else:
-            link_counts = {}
-            with self.whoosh_index.searcher() as searcher:
-                hits = searcher.search(whoosh_query, limit=None)
-                logging.info("whoosh search results: %s" % (repr(hits)))
-                for hit in hits:
-                    refpoints = whooshutils.split_keywords(hit['referencePoints'])
-                    for i, refpoint1 in enumerate(refpoints):
-                        for refpoint2 in refpoints[i+1:]:
-                            if refpoint1 != refpoint2:
-                                # Use lexicographic order to guarantee unique choices of two distinct reference points
-                                pair = (refpoint1, refpoint2) if refpoint1 < refpoint2 else (refpoint2, refpoint1)
-                                link_counts.setdefault(pair, 0)
-                                link_counts[pair] += 1
-            result = {
-                'links': [{'refpoints': p, 'count': c} for (p, c) in link_counts.iteritems()]
-            }
-
-            self.cache.set(cache_key, json.dumps(result))
-            return result
+        link_counts = {}
+        with self.whoosh_index.searcher() as searcher:
+            hits = searcher.search(whoosh_query, limit=None)
+            logging.info("whoosh search results: %s" % (repr(hits)))
+            for hit in hits:
+                refpoints = whooshutils.split_keywords(hit['referencePoints'])
+                for i, refpoint1 in enumerate(refpoints):
+                    for refpoint2 in refpoints[i+1:]:
+                        if refpoint1 != refpoint2:
+                            # Use lexicographic order to guarantee unique choices of two distinct reference points
+                            pair = (refpoint1, refpoint2) if refpoint1 < refpoint2 else (refpoint2, refpoint1)
+                            link_counts.setdefault(pair, 0)
+                            link_counts[pair] += 1
+        return {
+            'links': [{'refpoints': p, 'count': c} for (p, c) in link_counts.iteritems()]
+        }
 
     def _handle_tsnecoordinates_view(self, view, whoosh_query):
         cache_key = hashlib.md5(json.dumps(view)+repr(whoosh_query)).hexdigest()
