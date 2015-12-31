@@ -20,4 +20,4 @@ RUN cd /opt/lensing && make query-backend
 
 USER lensing
 
-CMD uwsgi --plugin python,http --http :1500 --master --processes 2 --die-on-term --wsgi-file /opt/lensing/build/backend --callable app --env "RUNNING_IN_UWSGI=1" --pythonpath /opt/lensing/build
+CMD uwsgi --ini /opt/lensing/uwsgi.ini
