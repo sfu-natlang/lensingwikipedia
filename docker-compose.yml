@@ -38,3 +38,12 @@ data:
 
 redis:
     image: redis
+
+#haproxy:
+    #image: tutum/haproxy:0.2.1
+    #links:
+        #- query
+    #ports:
+        ## Format is HOST:CONTAINER
+        ## Only change the HOST part
+        #- "1500:80"
