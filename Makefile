@@ -13,10 +13,20 @@ deploy:
 	sudo env "PATH=${PATH}" docker-compose build query
 	sudo env "PATH=${PATH}" docker-compose up -d
 
-dev:
+prod:
 	sudo env "PATH=${PATH}" docker-compose build web
 	sudo env "PATH=${PATH}" docker-compose build query
-	sudo env "PATH=${PATH}" docker-compose up
+	sudo env "PATH=${PATH}" docker-compose up -d
+
+dev:
+	sudo env "PATH=${PATH}" docker-compose -f docker-compose.yml -f docker-compose.dev.yml build web
+	sudo env "PATH=${PATH}" docker-compose -f docker-compose.yml -f docker-compose.dev.yml build query
+	sudo env "PATH=${PATH}" docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+staging:
+	sudo env "PATH=${PATH}" docker-compose -f docker-compose.yml -f docker-compose.staging.yml build web
+	sudo env "PATH=${PATH}" docker-compose -f docker-compose.yml -f docker-compose.staging.yml build query
+	sudo env "PATH=${PATH}" docker-compose -f docker-compose.yml -f docker-compose.staging.yml up
 
 prepare-index-build:
 	@mkdir -p $(OUT)

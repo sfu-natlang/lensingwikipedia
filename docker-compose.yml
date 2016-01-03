@@ -9,7 +9,9 @@ web:
     restart: on-failure:10
     volumes_from:
         - data
-    log_driver: "${LENSING_DOCKER_LOG_DRIVER}"
+    log_driver: "syslog"
+    log_opt:
+        tag: "lensing-web"
 
 query:
     build: backend
@@ -20,7 +22,9 @@ query:
         - data
     links:
         - redis
-    log_driver: "${LENSING_DOCKER_LOG_DRIVER}"
+    log_driver: "syslog"
+    log_opt:
+        tag: "lensing-query"
 
 data:
     build: .
@@ -43,6 +47,9 @@ nginx:
         # Only change the HOST part
         - "1500:1500"
         - "8080:80"
+    log_driver: "syslog"
+    log_opt:
+        tag: "lensing-nginx"
 
 #haproxy:
     #image: tutum/haproxy:0.2.1
