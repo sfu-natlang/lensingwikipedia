@@ -62,7 +62,7 @@ Make sure you have permissions 664 on files and 755 on directories in `web/`
 
 Then run the following:
 
-    make dev
+    make prod
 
 This will now create all the necessary docker images, and run the containers.
 
@@ -130,7 +130,7 @@ doing the following:
 
 To update the site, pull the new version from github and re-run:
 
-    make dev
+    make prod
 
 When updating to a new docker image, you should check if the previous image was
 terminated gracefully:
