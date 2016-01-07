@@ -66,6 +66,30 @@ Then run the following:
 
 This will now create all the necessary docker images, and run the containers.
 
+## Run Apache as a reverse proxy
+
+Since the Nginx container will be listening on port 8080, we'll use an Apache
+server as a reverse proxy (this also allows hosting multiple sites on the same
+server).
+
+To do this, add the following to your Apache config:
+
+    <VirtualHost *:80>
+        ProxyPreserveHost On
+        ProxyPass / http://localhost:8080/
+        ProxyPassReverse / http://localhost:8080/
+        ServerName cs-natlang-web2.cs.sfu.ca
+    </VirtualHost>
+
+If your CentOS server is running SELinux, you'll have to tell it to allow
+Apache to make network connections using
+
+    setsebool -P httpd_can_network_connect 1
+
+You may have to run that command as root; prepending it with `sudo` is not
+enough unless you provide the full path to the `setsebool` binary.
+
+
 ## Localhost installation on macosx for offline demos
 
 Download Docker Toolbox and follow instructions on this page:
