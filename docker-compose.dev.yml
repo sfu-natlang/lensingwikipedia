@@ -2,13 +2,16 @@ web:
     environment:
         LENSING_BACKEND_URL: "http://localhost:1500"
     log_driver: "json-file"
+    log_opt: {}
 
 query:
     environment:
         LENSING_BACKEND_URL: "http://localhost:1500"
     log_driver: "json-file"
+    log_opt: {}
 
 data:
     environment:
         LENSING_BACKEND_URL: "http://localhost:1500"
     log_driver: "json-file"
+    log_opt: {}
