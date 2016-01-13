@@ -9,7 +9,7 @@ RUN groupadd -r lensing \
 
 ENV DEBIAN_FRONTEND noninteractive
 
-RUN sed -i 's/archive\.ubuntu\.com/mirror.its.sfu.ca\/mirror/' /etc/apt/sources.list
+RUN sed -i 's;archive.ubuntu.com;mirror.its.sfu.ca/mirror;' /etc/apt/sources.list
 
 # install numpy, scipy, scikit-learn, using APT so that we don't have to deal
 # with compilation issues such as CFLAGS being set because we're being run by a
