@@ -27,13 +27,13 @@ class locationSpider(BaseSpider):
 		self.url2urlDic = {}
 		self.readFile(self.inFile)
 		fout = open(self.outFileURL,"w")
-		fout.close
+		fout.close()
 		fout = open(self.outFileLoc,"w")
-		fout.close
+		fout.close()
 		fout = open(self.outFilePer,"w")
-		fout.close
+		fout.close()
 		fout = open(self.outFileOrg,"w")
-		fout.close
+		fout.close()
 	
 	def readFile(self, fileName):
 		fin = open(fileName,"r")
@@ -68,8 +68,8 @@ class locationSpider(BaseSpider):
 				else:
 					self.url2locDic[adr].add(text)
 				
-		fin.close
-		#fout.close
+		fin.close()
+		#fout.close()
 
 	def parse(self, response):
 		url = response.url
@@ -160,11 +160,11 @@ class locationSpider(BaseSpider):
 					organization['url'] = url[len(startingAdr):]
 				isOrg = 1
 				
-		fout.close
+		fout.close()
 		print >> foutURL, json.dumps(urlLst)
-		foutURL.close
+		foutURL.close()
 		if isOrg: print >> foutOrg, json.dumps(organization)
-		foutOrg.close
+		foutOrg.close()
 		if isPerson: return
 
 		fout = open(self.outFileLoc,"a")
@@ -187,9 +187,9 @@ class locationSpider(BaseSpider):
 					location['text'] = 'UNKNOWN_TXT'
 					location['url'] = url[len(startingAdr):]
 				print >> fout, json.dumps(location)
-				fout.close
+				fout.close()
 				return
 
-		fout.close
+		fout.close()
 
 

@@ -15,7 +15,7 @@ def readFile(fileName):
 		#if items["text"] in dic:
 		#	del dic[items["text"]]
 	print "Number of Entries without hyperlink:", len(dic)
-	fin.close
+	fin.close()
 
 if __name__ == "__main__":
 	fin = open(sys.argv[1], "r")
@@ -26,7 +26,7 @@ if __name__ == "__main__":
 		if items['year'] not in dic: dic[items['year']] = 0
  		dic[items['year']] += 1
 		co+=1
-	fin.close
+	fin.close()
         od = collections.OrderedDict(sorted(dic.items()))
 	split_point = -1500
 	s = 0

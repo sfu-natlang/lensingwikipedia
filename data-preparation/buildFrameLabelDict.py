@@ -18,7 +18,7 @@ def findLables(fileLst):
                 arg = items[0]
                 role = items[1]
                 defLabel[arg] = role
-        inFile.close
+        inFile.close()
 
         for (fileName, filePath) in fileLst:
 		etree = ElementTree.parse(filePath).getroot()
@@ -87,7 +87,7 @@ def findLables(fileLst):
 	for lemma in frameLabelDict:
 		for arg in frameLabelDict[lemma]:
 			print >>fout, "1\t%s\t%s\t%s" %(arg, lemma, frameLabelDict[lemma][arg])
-	fout.close
+	fout.close()
 
 def main():
 

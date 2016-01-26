@@ -14,7 +14,7 @@ def ensure_dir(f):
     if not os.path.exists(d):
         os.makedirs(d)
     fout = open(f,"w")
-    fout.close
+    fout.close()
     
 
 class eventSpider(BaseSpider):
@@ -159,8 +159,8 @@ class eventSpider(BaseSpider):
 				print >> fout, printable['description']
 				print >> fPath, self.outDir+year+"/"+str(numFile)+".txt"
 				#fout.write("%s\t%s\t%s\t%s\t%s\n" %(year,topic_name,text, clnhtmlText, "\t".join(linked_entity))
-				fout.close
-				fJson.close
+				fout.close()
+				fJson.close()
 				numFile += 1
 
 		fPath.close	
