@@ -19,6 +19,10 @@ prod:
 	sudo env "PATH=${PATH}" docker-compose up -d
 
 dev:
+	# set r/x flags for everyone since otherwise uwsgi in the docker container
+	# won't be able to read/enter these directories
+	find . -type d -exec chmod +rx "{}" \;
+	find . -type f -exec chmod +r "{}" \;
 	sudo env "PATH=${PATH}" docker-compose -f docker-compose.yml -f docker-compose.dev.yml build web
 	sudo env "PATH=${PATH}" docker-compose -f docker-compose.yml -f docker-compose.dev.yml build query
 	sudo env "PATH=${PATH}" docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
