@@ -1,15 +1,20 @@
-web:
-    environment:
-        LENSING_BACKEND_URL: "http://localhost:1500"
-    volumes:
-        - ./web:/opt/lensing
-    log_driver: "json-file"
-    log_opt: {}
+version: '2'
 
-query:
-    environment:
-        LENSING_BACKEND_URL: "http://localhost:1500"
-    volumes:
-        - ./backend:/opt/lensing
-    log_driver: "json-file"
-    log_opt: {}
+services:
+    web:
+        environment:
+            LENSING_BACKEND_URL: "http://localhost:1500"
+        volumes:
+            - ./web:/opt/lensing
+        logging:
+            driver: "json-file"
+            options: {}
+
+    query:
+        environment:
+            LENSING_BACKEND_URL: "http://localhost:1500"
+        volumes:
+            - ./backend:/opt/lensing
+        logging:
+            driver: "json-file"
+            options: {}
