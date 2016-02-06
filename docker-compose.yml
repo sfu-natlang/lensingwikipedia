@@ -37,8 +37,6 @@ services:
         build:
             context: .
             dockerfile: Dockerfile-data
-            args:
-                INDEX_PATH: "./build/index"
         env_file:
             - ./config.env
 

@@ -18,3 +18,5 @@ keys/
 
 .ropeproject/
 UWSGI_RELOAD
+
+index/

@@ -1,8 +1,6 @@
 FROM ubuntu:14.04
 MAINTAINER Andrei Vacariu <andrei@avacariu.me>
 
-ARG INDEX_PATH
-
 # MAINTAIN THE SAME ORDER OF USER CREATION BETWEEN ALL DOCKERFILES SO THAT THEY
 # ALL END UP WITH THE SAME UID/GID
 RUN groupadd -r lensing \
@@ -12,7 +10,7 @@ RUN mkdir -p /data/db
 RUN chown -R www-data:www-data /data/db
 
 RUN mkdir -p /data/index
-ADD $INDEX_PATH /data/index
+ADD ./index /data/index
 RUN chown -R lensing:lensing /data/index
 
 VOLUME ["/data/index", "/data/db"]
