@@ -12,7 +12,7 @@ ENV DEBIAN_FRONTEND noninteractive
 RUN sed -i 's;archive.ubuntu.com;mirror.its.sfu.ca/mirror;' /etc/apt/sources.list
 
 RUN apt-get update && \
-    apt-get install -y python-pip uwsgi-core uwsgi-plugin-python
+    apt-get install -y python-pip uwsgi-core uwsgi-plugin-python3
 
 ADD . /opt/lensing
 RUN chown -R www-data:www-data /opt/lensing
