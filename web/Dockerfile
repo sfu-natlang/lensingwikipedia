@@ -12,13 +12,13 @@ ENV DEBIAN_FRONTEND noninteractive
 RUN sed -i 's;archive.ubuntu.com;mirror.its.sfu.ca/mirror;' /etc/apt/sources.list
 
 RUN apt-get update && \
-    apt-get install -y python-pip uwsgi-core uwsgi-plugin-python3
+    apt-get install -y python3-pip uwsgi-core uwsgi-plugin-python3
 
 ADD . /opt/lensing
 RUN chown -R www-data:www-data /opt/lensing
 
 # Get a new version of pip so we can use the fancy new requirements specifiers
-RUN pip install --upgrade pip
-RUN pip install -r /opt/lensing/requirements.txt
+RUN pip3 install --upgrade pip
+RUN pip3 install -r /opt/lensing/requirements.txt
 
 CMD uwsgi --ini /opt/lensing/uwsgi.ini
