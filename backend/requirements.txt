@@ -3,3 +3,4 @@ whoosh
 simplejson
 click
 redis
+requests

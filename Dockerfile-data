@@ -10,7 +10,6 @@ RUN mkdir -p /data/db
 RUN chown -R www-data:www-data /data/db
 
 RUN mkdir -p /data/index
-ADD ./index /data/index
 RUN chown -R lensing:lensing /data/index
 
 VOLUME ["/data/index", "/data/db"]

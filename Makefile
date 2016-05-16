@@ -24,7 +24,6 @@ prod:
 	sudo -E env "PATH=${PATH}" docker-compose up -d
 
 staging:
-	[ -e ./index ] || cp -al "${INDEX_PATH}" ./index
 	sudo -E env "PATH=${PATH}" docker-compose -f docker-compose.yml -f docker-compose.staging.yml build web
 	sudo -E env "PATH=${PATH}" docker-compose -f docker-compose.yml -f docker-compose.staging.yml build query
 	sudo -E env "PATH=${PATH}" docker-compose -f docker-compose.yml -f docker-compose.staging.yml up

@@ -9,11 +9,14 @@ To see the available options, use --help
 import sys
 import os
 import logging
+import tarfile
+
 import whoosh
 import whoosh.index
 import queries
 
 import click
+import requests
 
 from werkzeug.wrappers import BaseRequest
 from werkzeug.wrappers import Response
@@ -122,5 +125,20 @@ elif os.environ.get("RUNNING_IN_UWSGI", False):
     # TODO change this to an env variable once docker-compose supports
     # build-time env vars
     INDEX_PATH = "/data/index/fullData.index"
+
+    if not os.path.exists(INDEX_PATH):
+        logging.debug("downloading index tar")
+        r = requests.get("https://s3.amazonaws.com/lensing.80x24.ca/fullData.index.tar", stream=True)
+        with open(INDEX_PATH + ".tar", 'wb') as f:
+            for chunk in r.iter_content(chunk_size=1024):
+                if chunk:
+                    f.write(chunk)
+
+        logging.debug("finished downloading index tar")
+
+        with tarfile.TarFile(INDEX_PATH + ".tar") as index_tar:
+            index_tar.extractall("/data/index")
+
+        logging.debug("extracted index tar")
 
     app = create_app(INDEX_PATH, 'redis', '6379')
