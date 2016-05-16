@@ -46,7 +46,7 @@ def create_db():
     engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'])
     PSA_models.PSABase.metadata.create_all(engine)
 
-    from models import Tab
+    from .models import Tab
 
     # Make sure we have all the tabs in the database.
     for tab in app.config['TABS']:
@@ -68,7 +68,7 @@ if app.config['AUTO_DB_MANAGEMENT']:
     # This should only be done while running within Docker, otherwise you'll
     # have problems generating migrations
     from os.path import isfile
-    from urlparse import urlparse
+    from urllib.parse import urlparse
     import os
 
     basedir = os.path.abspath(os.path.dirname(__file__))
