@@ -125,18 +125,24 @@ elif os.environ.get("RUNNING_IN_UWSGI", False):
     # TODO change this to an env variable once docker-compose supports
     # build-time env vars
     INDEX_PATH = "/data/index/fullData.index"
+    INDEX_TAR = INDEX_PATH + ".tar"
+
+    INDEX_URI = os.environ.get("INDEX_URI",
+            "https://s3.amazonaws.com/lensing.80x24.ca/fullData.index.tar")
 
     if not os.path.exists(INDEX_PATH):
         logging.debug("downloading index tar")
-        r = requests.get("https://s3.amazonaws.com/lensing.80x24.ca/fullData.index.tar", stream=True)
-        with open(INDEX_PATH + ".tar", 'wb') as f:
+        r = requests.get(INDEX_URI, stream=True)
+        with open(INDEX_TAR, 'wb') as f:
             for chunk in r.iter_content(chunk_size=1024):
                 if chunk:
                     f.write(chunk)
 
         logging.debug("finished downloading index tar")
 
-        with tarfile.TarFile(INDEX_PATH + ".tar") as index_tar:
+        with tarfile.TarFile(INDEX_TAR) as index_tar:
+            # XXX this expects that the only thing in the tarball is a dir
+            # called "fullData.index"
             index_tar.extractall("/data/index")
 
         logging.debug("extracted index tar")

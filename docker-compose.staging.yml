@@ -2,22 +2,16 @@ version: '2'
 
 services:
     web:
-        environment:
-            LENSING_BACKEND_URL: "http://cs-natlang-web2.cs.sfu.ca:1500"
         logging:
             driver: "json-file"
             options: {}
 
     query:
-        environment:
-            LENSING_BACKEND_URL: "http://cs-natlang-web2.cs.sfu.ca:1500"
         logging:
             driver: "json-file"
             options: {}
 
     data:
-        environment:
-            LENSING_BACKEND_URL: "http://cs-natlang-web2.cs.sfu.ca:1500"
         logging:
             driver: "json-file"
             options: {}

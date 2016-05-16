@@ -18,10 +18,12 @@ SQLALCHEMY_DATABASE_URI = os.environ.get("LENSING_DB_URI",
     'sqlite:///' + os.path.join(basedir, 'app.db'))
 
 DOMAIN = os.environ.get("LENSING_DOMAIN", "wikipediahistory")
-SITETITLE = os.environ.get("LENSING_SITETITLE", "Lensing Wikipedia").strip("'")
 
-BACKEND_URL = os.environ.get("LENSING_BACKEND_URL",
-                             "http://natlang-web.cs.sfu.ca:1500")
+SITETITLE = "Lensing Wikipedia"
+if DOMAIN == "avherald":
+    SITETITLE = "Lensing Aviation Herald"
+
+BACKEND_URL = os.environ.get("LENSING_BACKEND_URL", "/api")
 
 # This selects which tabs you want to show up in the interface
 TABS = ["facets", "storyline", "timeline", "comparison", "map", "textsearch"]
@@ -33,7 +35,7 @@ if _env_tabs:
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.environ.get('SOCIAL_AUTH_GOOGLE_OAUTH2_KEY')
 SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.environ.get('SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET')
 
-# DO NOT TOUCH
+# XXX DO NOT TOUCH
 SOCIAL_AUTH_USER_MODEL = 'app.models.User'
 SOCIAL_AUTH_AUTHENTICATION_BACKENDS = ('social.backends.google.GoogleOAuth2',)
 SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/'
@@ -43,8 +45,6 @@ SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/'
 # to be the first admin. You can set multiple users, but it's probably best if
 # you only have one.
 ADMINS = ['anoop.sarkar@natlang.net', 'andrei@avacariu.me']
-
-SITE_URL = os.environ.get("LENSING_SITE_URL", "lensingwikipedia.cs.sfu.ca")
 
 # TODO set this to 'strong' when it stops being broken in flask-login
 SESSION_PROTECTION = None

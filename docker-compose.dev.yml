@@ -2,8 +2,6 @@ version: '2'
 
 services:
     web:
-        environment:
-            LENSING_BACKEND_URL: "http://localhost:1500"
         volumes:
             - ./web:/opt/lensing
         logging:
@@ -11,8 +9,6 @@ services:
             options: {}
 
     query:
-        environment:
-            LENSING_BACKEND_URL: "http://localhost:1500"
         volumes:
             - ./backend:/opt/lensing
         logging:

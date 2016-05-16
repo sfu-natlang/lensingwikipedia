@@ -53,18 +53,8 @@ services:
         ports:
             # Format is HOST:CONTAINER
             # Only change the HOST part
-            - "1500:1500"
             - "8080:80"
         logging:
             driver: "syslog"
             options:
                 tag: "lensing-nginx"
-
-    #haproxy:
-        #image: tutum/haproxy:0.2.1
-        #links:
-            #- query
-        #ports:
-            ## Format is HOST:CONTAINER
-            ## Only change the HOST part
-            #- "1500:80"
