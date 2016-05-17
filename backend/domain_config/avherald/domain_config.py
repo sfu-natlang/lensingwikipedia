@@ -4,6 +4,13 @@ Configuration for indexing.
 
 import avherald
 
+settings = {
+  'querier': {
+    'fields_to_prime': ['role', 'predicate', 'event', 'year'] + avherald.facet_field_names,
+    'fields_for_text_searches': ['description', 'role', 'predicate', 'event', 'year'] + avherald.facet_field_names
+  }
+}
+
 num_role_arguments = 6
 
 extra_keyword_field_names = avherald.facet_field_names

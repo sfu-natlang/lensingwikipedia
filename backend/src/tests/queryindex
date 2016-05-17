@@ -25,7 +25,7 @@ import json
 import time
 import whoosh, whoosh.index
 import queries
-import backend_settings
+import utils
 
 if __name__ == '__main__':
   import getopt
@@ -50,7 +50,7 @@ if __name__ == '__main__':
   input.close()
   whoosh_index = whoosh.index.open_dir(whoosh_index_dir_path)
 
-  backend_settings = settings.read_from_file(settings_file_path) if settings_file_path is not None else {}
+  backend_settings = utils.read_settings_from_file(settings_file_path) if settings_file_path is not None else {}
   querier = queries.Querier(whoosh_index, **(backend_settings.get('querier') or {}))
   if do_priming:
     querier.prime()

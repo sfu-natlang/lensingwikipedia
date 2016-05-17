@@ -7,6 +7,13 @@ see the readme for more information.
 
 import wikipediahistory
 
+settings = {
+  'querier': {
+    'fields_to_prime': ['role', 'predicate', 'event', 'year'] + wikipediahistory.facet_field_names,
+    'fields_for_text_searches': ['description', 'role', 'predicate', 'event', 'year'] + wikipediahistory.facet_field_names
+  }
+}
+
 # Number of role argument fields.
 num_role_arguments = 6
 

@@ -10,14 +10,15 @@ import hashlib
 import time
 import json
 
-import backend_settings
-import backend_settings_defaults
+import defaults
 
-from domain_config import (backend_domain_settings_defaults,
-                           backend_domain_config)
+from domain_config import domain_config
 
 import logging
 
+class UnknownSetting(Exception):
+  def __init__(self, setting):
+    Exception.__init__(self, "unknown setting \"%s\"" % (setting))
 
 class QueryHandlingError(Exception):
     """
@@ -26,7 +27,6 @@ class QueryHandlingError(Exception):
     """
     def __init__(self, value):
         self.value = value
-
 
 class Querier:
     """
@@ -41,14 +41,28 @@ class Querier:
         """
 
         self.whoosh_index = whoosh_index
-        backend_settings.apply(self, our_settings,
-                backend_settings_defaults.settings['querier'],
-                backend_domain_settings_defaults.settings['querier'])
+        self.__apply(our_settings,
+                defaults.settings['querier'],
+                domain_config.settings['querier'])
 
         self.cache = cache
 
         self.query_parser = whooshutils.TextQueryParser(schema=whoosh_index.schema,
-                field_map=backend_domain_config.field_name_aliases)
+                field_map=domain_config.field_name_aliases)
+
+    def __apply(self, settings, *defaults):
+      """
+      Apply settings as properties of an object, falling back on defaults as needed.
+      """
+      for defaults_set in defaults:
+          for setting, value in defaults_set.iteritems():
+              if setting not in settings:
+                  setattr(self, setting, value)
+      for setting, value in settings.iteritems():
+          if any(setting in ds for ds in defaults):
+              setattr(self, setting, value)
+          else:
+              raise UnknownSetting(setting)
 
     def should_cache(self, query, view):
         """
@@ -117,7 +131,7 @@ class Querier:
         type = cnstr['type']
         if type == 'fieldvalue':
             field = cnstr['field']
-            field = backend_domain_config.field_name_aliases(field) or field
+            field = domain_config.field_name_aliases(field) or field
             return whoosh.query.Term(field, whooshutils.escape_keyword(cnstr['value']))
         if type == 'textsearch':
             return self.query_parser.parse(cnstr['value'])
@@ -160,7 +174,7 @@ class Querier:
             for hit in hits:
                 for view_id, view in views.iteritems():
                     field = view['field']
-                    field = backend_domain_config.field_name_aliases(field) or field
+                    field = domain_config.field_name_aliases(field) or field
                     if field in hit:
                         values = set(v for v in whooshutils.split_keywords(hit[field]))
                         counts = response[view_id]['counts']
@@ -179,7 +193,7 @@ class Querier:
 
         with self.whoosh_index.searcher() as searcher:
             def format(hit):
-                return dict((f, hit[f]) for f in backend_domain_config.description_field_names)
+                return dict((f, hit[f]) for f in domain_config.description_field_names)
             hits = searcher.search_page(whoosh_query, page_num + 1, pagelen=self.description_page_size, sortedby='year', reverse=True)
             logging.info("whoosh pre-paginated search results: %s" % (repr(hits.results)))
             result['descriptions'] = [format(h) for h in hits]
