@@ -3,7 +3,7 @@
 # choice put it). Just prepend paths as needed, and commit it.
 export PATH := /usr/local/bin:$(HOME)/.local/bin:$(PATH)
 
-OUT ?= build
+OUT ?= $(PWD)/build
 
 include config.env
 export $(shell sed 's/=.*//' config.env)
@@ -47,17 +47,14 @@ data-container-dev:
 
 prepare-index-build:
 	@mkdir -p $(OUT)
-	@if ! sudo docker images | grep -q lensing-index; then \
-		touch $(OUT)/.dockerignore; \
-		sudo docker build -f ./backend/Dockerfile-makeindex -t lensing-index ./backend ; \
-	else \
-		echo "Image already built. Run 'make rm-index-image' first to rebuild"; \
-	fi
+	touch $(OUT)/.dockerignore
+	sudo docker build -f ./backend/build-index/Dockerfile -t lensing-index ./backend
 
 index: prepare-index-build
 	@if [ ! -f ${OUT}/fullData.json ]; then \
 		echo "${OUT}/fullData.json is missing!"; \
-		exit 1; \
+		echo "Downloading a copy from S3..."; \
+		wget https://s3.amazonaws.com/lensing.80x24.ca/fullData.json -O ${OUT}/fullData.json; \
 	fi
 	sudo docker run -i -t -v $(OUT):/build lensing-index
 	sudo chown -R ${USER} ${OUT}
@@ -66,7 +63,7 @@ rm-index-image:
 	sudo docker rmi -f lensing-index || true
 
 clean:
-	rm -rf $(OUT)
+	sudo rm -rf ${OUT}
 
 remove-containers:
 	# || true because this will fail if there are no containers, but we want to

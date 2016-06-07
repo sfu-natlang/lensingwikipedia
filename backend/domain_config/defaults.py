@@ -1,8 +1,5 @@
 """
-The default settings for the backend. A settings file should be a single python
-dict in the same format as the one below. This file can be used as a template,
-just remove this header comment and the "settings = ". In a settings file any
-setting not specified will use its default value.
+The default settings for the backend.
 """
 settings = {
   'server': {

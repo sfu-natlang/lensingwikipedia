@@ -22,7 +22,7 @@ import collections
 import sys
 
 # Use the domain config file.
-from domain_config import backend_domain_config
+from domain_config import domain_config
 
 text_analyzer = whoosh.analysis.RegexTokenizer() | \
                 whoosh.analysis.LowercaseFilter() | \
@@ -46,12 +46,12 @@ fields = {
 }
 
 # Fields for all arguments and their roles.
-for i in range(backend_domain_config.num_role_arguments):
+for i in range(domain_config.num_role_arguments):
     fields['A%i' % (i)] = whoosh.fields.ID(stored=True)
     fields['roleA%i' % (i)] = whoosh.fields.ID(stored=True)
 
 # Extra keyword fields.
-for field_name in backend_domain_config.extra_keyword_field_names:
+for field_name in domain_config.extra_keyword_field_names:
     if field_name in fields:
         print >> sys.stderr, "warning: duplicate field name '%s'" % (field_name)
     fields[field_name] = whoosh.fields.KEYWORD(stored=True, commas=whooshutils.keyword_field_commas)
@@ -78,7 +78,7 @@ def make_event_doc(event):
 
     # Create a document with values from all the value getters
     doc = { 'id': line_num }
-    for value_getter in backend_domain_config.value_getters:
+    for value_getter in domain_config.value_getters:
         values = value_getter(event)
         for field_name, value in values.iteritems():
             if field_name in doc:

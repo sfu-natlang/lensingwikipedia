@@ -10,9 +10,7 @@ import hashlib
 import time
 import json
 
-import defaults
-
-from domain_config import domain_config
+from domain_config import domain_config, defaults
 
 import logging
 

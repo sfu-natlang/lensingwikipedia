@@ -9,20 +9,19 @@ RUN groupadd -r lensing \
 
 ENV DEBIAN_FRONTEND noninteractive
 
-RUN sed -i 's;archive.ubuntu.com;mirror.its.sfu.ca/mirror;' /etc/apt/sources.list
-
 # install numpy, scipy, scikit-learn, using APT so that we don't have to deal
 # with compilation issues such as CFLAGS being set because we're being run by a
 # Makefile
 RUN apt-get update && apt-get install -y build-essential python2.7 python2.7-dev python-pip libatlas-dev libatlas3-base libatlas-base-dev python-numpy python-scipy python-sklearn
 RUN pip install whoosh nltk
-RUN python2.7 -c 'import nltk; nltk.download("all")'
+
+RUN python2.7 -c 'import nltk; nltk.download("stopwords"); nltk.download("punkt")'
 
 ADD . /opt/lensing
 
-RUN cd /opt/lensing && make
+RUN cd /opt/lensing/build-index/bhtsne && make build
 
 CMD rm -rf /build/index && mkdir -p /build/index && \
-        /opt/lensing/build/buildindex /build/index/fullData.index /build/fullData.json && \
-        /opt/lensing/build/cluster /build/index/fullData.index && \
-        /opt/lensing/build/tsne /build/index/fullData.index
+        python2.7 /opt/lensing/build-index/buildindex /build/index/fullData.index /build/fullData.json && \
+        python2.7 /opt/lensing/build-index/cluster /build/index/fullData.index && \
+        python2.7 /opt/lensing/build-index/tsne /build/index/fullData.index

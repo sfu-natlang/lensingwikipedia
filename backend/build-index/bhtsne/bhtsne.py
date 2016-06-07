@@ -48,7 +48,7 @@ from numpy import *
 
 
 ### Constants
-BH_TSNE_BIN_PATH = path_join(dirname(__file__), 'bh_tsne')
+BH_TSNE_BIN_PATH = path_join(dirname(__file__), 'build', 'bh_tsne')
 assert isfile(BH_TSNE_BIN_PATH), ('Unable to find the bh_tsne binary in the '
     'same directory as this script, have you forgotten to compile it?: {}'
     ).format(BH_TSNE_BIN_PATH)
@@ -86,7 +86,7 @@ def bh_tsne(samples, perplexity=DEFAULT_PERPLEXITY, theta=DEFAULT_THETA,
     #   the whole batch
     sample_dim = int(samples.get_shape()[1])
     sample_count = int(samples.get_shape()[0])
-    
+
     # bh_tsne works with fixed input and output paths, give it a temporary
     #   directory to work in so we don't clutter the filesystem
     with TmpDir() as tmp_dir_path:

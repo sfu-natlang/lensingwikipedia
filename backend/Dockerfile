@@ -16,8 +16,6 @@ RUN pip install gevent uwsgi
 ADD . /opt/lensing
 RUN pip install -r /opt/lensing/requirements.txt
 
-RUN cd /opt/lensing && make query-backend
-
 USER lensing
 
 CMD uwsgi --ini /opt/lensing/uwsgi.ini
