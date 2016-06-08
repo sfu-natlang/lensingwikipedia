@@ -8,6 +8,9 @@ OUT ?= $(PWD)/build
 include config.env
 export $(shell sed 's/=.*//' config.env)
 
+provision:
+	sudo scripts/provision.sh
+
 deploy: DOCKER_HOST = tcp://lensingwikipedia.cs.sfu.ca:2376
 deploy: DOCKER_TLS_VERIFY = 1
 deploy: DOCKER_CERT_PATH = $(PWD)/keys/
@@ -73,4 +76,4 @@ remove-containers:
 remove-images: remove-containers
 	sudo docker rmi $(shell sudo docker images -q)
 
-.PHONY: clean dev remove-containers remove-images
+.PHONY: clean dev remove-containers remove-images provision
