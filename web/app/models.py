@@ -20,11 +20,17 @@ TAB_NAMES = {
 # tab_name is the keys in TAB_NAMES above
 tabs = db.Table('tabs',
     db.Column('tab_name', db.Integer, db.ForeignKey('tab.name')),
-    db.Column('user_id', db.Integer, db.ForeignKey('user.id'))
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id')),
+    db.UniqueConstraint('tab_name', 'user_id')
 )
 
 class Tab(db.Model):
     name = db.Column(db.String, unique=True, primary_key=True)
+    external_name = db.Column(db.String, unique=True)
+    visible = db.Column(db.Boolean, default=True)
+
+    def __repr__(self):
+        return "<Tab {}>".format(self.name)
 
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)

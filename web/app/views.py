@@ -1,6 +1,8 @@
 from flask import request, url_for, render_template, g, session, redirect, \
         flash, abort, jsonify
 from flask.ext.login import login_required, logout_user, current_user
+from flask_admin.contrib.sqla import ModelView
+import sqlalchemy
 from social.apps.flask_app import routes
 from functools import wraps
 import textwrap
@@ -57,22 +59,15 @@ def index():
 
             db.session.commit()
 
-    config_tabs = app.config['TABS']
-    visible_tabs = []
+    visible_tabs = Tab.query.filter(Tab.visible == 1).all()
 
-    # we only want to show the user the intersection between config_tabs and
-    # the tabs they're allowed to see.
     if g.user.is_authenticated():
-        for tab in g.user.tabs:
-            if tab.name in config_tabs:
-                visible_tabs.append(tab.name)
-    else:
-        visible_tabs = config_tabs
+        visible_tabs = set(visible_tabs) & set(g.user.tabs)
 
-    tabs_with_names = [(tab, TAB_NAMES[tab]) for tab in visible_tabs]
+    tabs_with_names = [(tab.name, TAB_NAMES[tab.name]) for tab in visible_tabs]
 
     return render_template("index.html", title=app.config["SITETITLE"],
-            tabs=tabs_with_names)
+                           tabs=tabs_with_names)
 
 @app.route("/logout")
 def logout():
@@ -80,7 +75,7 @@ def logout():
     flash("You were logged out")
     return redirect(url_for("index"))
 
-@app.route('/user')
+@app.route('/user', methods=['GET', 'POST'])
 @login_required
 @admin_required
 def users():
@@ -96,28 +91,71 @@ def user(id):
 
     user = User.query.get_or_404(id)
 
-    user_tabs_names = map(lambda x: x.name, user.tabs)
-
     modify_user_form = forms.ModifyUser(role=str(user.role),
-                                        status=str(user.status),
-                                        tabs=user_tabs_names)
+                                        status=str(user.status))
+
+    _process_name = lambda x: x.external_name + ("" if x.visible else "*")
+
+    modify_user_form.tabs.choices = [(t.name, _process_name(t))
+                                     for t in Tab.query.all()]
+
+    if request.method == 'GET':
+        modify_user_form.tabs.default = [t.name for t in user.tabs]
+        modify_user_form.tabs.process(None)
 
     if modify_user_form.validate_on_submit():
         user.role = int(modify_user_form.role.data)
         user.status = int(modify_user_form.status.data)
 
-        for t in user.tabs:
-            user.tabs.remove(t)
-            db.session.commit()
-
         for tab in modify_user_form.tabs:
+            t = Tab.query.filter_by(name=tab.data).first()
             if tab.checked:
-                user.tabs.append(Tab.query.filter_by(name=tab.data).first())
+                if t not in user.tabs:
+                    user.tabs.append(t)
+                    db.session.commit()
+            else:
+                try:
+                    user.tabs.remove(t)
+                except ValueError:
+                    # it was not in the list
+                    continue
 
-        db.session.commit()
         flash("Saved user settings")
 
     return render_template("admin/user.html",
             title="User %d = %s" % (id, user.username),
             user=user,
             form=modify_user_form)
+
+
+@app.route('/admin', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def admin_console():
+    all_tabs = Tab.query.all()
+    visible_tabs_form = forms.VisibleTabs()
+
+    visible_tabs_form.tabs.choices = [(t.name, t.external_name) for t in all_tabs]
+
+    if request.method == 'GET':
+        visible_tabs_form.tabs.default = [t.name for t in all_tabs if t.visible]
+        visible_tabs_form.tabs.process(None)
+
+    if visible_tabs_form.validate_on_submit():
+        for tab in visible_tabs_form.tabs:
+            t = Tab.query.filter_by(name=tab.data).first()
+            t.visible = tab.checked
+
+        db.session.commit()
+        flash("Saved settings")
+
+    return render_template("admin/manage.html",
+                           title="Admin console",
+                           form=visible_tabs_form)
+
+# class LensingModelView(ModelView):
+    # def is_accessible(self):
+        # return g.user.is_admin()
+
+# admin.add_view(LensingModelView(User, db.session))
+# admin.add_view(LensingModelView(Tab, db.session))

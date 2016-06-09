@@ -25,13 +25,6 @@ if DOMAIN == "avherald":
 
 BACKEND_URL = os.environ.get("LENSING_BACKEND_URL", "/api")
 
-# This selects which tabs you want to show up in the interface
-TABS = ["facets", "storyline", "timeline", "comparison", "map", "textsearch"]
-_env_tabs = os.environ.get("LENSING_TABS")
-if _env_tabs:
-    import json
-    TABS = json.loads(_env_tabs.strip("'"))
-
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.environ.get('SOCIAL_AUTH_GOOGLE_OAUTH2_KEY')
 SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.environ.get('SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET')
 

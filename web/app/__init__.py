@@ -46,13 +46,12 @@ def create_db():
     engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'])
     PSA_models.PSABase.metadata.create_all(engine)
 
-    from .models import Tab
+    from .models import Tab, TAB_NAMES
 
     # Make sure we have all the tabs in the database.
-    for tab in app.config['TABS']:
-        if Tab.query.filter_by(name=tab).count() == 0:
-            t = Tab(name=tab)
-            db.session.add(t)
+    for tab, tab_name in TAB_NAMES.items():
+        t = Tab(name=tab, external_name=tab_name)
+        db.session.add(t)
 
     db.session.commit()
 
