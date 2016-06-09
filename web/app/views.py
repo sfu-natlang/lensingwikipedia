@@ -49,7 +49,7 @@ def index():
     if g.user.is_authenticated():
         if not g.user.tabs:
             # if there are no tabs set, the user should be able to see all tabs
-            for tab in Tab.query.all():
+            for tab in Tab.query.order_by(Tab.order).all():
                 g.user.tabs.append(tab)
 
             db.session.commit()
@@ -59,7 +59,10 @@ def index():
     if g.user.is_authenticated():
         visible_tabs = set(visible_tabs) & set(g.user.tabs)
 
-    tabs_with_names = [tab.name_pair for tab in visible_tabs]
+    def _order(tab):
+        return tab.order
+
+    tabs_with_names = [t.name_pair for t in sorted(visible_tabs, key=_order)]
 
     return render_template("index.html", title=app.config["SITETITLE"],
                            tabs=tabs_with_names)
@@ -95,7 +98,8 @@ def user(id):
     def _process_name(tab):
         return tab.name, tab.external_name + ("" if tab.visible else "*")
 
-    modify_user_form.tabs.choices = [_process_name(t) for t in Tab.query.all()]
+    all_tabs = Tab.query.order_by(Tab.order).all()
+    modify_user_form.tabs.choices = [_process_name(t) for t in all_tabs]
 
     if request.method == 'GET':
         modify_user_form.tabs.default = [t.name for t in user.tabs]
@@ -130,10 +134,10 @@ def user(id):
 @login_required
 @admin_required
 def admin_console():
-    all_tabs = Tab.query.all()
+    all_tabs = Tab.query.order_by(Tab.order).all()
     visible_tabs_form = forms.VisibleTabs()
 
-    visible_tabs_form.tabs.choices = [(t.name, t.external_name) for t in all_tabs]
+    visible_tabs_form.tabs.choices = [t.name_pair for t in all_tabs]
 
     if request.method == 'GET':
         visible_tabs_form.tabs.default = [t.name for t in all_tabs if t.visible]

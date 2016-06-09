@@ -49,9 +49,11 @@ def create_db():
     from .models import Tab, TAB_NAMES
 
     # Make sure we have all the tabs in the database.
-    for tab, tab_name in TAB_NAMES.items():
+    # TODO make this a bit more reliable since it can fail if some tabs are
+    # there and some aren't and we're messing with the order column
+    for i, (tab, tab_name) in enumerate(TAB_NAMES.items()):
         if Tab.query.filter_by(name=tab).first() is None:
-            t = Tab(name=tab, external_name=tab_name)
+            t = Tab(name=tab, external_name=tab_name, order=i)
             db.session.add(t)
 
     db.session.commit()

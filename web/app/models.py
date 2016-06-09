@@ -2,19 +2,22 @@ from app import app, db
 from flask.ext.login import UserMixin
 from social.apps.flask_app.default import models    # noqa
 
+from collections import OrderedDict
+
 ROLE = {'user': 0, 'admin': 1}
 STATUS = {'regular': 0, 'banned': 1}
 
 # maps internal tab names to user-visible tab names
-TAB_NAMES = {
-    "facets": "Facets",
-    "storyline": "Storyline",
-    "timeline": "Timeline",
-    "comparison": "Comparison",
-    "map": "Map",
-    "cluster": "Cluster",
-    "textsearch": "Text Search"
-}
+# this is the default order, but it can be changed using Tab.order
+TAB_NAMES = OrderedDict([
+    ("facets", "Facets"),
+    ("storyline", "Storyline"),
+    ("timeline", "Timeline"),
+    ("comparison", "Comparison"),
+    ("map", "Map"),
+    ("cluster", "Cluster"),
+    ("textsearch", "Text Search")
+])
 
 # tab_name is the keys in TAB_NAMES above
 tabs = db.Table('tabs',
@@ -28,6 +31,7 @@ class Tab(db.Model):
     name = db.Column(db.String, unique=True, primary_key=True)
     external_name = db.Column(db.String, unique=True)
     visible = db.Column(db.Boolean, default=True)
+    order = db.Column(db.Integer, unique=True)
 
     @property
     def name_pair(self):
