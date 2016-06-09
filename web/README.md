@@ -23,7 +23,8 @@ alembic documentation at http://alembic.readthedocs.org/en/latest/index.html.
     virtualenv venv
     source venv/bin/activate
 
-2. To install all necessary packages:
+2. To install all necessary packages. **NOTE:** Don't edit this file directly!
+   Read "Setup Notes" below for more info.
 
     pip install -r requirements.txt
 
@@ -48,6 +49,23 @@ alembic documentation at http://alembic.readthedocs.org/en/latest/index.html.
 6. To run the server with debugging output on:
 
     python run.py runserver -p PORT -d
+
+
+Setup Notes
+===========
+
+Note that there are two requirements files: `requirements.txt` and
+`requirements-to-freeze.txt`. The `requirements.txt` is an explicit and
+complete list of libraries and versions that will be installed in staging and
+production. On the other hand `requirements-to-freeze.txt` is a list of
+libraries we're using directly with less exact (or maybe even missing) version
+information. The idea is you can install and upgrade libraries from
+`requirements-to-freeze` and work with those locally, and once you've ensured
+there are no issues, you run `pip freeze > requirements.txt` to fix the
+versions.
+
+You can find more info about this workflow here:
+http://www.kennethreitz.org/essays/a-better-pip-workflow
 
 Configuration
 =============
