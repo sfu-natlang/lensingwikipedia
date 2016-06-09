@@ -4,7 +4,7 @@ from flask.ext.login import login_required, logout_user, current_user
 from social.apps.flask_app import routes    # noqa
 from functools import wraps
 from . import app, db, lm, forms
-from .models import User, Tab, TAB_NAMES
+from .models import User, Tab
 
 
 def admin_required(f):

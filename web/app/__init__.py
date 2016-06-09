@@ -4,7 +4,7 @@ from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.login import LoginManager
 
 from flask.ext.script import Manager
-from flask.ext.migrate import upgrade, stamp, Migrate, MigrateCommand
+from flask.ext.migrate import current, upgrade, stamp, Migrate, MigrateCommand
 
 from social.apps.flask_app.routes import social_auth
 from social.apps.flask_app.default.models import init_social
@@ -67,18 +67,14 @@ def create_db():
 
 if app.config['AUTO_DB_MANAGEMENT']:
     # CREATE ALL DATABASE + TABLES AT RUNTIME
-    # This should only be done while running within Docker, otherwise you'll
-    # have problems generating migrations
-    from os.path import isfile
-    from urllib.parse import urlparse
+    # XXX: This should only be done while running within Docker, otherwise
+    # you'll have problems generating migrations
     import os
 
     basedir = os.path.abspath(os.path.dirname(__file__))
-    db_path = urlparse(app.config['SQLALCHEMY_DATABASE_URI']).path
 
-    if not isfile(db_path):
-        create_db()
-
-    else:
-        with app.app_context():
+    with app.app_context():
+        if current(directory=os.path.join(basedir, '../migrations')):
             upgrade(directory=os.path.join(basedir, '../migrations'))
+        else:
+            create_db()
