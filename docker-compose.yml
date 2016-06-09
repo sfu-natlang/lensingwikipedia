@@ -4,9 +4,8 @@ services:
     web:
         build:
             context: web
-        environment:
-            # DO NOT CHANGE, UNLESS YOU MAKE THE SAME CHANGE EVERYWHERE
-            LENSING_DB_URI: 'sqlite:////data/db/app.db'
+        links:
+            - postgres
         env_file:
             - ./config.env
             - ./keys.env
@@ -58,3 +57,6 @@ services:
             driver: "syslog"
             options:
                 tag: "lensing-nginx"
+
+    postgres:
+        image: postgres

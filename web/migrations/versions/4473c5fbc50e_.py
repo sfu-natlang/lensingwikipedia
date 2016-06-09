@@ -22,7 +22,7 @@ def upgrade():
     sa.UniqueConstraint('name')
     )
     op.create_table('tabs',
-    sa.Column('tab_name', sa.Integer(), nullable=True),
+    sa.Column('tab_name', sa.String(), nullable=True),
     sa.Column('user_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['tab_name'], ['tab.name'], ),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], )

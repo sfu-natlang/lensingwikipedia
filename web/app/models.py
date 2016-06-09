@@ -18,10 +18,11 @@ TAB_NAMES = {
 
 # tab_name is the keys in TAB_NAMES above
 tabs = db.Table('tabs',
-    db.Column('tab_name', db.Integer, db.ForeignKey('tab.name')),
-    db.Column('user_id', db.Integer, db.ForeignKey('user.id')),
-    db.UniqueConstraint('tab_name', 'user_id')
-)
+                db.Column('tab_name', db.String, db.ForeignKey('tab.name')),
+                db.Column('user_id', db.Integer, db.ForeignKey('user.id')),
+                db.UniqueConstraint('tab_name', 'user_id')
+                )
+
 
 class Tab(db.Model):
     name = db.Column(db.String, unique=True, primary_key=True)

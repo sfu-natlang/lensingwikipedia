@@ -50,8 +50,9 @@ def create_db():
 
     # Make sure we have all the tabs in the database.
     for tab, tab_name in TAB_NAMES.items():
-        t = Tab(name=tab, external_name=tab_name)
-        db.session.add(t)
+        if Tab.query.filter_by(name=tab).first() is None:
+            t = Tab(name=tab, external_name=tab_name)
+            db.session.add(t)
 
     db.session.commit()
 
