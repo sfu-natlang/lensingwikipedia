@@ -7,7 +7,6 @@ from flask.ext.script import Manager
 from flask.ext.migrate import upgrade, stamp, Migrate, MigrateCommand
 
 from social.apps.flask_app.routes import social_auth
-from social.apps.flask_app.template_filters import backends
 from social.apps.flask_app.default.models import init_social
 
 app = Flask(__name__)
@@ -32,7 +31,8 @@ lm.init_app(app)
 app.jinja_env.trim_blocks = True
 app.jinja_env.lstrip_blocks = True
 
-from app import views, models, forms
+from app import views, models, forms    # noqa
+
 
 @manager.command
 def create_db():

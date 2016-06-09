@@ -1,7 +1,6 @@
 from app import app, db
 from flask.ext.login import UserMixin
-from social.apps.flask_app.default import models
-import datetime
+from social.apps.flask_app.default import models    # noqa
 
 ROLE = {'user': 0, 'admin': 1}
 STATUS = {'regular': 0, 'banned': 1}
@@ -29,8 +28,13 @@ class Tab(db.Model):
     external_name = db.Column(db.String, unique=True)
     visible = db.Column(db.Boolean, default=True)
 
+    @property
+    def name_pair(self):
+        return (self.name, self.external_name)
+
     def __repr__(self):
         return "<Tab {}>".format(self.name)
+
 
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
@@ -57,6 +61,7 @@ class User(db.Model, UserMixin):
 
     def __repr__(self):
         return '<User %r>' % self.email
+
 
 class Note(db.Model):
     id = db.Column(db.Integer, primary_key=True)
