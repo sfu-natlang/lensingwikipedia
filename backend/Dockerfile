@@ -8,7 +8,9 @@ RUN groupadd -r lensing \
 
 ENV DEBIAN_FRONTEND noninteractive
 
-RUN sed -i 's;archive.ubuntu.com;mirror.its.sfu.ca/mirror;' /etc/apt/sources.list
+# XXX: Uncomment this if it's convenient for you, but it's not good for
+# production because sometimes you get "Hash sum mismatch"
+#RUN sed -i 's;archive.ubuntu.com;mirror.its.sfu.ca/mirror;' /etc/apt/sources.list
 
 RUN apt-get update && apt-get install -y python2.7 python-pip python-dev
 RUN pip install gevent uwsgi
