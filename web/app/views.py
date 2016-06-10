@@ -3,6 +3,7 @@ from flask import (request, url_for, render_template, g, redirect,
 from flask.ext.login import login_required, logout_user, current_user
 from social.apps.flask_app import routes    # noqa
 from functools import wraps
+import json
 from . import app, db, lm, forms
 from .models import User, Tab
 
@@ -64,8 +65,11 @@ def index():
 
     tabs_with_names = [t.name_pair for t in sorted(visible_tabs, key=_order)]
 
+    # TODO move this to a proper place
+    admin_config = json.dumps({"show_facet_search": False})
+
     return render_template("index.html", title=app.config["SITETITLE"],
-                           tabs=tabs_with_names)
+                           tabs=tabs_with_names, admin_config=admin_config)
 
 
 @app.route("/logout")

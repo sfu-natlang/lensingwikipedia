@@ -53,6 +53,7 @@
 
   <script>
     FrontendConfig.backendUrl = "{{ config.BACKEND_URL }}";
+    AdminConfig = {{ admin_config|safe }};
   </script>
 
 {% endblock %}
