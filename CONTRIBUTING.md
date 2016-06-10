@@ -88,6 +88,21 @@ and working on it. Otherwise, do not push anything to **develop** until your
 pull request has been merged; we don't want extra commits to be merged in
 before they're ready.
 
+
+## Commit messages
+
+Please follow the following guidelines for writing commit messages:
+
+* http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html
+* https://github.com/alphagov/styleguides/blob/master/git.md
+
+Most importantly, write simple, clear, and concise (max 50 chars) commit
+summary lines in the present tense which explain _what_ your commit does. If
+you find you need to write too much to explain what it does, consider splitting
+it into multiple commits; it's going to be easier to locate bugs using `git
+bisect` if you do that anyways.
+
+
 ## Maintainers
 
 @anoopsarkar maintains **master** and @vlad003 maintains **develop**.
