@@ -105,7 +105,7 @@ bisect` if you do that anyways.
 
 ## Maintainers
 
-@anoopsarkar maintains **master** and @vlad003 maintains **develop**.
+@anoopsarkar maintains **master** and @avacariu maintains **develop**.
 
 ## Git is distributed!
 
