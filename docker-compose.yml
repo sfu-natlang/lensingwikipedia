@@ -52,7 +52,7 @@ services:
         ports:
             # Format is HOST:CONTAINER
             # Only change the HOST part
-            - "8080:80"
+            - "80:80"
         logging:
             driver: "syslog"
             options:
