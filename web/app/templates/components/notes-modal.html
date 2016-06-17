@@ -24,3 +24,11 @@
     <!--<a href="#" id="noteSave" class="btn btn-primary">Save note</a>-->
   <!--</div>-->
 </div>
+<script>
+$('#notesModal').on('hidden', function (e) {
+  Utils.log("Hid notes");
+})
+$('#notesModal').on('shown', function (e) {
+  Utils.log("Opened notes");
+})
+</script>
