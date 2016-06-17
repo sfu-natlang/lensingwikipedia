@@ -9,6 +9,8 @@ from flask.ext.migrate import current, upgrade, stamp, Migrate, MigrateCommand
 from social.apps.flask_app.routes import social_auth
 from social.apps.flask_app.default.models import init_social
 
+import sqlalchemy.exc
+
 app = Flask(__name__)
 app.config.from_object('config')
 app.config.from_envvar('LENSING_SETTINGS', silent=True)
@@ -70,10 +72,21 @@ if app.config['AUTO_DB_MANAGEMENT']:
     # XXX: This should only be done while running within Docker, otherwise
     # you'll have problems generating migrations
     import os
+    import time
 
     basedir = os.path.abspath(os.path.dirname(__file__))
 
     with app.app_context():
+        # In the case that we're running in Docker, the Postgres container may
+        # not be up and running yet, or have no database set up in it yet, so we
+        # need to wait for that to be done first
+        try:
+            db.engine.connect()
+        except sqlalchemy.exc.OperationalError:
+            # If it's not done in 10 seconds, then there's probably some other
+            # error, but we'll worry about that later
+            time.sleep(10)
+
         if current(directory=os.path.join(basedir, '../migrations')):
             upgrade(directory=os.path.join(basedir, '../migrations'))
         else:
