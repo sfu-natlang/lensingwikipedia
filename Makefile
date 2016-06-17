@@ -18,17 +18,20 @@ deploy:
 	[ -e ./index ] || cp -al "${INDEX_PATH}" ./index
 	sudo -E env "PATH=${PATH}" docker-compose build web
 	sudo -E env "PATH=${PATH}" docker-compose build query
+	sudo -E env "PATH=${PATH}" docker-compose build syslog
 	sudo -E env "PATH=${PATH}" docker-compose up -d
 
 prod:
 	[ -e ./index ] || cp -al "${INDEX_PATH}" ./index
 	sudo -E env "PATH=${PATH}" docker-compose build web
 	sudo -E env "PATH=${PATH}" docker-compose build query
+	sudo -E env "PATH=${PATH}" docker-compose build syslog
 	sudo -E env "PATH=${PATH}" docker-compose up -d
 
 staging:
 	sudo -E env "PATH=${PATH}" docker-compose -f docker-compose.yml -f docker-compose.staging.yml build web
 	sudo -E env "PATH=${PATH}" docker-compose -f docker-compose.yml -f docker-compose.staging.yml build query
+	sudo -E env "PATH=${PATH}" docker-compose -f docker-compose.yml -f docker-compose.staging.yml build syslog
 	sudo -E env "PATH=${PATH}" docker-compose -f docker-compose.yml -f docker-compose.staging.yml up
 
 # XXX MAKE SURE THAT ONLY THINGS USING dev.env ARE BELOW THIS LINE
@@ -42,6 +45,7 @@ dev:
 	find . -type f -exec chmod +r "{}" \;
 	sudo -E env "PATH=${PATH}" docker-compose -f docker-compose.yml -f docker-compose.dev.yml build web
 	sudo -E env "PATH=${PATH}" docker-compose -f docker-compose.yml -f docker-compose.dev.yml build query
+	sudo -E env "PATH=${PATH}" docker-compose -f docker-compose.yml -f docker-compose.dev.yml build syslog
 	sudo -E env "PATH=${PATH}" docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
 
 data-container-dev:

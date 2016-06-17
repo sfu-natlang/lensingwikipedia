@@ -11,6 +11,9 @@ from social.apps.flask_app.default.models import init_social
 
 import sqlalchemy.exc
 
+import logging
+from logging.handlers import SysLogHandler
+
 app = Flask(__name__)
 app.config.from_object('config')
 app.config.from_envvar('LENSING_SETTINGS', silent=True)
@@ -26,6 +29,13 @@ init_social(app, db.session)
 
 lm = LoginManager()
 lm.init_app(app)
+
+# TODO: make this work. See views.client_log() for details.
+syslog_handler = SysLogHandler(address=app.config['SYSLOG_ADDRESS'])
+syslog_handler.setLevel(logging.INFO)
+
+app.logger.addHandler(syslog_handler)
+app.logger.setLevel(logging.INFO)
 
 # Don't leave empty lines where the blocks were.
 # This allows us to have if statements within multiline Javascript strings,

@@ -6,6 +6,7 @@ services:
             context: web
         links:
             - postgres
+            - syslog
         env_file:
             - ./config.env
             - ./keys.env
@@ -38,6 +39,15 @@ services:
             dockerfile: Dockerfile-data
         env_file:
             - ./config.env
+
+    syslog:
+        build:
+            context: .
+            dockerfile: Dockerfile-syslog
+        env_file:
+            - ./config.env
+        volumes:
+            - ./build/logs:/var/log:rw
 
     redis:
         image: redis

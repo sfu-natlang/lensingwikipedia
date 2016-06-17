@@ -134,6 +134,31 @@ def user(id):
                            form=modify_user_form)
 
 
+@app.route('/log', methods=['POST'])
+def client_log():
+    """Log anything the client sends us for later processing."""
+
+    log_message = "Client log "
+
+    try:
+        log_message += "[User {}] ".format(str(g.user.email))
+    except AttributeError:
+        log_message += "[Anonymous] "
+
+    log_message += request.data.decode(errors='replace')
+
+    # TODO log directly to syslog; it currently doesn't work but I have no idea
+    # why. If you try to use SysLogHandler in a regular python shell inside the
+    # container, it works fine. It seems that it stops working only when running
+    # in uWSGI. The SysLogHandler _is_ available in app.logger.handlers right
+    # here, though, and it has all the correct attributes.
+    # app.logger.info(log_message)
+
+    print(log_message)
+
+    return "OK"
+
+
 @app.route('/admin', methods=['GET', 'POST'])
 @login_required
 @admin_required

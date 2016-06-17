@@ -48,6 +48,12 @@ SESSION_PROTECTION = None
 # creating the migration files first)
 AUTO_DB_MANAGEMENT = os.environ.get("LENSING_AUTO_DB_MANAGEMENT", "false").lower() in ['true', 'yes']
 
+SYSLOG_ADDRESS = ('syslog', 514)
+
+# If we let uWSGI deal with the exceptions then we can see them more easily in
+# the docker logs
+PROPAGATE_EXCEPTIONS = True
+
 # this defaults to true because this var will be available when in docker, but
 # won't be available when we run this locally
 if os.environ.get("LENSING_ALLOW_LOCAL_CONFIG", "true").lower() in ['true', 'yes']:
