@@ -16,6 +16,10 @@ function extendObject(toExtend, module) {
 
 var extendModule = extendObject;
 
+function log(message) {
+	$.post("/log", {'message': message});
+}
+
 /*
  * Convert a list of pairs to a dictionary object.
  */
@@ -83,6 +87,7 @@ return {
 	extendModule: extendModule,
 	pairListToDict: pairListToDict,
 	SimpleWatchable: SimpleWatchable,
-	logTime: logTime
+	logTime: logTime,
+	log: log
 };
 }());

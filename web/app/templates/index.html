@@ -145,9 +145,7 @@
 
 		<script>
 		  $('a[data-toggle="tab"]').on('shown', function (e) {
-		    $.post("/log", {
-		      'message': "Switched tabs: " + e.relatedTarget.href + " to " + e.target.href
-		    });
+		    Utils.log("Switched tabs: " + e.relatedTarget.href + " to " + e.target.href);
 		  })
 		</script>
 
