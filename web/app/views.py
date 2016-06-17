@@ -145,7 +145,12 @@ def client_log():
     except AttributeError:
         log_message += "[Anonymous] "
 
-    log_message += request.data.decode(errors='replace')
+    try:
+        message = request.form['message']
+    except KeyError:
+        return "FAIL"
+
+    log_message += message
 
     # TODO log directly to syslog; it currently doesn't work but I have no idea
     # why. If you try to use SysLogHandler in a regular python shell inside the
