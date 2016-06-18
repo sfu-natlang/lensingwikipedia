@@ -1,4 +1,4 @@
-"""empty message
+"""Initial migration. Create user and query table.
 
 Revision ID: 21df4e5effd4
 Revises: None

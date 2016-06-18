@@ -21,7 +21,7 @@ class locationSpider(BaseSpider):
 		self.url2locDic = {}
 		self.readFile(self.inFile)
 		fout = codecs.open(self.outFile,"w", encoding='utf-8')
-		fout.close
+		fout.close()
 	
 	def readFile(self, fileName):
 		fout = open(fileName,"r")
@@ -33,7 +33,7 @@ class locationSpider(BaseSpider):
 				self.start_urls.append(header)
 			self.url2locDic[header] = line[:-1]
 
-		fout.close
+		fout.close()
 
 	def parse(self, response):
 		url = response.url
@@ -71,5 +71,5 @@ class locationSpider(BaseSpider):
 				print >> fout, json.dumps(person)
 				break
 
-		fout.close
+		fout.close()
 

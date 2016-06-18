@@ -1,0 +1,6 @@
+werkzeug
+whoosh
+simplejson
+click
+redis
+requests

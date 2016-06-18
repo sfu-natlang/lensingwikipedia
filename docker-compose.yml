@@ -1,0 +1,73 @@
+version: '2'
+
+services:
+    web:
+        build:
+            context: web
+        links:
+            - postgres
+            - syslog
+        env_file:
+            - ./config.env
+            - ./keys.env
+        restart: on-failure:10
+        volumes_from:
+            - data
+        logging:
+            driver: "syslog"
+            options:
+                tag: "lensing-web"
+
+    query:
+        build:
+            context: backend
+        env_file:
+            - ./config.env
+        restart: on-failure:10
+        volumes_from:
+            - data
+        links:
+            - redis
+            - syslog
+        logging:
+            driver: "syslog"
+            options:
+                tag: "lensing-query"
+
+    data:
+        build:
+            context: .
+            dockerfile: Dockerfile-data
+        env_file:
+            - ./config.env
+
+    syslog:
+        build:
+            context: .
+            dockerfile: Dockerfile-syslog
+        env_file:
+            - ./config.env
+        volumes:
+            - ./build/logs:/var/log:rw
+
+    redis:
+        image: redis
+
+    nginx:
+        image: nginx
+        volumes:
+            - ./nginx.conf:/etc/nginx/nginx.conf:ro
+        links:
+            - query
+            - web
+        ports:
+            # Format is HOST:CONTAINER
+            # Only change the HOST part
+            - "80:80"
+        logging:
+            driver: "syslog"
+            options:
+                tag: "lensing-nginx"
+
+    postgres:
+        image: postgres

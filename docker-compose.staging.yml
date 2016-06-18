@@ -1,0 +1,17 @@
+version: '2'
+
+services:
+    web:
+        logging:
+            driver: "json-file"
+            options: {}
+
+    query:
+        logging:
+            driver: "json-file"
+            options: {}
+
+    data:
+        logging:
+            driver: "json-file"
+            options: {}

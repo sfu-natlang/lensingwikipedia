@@ -14,3 +14,9 @@ web/app/static/js/avherald_config_local.js
 web/app/static/js/wikipediahistory_config_local.js
 
 build/
+keys/
+
+.ropeproject/
+UWSGI_RELOAD
+
+index/

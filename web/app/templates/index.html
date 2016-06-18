@@ -53,6 +53,7 @@
 
   <script>
     FrontendConfig.backendUrl = "{{ config.BACKEND_URL }}";
+    AdminConfig = {{ admin_config|safe }};
   </script>
 
 {% endblock %}
@@ -140,6 +141,12 @@
 			$('a[data-toggle="tab"]').on('shown', function () {
 				$(window).trigger('resize');
 			});
+		</script>
+
+		<script>
+		  $('a[data-toggle="tab"]').on('shown', function (e) {
+		    Utils.log("Switched tabs: " + e.relatedTarget.href + " to " + e.target.href);
+		  })
 		</script>
 
 {% endblock %}

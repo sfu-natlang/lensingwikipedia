@@ -4,9 +4,11 @@
     <ul class="nav">
       <li><a href="#aboutModal" role="button" data-toggle="modal">About</a></li>
       {% if g.user.is_authenticated() %}
-      {% if g.user.is_admin() %}
-      <li><a href="{{ url_for('users') }}">Users</a></li>
-      {% endif %}
+        <li><a href="#notesModal" role="button" data-toggle="modal">Notes</a></li>
+        {% if g.user.is_admin() %}
+        <li><a href="{{ url_for('users') }}">Users</a></li>
+        <li><a href="{{ url_for('admin_console') }}">Administrate</a></li>
+        {% endif %}
       {% endif %}
     </ul>
     <ul class="nav pull-right">

@@ -1,0 +1,16 @@
+version: '2'
+
+services:
+    web:
+        volumes:
+            - ./web:/opt/lensing
+        logging:
+            driver: "json-file"
+            options: {}
+
+    query:
+        volumes:
+            - ./backend:/opt/lensing
+        logging:
+            driver: "json-file"
+            options: {}

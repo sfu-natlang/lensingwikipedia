@@ -1,7 +1,0 @@
-{
-  'server': {
-    'index_dir_path': './full.index'
-  },
-  'querier': {
-  }
-}

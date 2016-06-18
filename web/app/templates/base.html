@@ -17,7 +17,7 @@
 
   <script>
     {% if g.user.is_authenticated() %}
-    var userID = {{ g.user.email }};
+    var userID = "{{ g.user.email }}";
     {% else %}
     var userID = null;
     {% endif %}
@@ -34,6 +34,10 @@
   {% include "components/flashes.html" %}
 
   {% include "components/about-modal.html" %}
+
+  {% if g.user.is_authenticated() %}
+    {% include "components/notes-modal.html" %}
+  {% endif %}
 
   {% block content %}
   {% endblock content %}
