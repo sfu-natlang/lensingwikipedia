@@ -9,6 +9,7 @@ To see the available options, use --help
 import sys
 import os
 import logging
+import logging.handlers
 import tarfile
 
 import whoosh
@@ -34,9 +35,17 @@ except ImportError:
 # handles which domain to choose based on environment variables internally
 from domain_config import domain_config
 
-logging.basicConfig(stream=sys.stdout,
-                    level=logging.DEBUG)
+# TODO: Also output to stdout when not running in Docker
+logger = logging.getLogger("query-logger")
 
+syslog_handler = logging.handlers.SysLogHandler(address=('syslog', 514))
+syslog_handler.setLevel(logging.INFO)
+
+log_formatter = logging.Formatter("%(name)s - %(levelname)s: %(message)s")
+syslog_handler.setFormatter(log_formatter)
+
+logger.addHandler(syslog_handler)
+logger.setLevel(logging.INFO)
 
 # TODO: try to use JSONRequestMixin
 #       It currently doens't work because we're getting the json in request.form
@@ -62,7 +71,7 @@ def create_app(index, redis_address, redis_port):
     try:
         whoosh_index = whoosh.index.open_dir(index)
     except whoosh.index.EmptyIndexError:
-        logging.error("No index found at {}".format(index))
+        logger.error("No index found at {}".format(index))
         sys.exit(1)
     cache = RedisCache(redis_address, port=redis_port, default_timeout=0,
                        key_prefix="query_cache")
@@ -73,13 +82,15 @@ def create_app(index, redis_address, redis_port):
 
     @QueryRequest.application
     def application(request):
+        tracking_code = '[' + request.cookies.get("tracking", "Anonymous") + ']'
         querier = queries.Querier(whoosh_index, cache,
-                                  **domain_config.settings.get('querier', {})) # noqa
+                                  tracking_code=tracking_code,
+                                  **domain_config.settings.get('querier', {}))
 
         try:
             query = request.json
         except BadRequest, e:
-            logging.warn(e)
+            logger.warn(e)
             return Response('{ "status": "error", "message": "invalid json" }',
                             mimetype='application/json', status=400)
 
@@ -121,7 +132,7 @@ if __name__ == '__main__':
     main()
 # this env variable is set in our uWSGI config
 elif os.environ.get("RUNNING_IN_UWSGI", False):
-    logging.debug("RUNNING_IN_UWSGI")
+    logger.debug("RUNNING_IN_UWSGI")
     # TODO change this to an env variable once docker-compose supports
     # build-time env vars
     INDEX_PATH = "/data/index/fullData.index"
@@ -131,20 +142,20 @@ elif os.environ.get("RUNNING_IN_UWSGI", False):
             "https://s3.amazonaws.com/lensing.80x24.ca/fullData.index.tar")
 
     if not os.path.exists(INDEX_PATH):
-        logging.debug("downloading index tar")
+        logger.debug("downloading index tar")
         r = requests.get(INDEX_URI, stream=True)
         with open(INDEX_TAR, 'wb') as f:
             for chunk in r.iter_content(chunk_size=1024):
                 if chunk:
                     f.write(chunk)
 
-        logging.debug("finished downloading index tar")
+        logger.debug("finished downloading index tar")
 
         with tarfile.TarFile(INDEX_TAR) as index_tar:
             # XXX this expects that the only thing in the tarball is a dir
             # called "fullData.index"
             index_tar.extractall("/data/index")
 
-        logging.debug("extracted index tar")
+        logger.debug("extracted index tar")
 
     app = create_app(INDEX_PATH, 'redis', '6379')

@@ -1,5 +1,5 @@
 from flask import (request, url_for, render_template, g, redirect,
-                   flash, abort)
+                   flash, abort, make_response)
 from flask.ext.login import login_required, logout_user, current_user
 from social.apps.flask_app import routes    # noqa
 from functools import wraps
@@ -68,8 +68,15 @@ def index():
     # TODO move this to a proper place
     admin_config = json.dumps({"show_facet_search": False})
 
-    return render_template("index.html", title=app.config["SITETITLE"],
-                           tabs=tabs_with_names, admin_config=admin_config)
+    resp = make_response(render_template("index.html",
+                                         title=app.config["SITETITLE"],
+                                         tabs=tabs_with_names,
+                                         admin_config=admin_config))
+
+    if g.user.is_authenticated():
+        resp.set_cookie("tracking", value=g.user.email)
+
+    return resp
 
 
 @app.route("/logout")

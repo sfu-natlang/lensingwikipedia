@@ -28,6 +28,7 @@ services:
             - data
         links:
             - redis
+            - syslog
         logging:
             driver: "syslog"
             options:
