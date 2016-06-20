@@ -145,10 +145,10 @@ def user(id):
 def client_log():
     """Log anything the client sends us for later processing."""
 
-    log_message = "Client log "
+    log_message = ""
 
     try:
-        log_message += "[User {}] ".format(str(g.user.email))
+        log_message += "[{}] ".format(str(g.user.email))
     except AttributeError:
         log_message += "[Anonymous] "
 

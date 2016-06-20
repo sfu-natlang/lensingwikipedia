@@ -46,6 +46,9 @@ def per_process_init():
         syslog_handler = SysLogHandler(address=app.config['SYSLOG_ADDRESS'])
         syslog_handler.setLevel(logging.INFO)
 
+        formatter = logging.Formatter("frontend - %(levelname)s: %(message)s")
+        syslog_handler.setFormatter(formatter)
+
         app.logger.setLevel(logging.INFO)
         app.logger.addHandler(syslog_handler)
 
