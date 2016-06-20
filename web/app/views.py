@@ -159,14 +159,7 @@ def client_log():
 
     log_message += message
 
-    # TODO log directly to syslog; it currently doesn't work but I have no idea
-    # why. If you try to use SysLogHandler in a regular python shell inside the
-    # container, it works fine. It seems that it stops working only when running
-    # in uWSGI. The SysLogHandler _is_ available in app.logger.handlers right
-    # here, though, and it has all the correct attributes.
-    # app.logger.info(log_message)
-
-    print(log_message)
+    app.logger.info(log_message)
 
     return "OK"
 

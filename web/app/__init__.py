@@ -30,12 +30,25 @@ init_social(app, db.session)
 lm = LoginManager()
 lm.init_app(app)
 
-# TODO: make this work. See views.client_log() for details.
-syslog_handler = SysLogHandler(address=app.config['SYSLOG_ADDRESS'])
-syslog_handler.setLevel(logging.INFO)
 
-app.logger.addHandler(syslog_handler)
-app.logger.setLevel(logging.INFO)
+@app.before_first_request
+def per_process_init():
+    """Sets up per process settings.
+
+    This is useful when you're running the app in uWSGI using multiple processes
+    since the logger object is shared within each Python process but not across
+    processes.
+    """
+
+    if not app.debug:
+        # we add it in here because otherwise this ends up overriding the
+        # regular debugging handlers
+        syslog_handler = SysLogHandler(address=app.config['SYSLOG_ADDRESS'])
+        syslog_handler.setLevel(logging.INFO)
+
+        app.logger.setLevel(logging.INFO)
+        app.logger.addHandler(syslog_handler)
+
 
 # Don't leave empty lines where the blocks were.
 # This allows us to have if statements within multiline Javascript strings,
