@@ -1,5 +1,5 @@
 from flask import (request, url_for, render_template, g, redirect,
-                   flash, abort, make_response)
+                   flash, abort, make_response, send_from_directory)
 from flask.ext.login import login_required, logout_user, current_user
 from social.apps.flask_app import routes    # noqa
 from functools import wraps
@@ -195,3 +195,11 @@ def admin_console():
     return render_template("admin/manage.html",
                            title="Admin console",
                            form=visible_tabs_form)
+
+
+@app.route('/admin/user-log')
+@login_required
+@admin_required
+def get_user_log():
+    return send_from_directory('/var/log', 'rsyslog.log', as_attachment=True,
+                               mimetype='text/plain')
