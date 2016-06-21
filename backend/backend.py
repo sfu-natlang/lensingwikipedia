@@ -41,11 +41,16 @@ logger = logging.getLogger("query-logger")
 syslog_handler = logging.handlers.SysLogHandler(address=('syslog', 514))
 syslog_handler.setLevel(logging.INFO)
 
+stream_handler = logging.StreamHandler(sys.stdout)
+stream_handler.setLevel(logging.DEBUG)
+
 log_formatter = logging.Formatter("%(name)s - %(levelname)s: %(message)s")
 syslog_handler.setFormatter(log_formatter)
+stream_handler.setFormatter(log_formatter)
 
 logger.addHandler(syslog_handler)
-logger.setLevel(logging.INFO)
+logger.addHandler(stream_handler)
+logger.setLevel(logging.DEBUG)
 
 # TODO: try to use JSONRequestMixin
 #       It currently doens't work because we're getting the json in request.form

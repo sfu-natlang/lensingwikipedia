@@ -152,7 +152,7 @@ class Querier:
         Generate the Whoosh query object for the constraints.
         """
         def handle_constraint(cnstr_id, cnstr):
-            logger.info(self.tracking_code + " handling constraint \"%s\" of type \"%s\"" % (cnstr_id, cnstr['type']))
+            logger.debug(self.tracking_code + " handling constraint \"%s\" of type \"%s\"" % (cnstr_id, cnstr['type']))
             return self.constraint_to_whoosh_query(cnstr)
         return whoosh.query.And([handle_constraint(cid, c) for cid, c in query['constraints'].iteritems()]) if len(query['constraints']) > 0 else whoosh.query.Every()
 
@@ -162,7 +162,7 @@ class Querier:
         multiple-valued field are counted.
         """
 
-        logger.info(self.tracking_code + " generating field counts for fields: %s" % (' '.join(v['field'] for v in views.itervalues())))
+        logger.debug(self.tracking_code + " generating field counts for fields: %s" % (' '.join(v['field'] for v in views.itervalues())))
 
         for view_id, view in views.iteritems():
             response[view_id] = {'counts': {}}
@@ -197,7 +197,7 @@ class Querier:
             def format(hit):
                 return dict((f, hit[f]) for f in domain_config.description_field_names)
             hits = searcher.search_page(whoosh_query, page_num + 1, pagelen=self.description_page_size, sortedby='year', reverse=True)
-            logger.info(self.tracking_code + " whoosh pre-paginated search results: %s" % (repr(hits.results)))
+            logger.debug(self.tracking_code + " whoosh pre-paginated search results: %s" % (repr(hits.results)))
             result['descriptions'] = [format(h) for h in hits]
             if hits.is_last_page():
                 result['more'] = False
@@ -208,7 +208,7 @@ class Querier:
         link_counts = {}
         with self.whoosh_index.searcher() as searcher:
             hits = searcher.search(whoosh_query, limit=None)
-            logger.info(self.tracking_code + " whoosh search results: %s" % (repr(hits)))
+            logger.debug(self.tracking_code + " whoosh search results: %s" % (repr(hits)))
             for hit in hits:
                 refpoints = whooshutils.split_keywords(hit['referencePoints'])
                 for i, refpoint1 in enumerate(refpoints):
@@ -232,7 +232,7 @@ class Querier:
             coordinates = {}
             with self.whoosh_index.searcher() as searcher:
                 hits = searcher.search(whoosh_query, limit=None)
-                logger.info(self.tracking_code + " whoosh search results: %s" % (repr(hits)))
+                logger.debug(self.tracking_code + " whoosh search results: %s" % (repr(hits)))
                 for hit in hits:
                     if '2DtSNECoordinates' in hit:
                         refpoints = whooshutils.split_keywords(hit['2DtSNECoordinates'])
@@ -444,7 +444,7 @@ class Querier:
                 method_str = "generating view"
                 needed_views[view_id] = view
 
-            logger.info(self.tracking_code + " handling view \"%s\" of type \"%s\": %s" % (view_id, view['type'], method_str))
+            logger.debug(self.tracking_code + " handling view \"%s\" of type \"%s\": %s" % (view_id, view['type'], method_str))
 
         # Get results for all views that were not cached.
         self.generate_views(response, needed_views, whoosh_query)
@@ -506,7 +506,7 @@ class Querier:
         try:
             whoosh_query = self.handle_all_constraints(query)
             if self.verbose:
-                logger.info(self.tracking_code + " whoosh query: %s" % (repr(whoosh_query)))
+                logger.debug(self.tracking_code + " whoosh query: %s" % (repr(whoosh_query)))
             response = self.handle_all_views(query, whoosh_query)
         except Exception, e:
             message = e.value if isinstance(e, QueryHandlingError) else True
@@ -516,5 +516,5 @@ class Querier:
             logger.exception(self.tracking_code + " error while handling query:")
         if self.verbose:
             done_time = time.time()
-            logger.info(self.tracking_code + " query handling time: %0.4f" % (done_time - start_time))
+            logger.debug(self.tracking_code + " query handling time: %0.4f" % (done_time - start_time))
         return response
