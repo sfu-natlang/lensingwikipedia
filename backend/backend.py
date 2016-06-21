@@ -87,9 +87,12 @@ def create_app(index, redis_address, redis_port):
 
     @QueryRequest.application
     def application(request):
-        tracking_code = '[' + request.cookies.get("tracking", "Anonymous") + ']'
+        email = request.cookies.get("email", "no-email")
+        tracking_code = request.cookies.get("tracking", "")
+        log_tracker = '[' + email + ' ' + tracking_code + ']'
+
         querier = queries.Querier(whoosh_index, cache,
-                                  tracking_code=tracking_code,
+                                  tracking_code=log_tracker,
                                   **domain_config.settings.get('querier', {}))
 
         try:

@@ -68,13 +68,21 @@ def index():
     # TODO move this to a proper place
     admin_config = json.dumps({"show_facet_search": False})
 
+    tracking_cookie = request.cookies.get("tracking", "")
+
     resp = make_response(render_template("index.html",
                                          title=app.config["SITETITLE"],
                                          tabs=tabs_with_names,
-                                         admin_config=admin_config))
+                                         admin_config=admin_config,
+                                         tracking_cookie=tracking_cookie))
 
     if g.user.is_authenticated():
-        resp.set_cookie("tracking", value=g.user.email)
+        # Since we may allow the user to set a tracking cookie, and we can't
+        # easily verify its uniqueness, we'll also keep track of the user email
+        resp.set_cookie("email", value=g.user.email)
+
+        if "tracking" not in request.cookies:
+            resp.set_cookie(tracking_cookie)
 
     return resp
 
@@ -145,19 +153,18 @@ def user(id):
 def client_log():
     """Log anything the client sends us for later processing."""
 
-    log_message = ""
-
-    try:
-        log_message += "[{}] ".format(str(g.user.email))
-    except AttributeError:
-        log_message += "[Anonymous] "
+    # we're not reading g.user.email here because we want to be consistent with
+    # the backend.py
+    email = request.cookies.get("email", "no-email")
+    tracking_code = request.cookies.get("tracking", "")
+    log_tracker = '[' + email + ' ' + tracking_code + '] '
 
     try:
         message = request.form['message']
     except KeyError:
-        return "FAIL"
+        return make_response(("FAIL", 400))
 
-    log_message += message
+    log_message = log_tracker + message
 
     app.logger.info(log_message)
 

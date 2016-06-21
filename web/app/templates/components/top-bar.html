@@ -13,6 +13,7 @@
     </ul>
     <ul class="nav pull-right">
       {% if g.user.is_authenticated() %}
+      <li>Tracking code:<input id="tracking-cookie" type="text" placeholder="Tracking value" value="{{ tracking_cookie }}" /></li>
       <li><a href="{{ url_for('user', id=g.user.id) }}">{{ g.user.email }}</a></li>
       <li><a href="{{ url_for('logout') }}">Log out</a></li>
       {% else %}
@@ -21,3 +22,14 @@
     </ul>
   </div>
 </div>
+
+<script>
+$('#tracking-cookie').on('keypress', function (e) {
+  if (e.keyCode == 13) {    // enter key
+    document.cookie = "tracking=" + $('#tracking-cookie')[0].value;
+    $(this).addClass("successful-input");
+  } else {
+    $(this).removeClass("successful-input");
+  }
+});
+</script>
