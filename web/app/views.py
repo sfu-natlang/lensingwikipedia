@@ -1,11 +1,11 @@
 from flask import (request, url_for, render_template, g, redirect,
-                   flash, abort, make_response, send_from_directory)
+                   flash, abort, make_response, send_from_directory, jsonify)
 from flask.ext.login import login_required, logout_user, current_user
 from social.apps.flask_app import routes    # noqa
 from functools import wraps
 import json
 from . import app, db, lm, forms
-from .models import User, Tab
+from .models import User, Tab, Note
 
 
 def admin_required(f):
@@ -203,3 +203,40 @@ def admin_console():
 def get_user_log():
     return send_from_directory('/var/log', 'rsyslog.log', as_attachment=True,
                                mimetype='text/plain')
+
+
+@app.route('/api/notes', methods=['POST', 'GET'])
+@login_required
+def user_notes():
+    # we only have one note for now, but we'll have more in the future, so
+    # return a list of notes anyways
+
+    if request.method == "POST":
+        note = Note(user_id=g.user.id, raw_contents=request.form['contents'])
+        db.session.add(note)
+        db.session.commit()
+        return jsonify(id=note.id)
+
+    return jsonify(ids=[note.id for note in g.user.notes.all()])
+
+
+@app.route('/api/notes/<int:id>', methods=['DELETE', 'PUT', 'GET'])
+@login_required
+def user_note(id):
+
+    note = Note.query.get(id)
+
+    if note is None or note.user_id != g.user.id:
+        response = jsonify(status="error", message="Note not found")
+        response.status_code = 404
+        return response
+
+    if request.method == "DELETE":
+        db.session.delete(note)
+        db.session.commit()
+        return jsonify(status="success")
+    elif request.method == "PUT":
+        note.raw_contents = request.form['contents']
+        return jsonify(status="success")
+
+    return jsonify(id=note.id, contents=note.raw_contents)

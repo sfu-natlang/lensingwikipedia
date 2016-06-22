@@ -50,34 +50,12 @@ div.selectorsarea {
 	padding: 0;
 }
 
-#notesModal {
-    height: 80%; /* because top: 10% */
-}
-
-#notesModal iframe {
-    width: 100%;
-    margin: 0;
-    border: none;
-    height: 100%;
-}
-
 .modal #notesInput {
     /* these values depend on the width of .modal which is fixed within
      * Bootstrap
      */
     width: 515px;
     height: 300px;
-}
-
-#notesModal .modal-header {
-    border: none;
-}
-
-#notesModal .modal-body {
-    padding: 0;
-    max-height: initial;
-    height: calc(100% - 48px); /* to account for the header */
-    overflow-y: initial; /* otherwise an extra scrollbar appears */
 }
 
 .modal-footer .modal-status {

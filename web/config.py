@@ -23,7 +23,7 @@ SITETITLE = "Lensing Wikipedia"
 if DOMAIN == "avherald":
     SITETITLE = "Lensing Aviation Herald"
 
-BACKEND_URL = os.environ.get("LENSING_BACKEND_URL", "/api")
+BACKEND_URL = os.environ.get("LENSING_BACKEND_URL", "/query")
 
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.environ.get('SOCIAL_AUTH_GOOGLE_OAUTH2_KEY')
 SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.environ.get('SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET')
