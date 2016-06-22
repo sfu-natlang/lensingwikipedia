@@ -13,12 +13,13 @@
     padding-top: 0;
 }
 
-#inputTabs, #inputStatus {
+#inputTabs, #inputStatus, #inputRole {
     list-style-type: none;
 }
 
 #inputTabs li *,
-#inputStatus li * {
+#inputStatus li *,
+#inputRole li * {
     margin: 0;
     display: inline;
     line-height: 2;
