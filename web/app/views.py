@@ -66,7 +66,7 @@ def index():
     tabs_with_names = [t.name_pair for t in sorted(visible_tabs, key=_order)]
 
     # TODO move this to a proper place
-    admin_config = json.dumps({"show_facet_search": False})
+    admin_config = json.dumps({"show_facet_search": True})
 
     tracking_cookie = request.cookies.get("tracking", "")
 
