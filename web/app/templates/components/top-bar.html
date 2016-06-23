@@ -14,6 +14,10 @@
     <ul class="nav pull-right">
       {% if g.user.is_authenticated() %}
       <li>Tracking code:<input id="tracking-cookie" type="text" placeholder="Tracking value" value="{{ tracking_cookie }}" /></li>
+      <li>
+        <label for="stage-btn" id="stage-label" class="navbar-text"></label>
+        <button class="btn btn-primary" id="stage-btn" data-stage='0'>Start</button>
+      </li>
       <li><a href="{{ url_for('user', id=g.user.id) }}">{{ g.user.email }}</a></li>
       <li><a href="{{ url_for('logout') }}">Log out</a></li>
       {% else %}
@@ -31,5 +35,32 @@ $('#tracking-cookie').on('keypress', function (e) {
   } else {
     $(this).removeClass("successful-input");
   }
+});
+$('#stage-btn').on('click', function(e) {
+  var label = $('#stage-label');
+
+  var currentStage = $(this).data('stage');
+
+
+  switch (currentStage) {
+    case 0:
+    case 1:
+      Utils.log("Started stage: " + (currentStage + 1));
+      label.text("Stage " + (currentStage + 1));
+      $(this).text("Next stage");
+      break;
+    case 2:
+      Utils.log("Started stage: 3");
+      label.text("Stage 3");
+      $(this).text("Finish");
+      break;
+    default:
+      Utils.log("Finished.");
+      label.text("You're done!");
+      $(this).hide();
+      break;
+  }
+
+  $(this).data("stage", currentStage + 1);
 });
 </script>

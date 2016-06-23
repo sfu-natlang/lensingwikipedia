@@ -63,12 +63,16 @@ div.selectorsarea {
     padding: 15px;
 }
 
-#tracking-cookie {
+#tracking-cookie, #stage-btn {
     margin: 5px 5px;
 }
 
 #tracking-cookie.successful-input {
     background-color: #C2FF76;
+}
+
+#stage-label {
+    display: inline-block;
 }
 
 /* Change the spacing on bootstrap's tab elements to make vertical sizing */
