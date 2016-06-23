@@ -12,4 +12,6 @@ RUN apt-get update && \
 
 ADD ./rsyslog.conf /etc/rsyslog.conf
 
+VOLUME ["/run/rsyslog"]
+
 CMD ["rsyslogd", "-n"]

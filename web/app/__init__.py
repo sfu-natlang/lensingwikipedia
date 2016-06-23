@@ -43,7 +43,7 @@ def per_process_init():
     if not app.debug:
         # we add it in here because otherwise this ends up overriding the
         # regular debugging handlers
-        syslog_handler = SysLogHandler(address=app.config['SYSLOG_ADDRESS'])
+        syslog_handler = SysLogHandler(address='/run/rsyslog/rsyslog.sock')
         syslog_handler.setLevel(logging.INFO)
 
         formatter = logging.Formatter("frontend - %(levelname)s: %(message)s")

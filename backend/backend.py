@@ -38,7 +38,7 @@ from domain_config import domain_config
 # TODO: Also output to stdout when not running in Docker
 logger = logging.getLogger("query-logger")
 
-syslog_handler = logging.handlers.SysLogHandler(address=('syslog', 514))
+syslog_handler = logging.handlers.SysLogHandler(address='/run/rsyslog/rsyslog.sock')
 syslog_handler.setLevel(logging.INFO)
 
 stream_handler = logging.StreamHandler(sys.stdout)
