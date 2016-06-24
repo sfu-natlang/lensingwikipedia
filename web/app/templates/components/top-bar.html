@@ -28,39 +28,45 @@
 </div>
 
 <script>
-$('#tracking-cookie').on('keypress', function (e) {
-  if (e.keyCode == 13) {    // enter key
-    document.cookie = "tracking=" + $('#tracking-cookie')[0].value;
-    $(this).addClass("successful-input");
-  } else {
-    $(this).removeClass("successful-input");
-  }
-});
-$('#stage-btn').on('click', function(e) {
-  var label = $('#stage-label');
+$(document).ready(function() {
 
-  var currentStage = $(this).data('stage');
+  $('#tracking-cookie').on('keypress', function (e) {
+    if (e.keyCode == 13) {    // enter key
+      document.cookie = "tracking=" + $('#tracking-cookie')[0].value;
+      $(this).addClass("successful-input");
+    } else {
+      $(this).removeClass("successful-input");
+    }
+  });
 
+  $('#stage-btn').on('click', function(e) {
+    var label = $('#stage-label');
+    var notesInput = $("#notesInput");
+    var currentStage = $(this).data('stage');
 
-  switch (currentStage) {
-    case 0:
-    case 1:
-      Utils.log("Started stage: " + (currentStage + 1));
-      label.text("Stage " + (currentStage + 1));
-      $(this).text("Next stage");
-      break;
-    case 2:
-      Utils.log("Started stage: 3");
-      label.text("Stage 3");
-      $(this).text("Finish");
-      break;
-    default:
-      Utils.log("Finished.");
-      label.text("You're done!");
-      $(this).hide();
-      break;
-  }
+    switch (currentStage) {
+      case 0:
+      case 1:
+        Utils.log("Started stage: " + (currentStage + 1));
+        label.text("Stage " + (currentStage + 1));
+        $(this).text("Next stage");
+        break;
+      case 2:
+        Utils.log("Started stage: 3");
+        label.text("Stage 3");
+        $(this).text("Finish");
+        break;
+      default:
+        Utils.log("Finished.");
+        Utils.log("[SUBMIT] " + notesInput.val());
+        localStorage.removeItem("note");
+        notesInput.val("");
+        label.text("You're done!");
+        $(this).hide();
+        break;
+    }
 
-  $(this).data("stage", currentStage + 1);
+    $(this).data("stage", currentStage + 1);
+  });
 });
 </script>

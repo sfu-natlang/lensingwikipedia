@@ -14,10 +14,12 @@
      #}
     <textarea id="notesInput"></textarea>
   </div>
+  {# Disable for current study
   <div class="modal-footer">
     <span class="modal-status" id="notesStatus"></span>
     <a href="#" id="noteSave" class="btn btn-primary">Submit note</a>
   </div>
+  #}
 </div>
 <script>
 $('#notesModal').on('hidden', function (e) {
@@ -59,6 +61,8 @@ $(function() {
         notesInput.val(cached_note);
     }
 
+    /* XXX Commented out for a study. */
+    /*
     $("#noteSave").click(function() {
       var method;
       var endpoint;
@@ -77,8 +81,6 @@ $(function() {
 
       notesStatus.text("Submitted!");
 
-      /* XXX Commented out for a study. */
-      /*
       $.ajax({
         url: endpoint,
         method: method,
@@ -92,7 +94,7 @@ $(function() {
           notesStatus.text("Failed to submit. Please wait a few minutes and try again.");
         }
       });
-      */
     });
+    */
 });
 </script>
