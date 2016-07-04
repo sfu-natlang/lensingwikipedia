@@ -54,6 +54,7 @@
   <script>
     FrontendConfig.backendUrl = "{{ config.BACKEND_URL }}";
     AdminConfig = {{ admin_config|safe }};
+    TabConfig = {{ tab_configs|tojson }};
   </script>
 
 {% endblock %}

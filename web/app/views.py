@@ -64,6 +64,7 @@ def index():
         return tab.order
 
     tabs_with_names = [t.name_pair for t in sorted(visible_tabs, key=_order)]
+    tab_configs = {tab.name: tab.config for tab in visible_tabs}
 
     # TODO move this to a proper place
     admin_config = json.dumps({"show_facet_search": True})
@@ -74,7 +75,8 @@ def index():
                                          title=app.config["SITETITLE"],
                                          tabs=tabs_with_names,
                                          admin_config=admin_config,
-                                         tracking_cookie=tracking_cookie))
+                                         tracking_cookie=tracking_cookie,
+                                         tab_configs=tab_configs))
 
     if g.user.is_authenticated():
         # Since we may allow the user to set a tracking cookie, and we can't
