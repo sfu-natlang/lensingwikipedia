@@ -32,6 +32,7 @@ class Tab(db.Model):
     external_name = db.Column(db.String, unique=True)
     visible = db.Column(db.Boolean, default=True)
     order = db.Column(db.Integer, unique=True)
+    config = db.Column(db.JSON)
 
     @property
     def name_pair(self):
