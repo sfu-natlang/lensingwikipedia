@@ -1,10 +1,11 @@
+import os
+
 from flask import Flask
 
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.login import LoginManager
-
 from flask.ext.script import Manager
-from flask.ext.migrate import current, upgrade, stamp, Migrate, MigrateCommand
+from flask.ext.migrate import upgrade, stamp, Migrate, MigrateCommand
 
 from social.apps.flask_app.routes import social_auth
 from social.apps.flask_app.default.models import init_social
@@ -14,12 +15,15 @@ import sqlalchemy.exc
 import logging
 from logging.handlers import SysLogHandler
 
+basedir = os.path.abspath(os.path.dirname(__file__))
+migrations_dir = os.path.join(basedir, '../migrations')
+
 app = Flask(__name__)
 app.config.from_object('config')
 app.config.from_envvar('LENSING_SETTINGS', silent=True)
 
 db = SQLAlchemy(app)
-migrate = Migrate(app, db)
+migrate = Migrate(app, db, directory=migrations_dir)
 
 manager = Manager(app)
 manager.add_command('db', MigrateCommand)
@@ -64,8 +68,6 @@ from app import views, models, forms    # noqa
 
 @manager.command
 def create_db():
-    import os
-
     db.create_all()
 
     # create the tables for python-social-auth
@@ -87,10 +89,15 @@ def create_db():
     db.session.commit()
 
     with app.app_context():
-        basedir = os.path.abspath(os.path.dirname(__file__))
-        stamp(directory=os.path.join(basedir, '../migrations'))
+        stamp()
 
     print("Database created.")
+
+
+def get_current_revision(db_connection):
+    from alembic.migration import MigrationContext
+    context = MigrationContext.configure(db_connection)
+    return context.get_current_revision()
 
 
 if app.config['AUTO_DB_MANAGEMENT']:
@@ -113,7 +120,12 @@ if app.config['AUTO_DB_MANAGEMENT']:
             # error, but we'll worry about that later
             time.sleep(10)
 
-        if current(directory=os.path.join(basedir, '../migrations')):
-            upgrade(directory=os.path.join(basedir, '../migrations'))
+        # We only want to upgrade if there is already something there since
+        # create_db will also add in our tabs and create the python-social-auth
+        # tables
+        conn = db.engine.connect()
+        print("Current rev:", get_current_revision(conn))
+        if get_current_revision(conn):
+            upgrade()
         else:
             create_db()
