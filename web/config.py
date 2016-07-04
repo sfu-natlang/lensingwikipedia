@@ -1,12 +1,7 @@
 # XXX DON'T PUT LOCAL SETTINGS IN HERE.
 # THIS FILE IS ONLY FOR DEFAULTS SO THAT THE CODE RUNS.
-# PUT LOCAL SETTINGS IN local_config.py, if you're running this using the Flask
-# dev server, or pass things in through environment variables
-
-# NOTE: All the .strip("'") are there because the config.env file has values
-# wrapped in single quotes. We can't remove the single quotes because
-# `source config.env` would break in Bash (since it would end up trying to
-# execute things because they're not prefixe with 'export').
+# Put local settings local_config.py, if you're running this using the Flask dev
+# server, or pass things in through environment variables
 
 import os
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -56,6 +51,6 @@ PROPAGATE_EXCEPTIONS = True
 # won't be available when we run this locally
 if os.environ.get("LENSING_ALLOW_LOCAL_CONFIG", "true").lower() in ['true', 'yes']:
     try:
-        from local_config import *
+        from local_config import *      # noqa
     except ImportError:
         pass
