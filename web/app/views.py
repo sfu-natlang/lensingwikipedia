@@ -242,3 +242,48 @@ def user_note(id):
         return jsonify(status="success")
 
     return jsonify(id=note.id, contents=note.raw_contents)
+
+
+@app.route('/api/tabs')
+def api_tabs():
+    """Return all tab configs.
+    """
+    return jsonify({tab.name: tab.config for tab in Tab.query.all()})
+
+
+@app.route('/api/tabs/<name>/config', methods=['GET', 'PUT', 'DELETE'])
+def api_tab(name):
+    """Retrieve or update the configuration for a certain tab
+    """
+
+    tab = Tab.query.filter_by(name=name).first()
+
+    if tab is None:
+        response = jsonify(status="error", message="Tab not found")
+        response.status_code = 404
+        return response
+
+    if request.method == "GET":
+        return jsonify({"config": tab.config})
+
+    elif request.method == "PUT":
+        if not (current_user.is_authenticated() and current_user.is_admin()):
+            abort(403)
+        if 'replace' in request.args:
+            tab.config = request.get_json(force=True)
+        else:
+            if tab.config is None:
+                tab.config = {}
+
+            tab.config.update(request.get_json(force=True))
+
+        db.session.commit()
+        return jsonify(status="success", message="Updated config")
+
+    elif request.method == "DELETE":
+        if not (current_user.is_authenticated() and current_user.is_admin()):
+            abort(403)
+
+        tab.config = None
+        db.session.commit()
+        return jsonify(status="success", message="Deleted config")
