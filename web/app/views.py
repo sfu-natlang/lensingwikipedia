@@ -248,7 +248,12 @@ def user_note(id):
 def api_tabs():
     """Return all tab configs.
     """
-    return jsonify({tab.name: tab.config for tab in Tab.query.all()})
+    all_tabs = Tab.query.all()
+
+    def make_attrs(tab):
+        return {"visible": tab.visible, "config": tab.config}
+
+    return jsonify({tab.name: make_attrs(tab) for tab in all_tabs})
 
 
 @app.route('/api/tabs/<name>/config', methods=['GET', 'PUT', 'DELETE'])
@@ -264,7 +269,7 @@ def api_tab(name):
         return response
 
     if request.method == "GET":
-        return jsonify({"config": tab.config})
+        return jsonify({"visible": tab.visible, "config": tab.config})
 
     elif request.method == "PUT":
         if not (current_user.is_authenticated() and current_user.is_admin()):
@@ -276,6 +281,14 @@ def api_tab(name):
                 tab.config = {}
 
             tab.config.update(request.get_json(force=True))
+
+        # We want to allow setting the tab visibiliity using this API, but we
+        # want to store it as a separate column in the table since it's more of
+        # a general UI option than a tab-specific option.
+        if 'visible' in tab.config:
+            tab.visible = tab.config['visible']
+            # since we don't want to deal with storing this in two places,
+            del tab.config['visible']
 
         db.session.commit()
         return jsonify(status="success", message="Updated config")
