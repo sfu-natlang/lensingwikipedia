@@ -177,26 +177,9 @@ def client_log():
 @login_required
 @admin_required
 def admin_console():
-    all_tabs = Tab.query.order_by(Tab.order).all()
-    visible_tabs_form = forms.VisibleTabs()
-
-    visible_tabs_form.tabs.choices = [t.name_pair for t in all_tabs]
-
-    if request.method == 'GET':
-        visible_tabs_form.tabs.default = [t.name for t in all_tabs if t.visible]
-        visible_tabs_form.tabs.process(None)
-
-    if visible_tabs_form.validate_on_submit():
-        for tab in visible_tabs_form.tabs:
-            t = Tab.query.filter_by(name=tab.data).first()
-            t.visible = tab.checked
-
-        db.session.commit()
-        flash("Saved settings")
-
     return render_template("admin/manage.html",
                            title="Admin console",
-                           form=visible_tabs_form)
+                           tabs=Tab.query.order_by(Tab.order).all())
 
 
 @app.route('/admin/user-log')
@@ -248,12 +231,12 @@ def user_note(id):
 def api_tabs():
     """Return all tab configs.
     """
-    all_tabs = Tab.query.all()
+    all_tabs = Tab.query.order_by(Tab.order).all()
 
     def make_attrs(tab):
         return {"visible": tab.visible, "config": tab.config}
 
-    return jsonify({tab.name: make_attrs(tab) for tab in all_tabs})
+    return jsonify({"tabs": [{tab.name: make_attrs(tab)} for tab in all_tabs]})
 
 
 @app.route('/api/tabs/<name>/config', methods=['GET', 'PUT', 'DELETE'])
@@ -274,13 +257,8 @@ def api_tab(name):
     elif request.method == "PUT":
         if not (current_user.is_authenticated() and current_user.is_admin()):
             abort(403)
-        if 'replace' in request.args:
-            tab.config = request.get_json(force=True)
-        else:
-            if tab.config is None:
-                tab.config = {}
 
-            tab.config.update(request.get_json(force=True))
+        tab.config = request.get_json(force=True)
 
         # We want to allow setting the tab visibiliity using this API, but we
         # want to store it as a separate column in the table since it's more of

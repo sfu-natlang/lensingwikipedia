@@ -19,8 +19,3 @@ class ModifyUser(Form):
     tabs = MultiCheckboxField('Tabs')
 
     confirm = BooleanField("confirm", validators=[Required()])
-
-
-class VisibleTabs(Form):
-    tabs = MultiCheckboxField('Tabs')
-    confirm = BooleanField("confirm", validators=[Required()])
