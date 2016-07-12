@@ -49,6 +49,11 @@ function setup(container, parameters) {
 	var outerElt = $('<div class="comparison"></div>').appendTo(container);
 
 	var controlsElt = $('<div class="controls"></div>').appendTo(outerElt);
+
+	if (TabConfig["comparison"]["hide-controls"] == "true") {
+			controlsElt.hide();
+	}
+
 	var clearSelElt = $('<button type="button" class="btn btn-mini btn-warning clear mapclear" title="Clear">Clear selection</button>').appendTo(controlsElt);
 	var modeElt = $('<select class="btn btn-mini"></select>').appendTo(controlsElt);
 	var numElt = $('<select class="btn btn-mini"> \
@@ -60,6 +65,9 @@ function setup(container, parameters) {
 										<option value="20" >Top 20</option> \
 										<option value="-1">All</option> \
 								 </select>').appendTo(controlsElt);
+	if (TabConfig["comparison"]["top"] !== undefined) {
+	    numElt[0].value = +TabConfig["comparison"]["top"];
+	}
 	var updateBtn = $('<button type="submit" class="btn btn-warning" title="Update the visualization">Update</button></ul>').appendTo(controlsElt);
 
 	var smoothSel = $('<select class="btn btn-mini"> \
@@ -72,6 +80,11 @@ function setup(container, parameters) {
 												<option value="100">100</option> \
 										</select>'
 										).appendTo(controlsElt);
+
+	if (TabConfig["comparison"]["smooth"] !== undefined) {
+	    smoothSel[0].value = +TabConfig["comparison"]["smooth"];
+	}
+
 	var smoothBtn = $('<button class="btn btn-warning" title="Update smoothing">Smooth</button></ul>').appendTo(controlsElt);
 
 	// legend needs to come before outersvg because we've got float:right on it
@@ -88,8 +101,13 @@ function setup(container, parameters) {
 	}
 
 	$.each(facets, function(idx, facet) {
-		$('<option value="' + idx + '">' + facet.title + ' facet</option>').appendTo(modeElt);
+		$('<option value="' + facet.field + '">' + facet.title + ' facet</option>').appendTo(modeElt);
 	});
+
+	if (TabConfig["comparison"]["default-facet"] !== undefined) {
+	    modeElt[0].value = TabConfig["comparison"]["default-facet"];
+	}
+
 
 	LayoutUtils.fillElement(container, outerElt, 'vertical');
 	LayoutUtils.setupPanelled(outerElt, controlsElt, outerSvgElt, 'vertical', 0, false);
@@ -115,7 +133,13 @@ function setup(container, parameters) {
 		//clearElement(contentElt);
 		setLoadingIndicator(true);
 
-		currentFacet = facets[Number(modeElt[0].value)];
+		for (var idx in facets) {
+		    if (facets[idx].field == modeElt[0].value) {
+						currentFacet = facets[idx];
+						break;
+		    }
+		}
+
 		topCount = Number(numElt[0].value);
 
 		if (topCount < 0) {
@@ -175,6 +199,12 @@ function setup(container, parameters) {
 		});
 		globalQuery.update();
 	});
+
+	globalQuery.onChange(function () {
+		updateBtn.click();
+	});
+
+	updateBtn.click();
 
 	/********************* END CALLBACKS ****************************/
 }
