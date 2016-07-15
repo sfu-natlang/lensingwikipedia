@@ -198,11 +198,7 @@ FacetListBox.prototype.makeSearchElement = function () {
 
 	searchBoxElt.submit(function () {
 		var value = listBox.searchInputElt.val();
-		if (listBox._dataElts.hasOwnProperty(value)) {
-			setSearchErrorStatus(false);
-			listBox.selection.add(value);
-		} else
-			setSearchErrorStatus(true);
+		listBox.selection.add(value);
 		return false;
 	});
 
