@@ -954,7 +954,6 @@ function setup(container, parameters) {
 	});
 
 	globalQuery.onChange(function () {
-		$(".storyline button.clearviewentities").click();
 		$(".storyline button.storyline-update").click();
 	});
 
