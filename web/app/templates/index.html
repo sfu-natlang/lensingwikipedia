@@ -150,7 +150,7 @@
 
 		<script>
 		  $('a[data-toggle="tab"]').on('shown', function (e) {
-		    Utils.log("Switched tabs: " + e.relatedTarget.href + " to " + e.target.href);
+		    Utils.log("Switched tab to: "  + e.target.href.split('#').pop());
 		  })
 		</script>
 
