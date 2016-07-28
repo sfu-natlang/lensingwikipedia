@@ -46,6 +46,9 @@ $(document).ready(function() {
 
     switch (currentStage) {
       case 0:
+        document.cookie = "tracking=" + $('#tracking-cookie')[0].value;
+        $("#tracking-cookie").addClass("successful-input");
+        // fall through
       case 1:
         Utils.log("Started stage: " + (currentStage + 1));
         label.text("Stage " + (currentStage + 1));
