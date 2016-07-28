@@ -91,6 +91,10 @@
 			var initialQuery = new Queries.Query(FrontendConfig.backendUrl);
 			var globalQuery = new Queries.Query(FrontendConfig.backendUrl);
 
+			globalQuery.addChangeWatcher(new Queries.ChangeWatcher(function(changeType, query, constraint) {
+			  Utils.log(changeType + ": " + "[" + constraint._name + "] " + JSON.stringify(constraint._value));
+			}));
+
 			function setupSidebar(container, globalQuery) {
 				var cnstrBoxElt = $(".constraintslistbox");
 				var eventDescBoxElt = $(".eventdescriptionslistbox");

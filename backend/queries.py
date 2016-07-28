@@ -172,7 +172,7 @@ class Querier:
 
         with self.whoosh_index.searcher() as searcher:
             hits = searcher.search(whoosh_query, limit=None)
-            logger.info(self.tracking_code + " whoosh search results: %s" % (repr(hits)))
+            logger.debug(self.tracking_code + " whoosh search results: %s" % (repr(hits)))
             for hit in hits:
                 for view_id, view in views.iteritems():
                     field = view['field']
