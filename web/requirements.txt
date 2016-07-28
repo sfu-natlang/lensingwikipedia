@@ -20,6 +20,6 @@ python3-openid==3.0.10
 requests==2.10.0
 requests-oauthlib==0.6.1
 six==1.10.0
-SQLAlchemy==1.0.13
+SQLAlchemy==1.1.0b2
 Werkzeug==0.11.10
 WTForms==2.1

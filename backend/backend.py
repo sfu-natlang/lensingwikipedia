@@ -38,14 +38,19 @@ from domain_config import domain_config
 # TODO: Also output to stdout when not running in Docker
 logger = logging.getLogger("query-logger")
 
-syslog_handler = logging.handlers.SysLogHandler(address=('syslog', 514))
+syslog_handler = logging.handlers.SysLogHandler(address='/run/rsyslog/rsyslog.sock')
 syslog_handler.setLevel(logging.INFO)
+
+stream_handler = logging.StreamHandler(sys.stdout)
+stream_handler.setLevel(logging.DEBUG)
 
 log_formatter = logging.Formatter("%(name)s - %(levelname)s: %(message)s")
 syslog_handler.setFormatter(log_formatter)
+stream_handler.setFormatter(log_formatter)
 
 logger.addHandler(syslog_handler)
-logger.setLevel(logging.INFO)
+logger.addHandler(stream_handler)
+logger.setLevel(logging.DEBUG)
 
 # TODO: try to use JSONRequestMixin
 #       It currently doens't work because we're getting the json in request.form
@@ -82,9 +87,12 @@ def create_app(index, redis_address, redis_port):
 
     @QueryRequest.application
     def application(request):
-        tracking_code = '[' + request.cookies.get("tracking", "Anonymous") + ']'
+        email = request.cookies.get("email", "no-email")
+        tracking_code = request.cookies.get("tracking", "")
+        log_tracker = '[' + email + ' ' + tracking_code + ']'
+
         querier = queries.Querier(whoosh_index, cache,
-                                  tracking_code=tracking_code,
+                                  tracking_code=log_tracker,
                                   **domain_config.settings.get('querier', {}))
 
         try:

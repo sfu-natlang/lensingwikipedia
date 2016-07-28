@@ -13,6 +13,7 @@ services:
         restart: on-failure:10
         volumes_from:
             - data
+            - syslog
         logging:
             driver: "syslog"
             options:
@@ -26,6 +27,7 @@ services:
         restart: on-failure:10
         volumes_from:
             - data
+            - syslog
         links:
             - redis
             - syslog

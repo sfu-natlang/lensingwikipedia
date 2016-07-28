@@ -640,7 +640,7 @@ function setup(container, parameters) {
 		}
 		entityList.outerElt.addClass('dropdown-menu');
 		var btnBox = $('<div class="clearbuttonbox"></div>').prependTo(entityList.outerElt);
-		var updateBtn = $('<button type="button" class="btn btn-mini btn-primary" title="Update menu to match facet.">Update</button>').appendTo(btnBox);
+		var updateBtn = $('<button type="button" class="btn btn-mini btn-primary storyline-update" title="Update menu to match facet.">Update</button>').appendTo(btnBox);
 		var clearEntitiesBtn = $('<button type="button" class="btn btn-mini btn-warning clearviewentities" title="Clear view entities.">Clear</button>').appendTo(btnBox);
 		LayoutUtils.fillElement(container, entityList.outerElt, 'vertical', 100);
 		clearEntitiesBtn.bind('click', function (event) {
@@ -951,6 +951,10 @@ function setup(container, parameters) {
 	$('a[data-toggle="tab"]').on('shown', function (e) {
 		if ($(e.target.getAttribute('href'))[0] === container[0] && vis != null)
 			vis.update();
+	});
+
+	globalQuery.onChange(function () {
+		$(".storyline button.storyline-update").click();
 	});
 
 	return {

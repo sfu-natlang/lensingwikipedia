@@ -196,13 +196,28 @@ FacetListBox.prototype.makeSearchElement = function () {
 			listBox.searchInputElt.removeClass('error');
 	}
 
+	var ownCnstrQuery = new Queries.Query(listBox.globalQuery.backendUrl());
+	var selection = new Selections.SimpleSingleValueSelection();
+
+	Selections.syncSingleValueSelectionWithConstraint(selection, listBox.globalQuery, ownCnstrQuery, function () {
+		return new Queries.Constraint();
+	}, function (constraint, selection, searchTerm) {
+		constraint.name("Text search: " + searchTerm);
+		constraint.set({
+			type: 'textsearch',
+			value: searchTerm
+		});
+	});
+
 	searchBoxElt.submit(function () {
-		var value = listBox.searchInputElt.val();
-		if (listBox._dataElts.hasOwnProperty(value)) {
-			setSearchErrorStatus(false);
-			listBox.selection.add(value);
-		} else
-			setSearchErrorStatus(true);
+		var searchTerm = $.trim(listBox.searchInputElt.val());
+		if (searchTerm.length > 0) {
+			// TODO Determine the search prefix in a more reliable way since we may
+			// want to change the facet name.
+			selection.set(listBox.facetName.toLowerCase() + ":" + searchTerm);
+		} else {
+			selection.clear();
+		}
 		return false;
 	});
 
@@ -291,6 +306,8 @@ function setup(container, globalQuery, name, field, fieldSelection) {
 	$("<h1>" + name + "</h1>").appendTo(topBoxElt);
 	var clearElt = $("<button type=\"button\" class=\"btn btn-block btn-mini btn-warning\" title=\"Clear the facet selection.\">Clear selection</button></ul>").appendTo(topBoxElt);
 	var listBox = new FacetListBox(facetElt, fieldSelection.contextQuery, field, fieldSelection.selection);
+	listBox.globalQuery = globalQuery
+	listBox.facetName = name
 	listBox.setupWatchQuery(globalQuery);
 	if (AdminConfig.show_facet_search) {
 		var searchElt = listBox.makeSearchElement();

@@ -50,17 +50,6 @@ div.selectorsarea {
 	padding: 0;
 }
 
-#notesModal {
-    height: 80%; /* because top: 10% */
-}
-
-#notesModal iframe {
-    width: 100%;
-    margin: 0;
-    border: none;
-    height: 100%;
-}
-
 .modal #notesInput {
     /* these values depend on the width of .modal which is fixed within
      * Bootstrap
@@ -69,20 +58,21 @@ div.selectorsarea {
     height: 300px;
 }
 
-#notesModal .modal-header {
-    border: none;
-}
-
-#notesModal .modal-body {
-    padding: 0;
-    max-height: initial;
-    height: calc(100% - 48px); /* to account for the header */
-    overflow-y: initial; /* otherwise an extra scrollbar appears */
-}
-
 .modal-footer .modal-status {
     color: gray;
     padding: 15px;
+}
+
+#tracking-cookie, #stage-btn {
+    margin: 5px 5px;
+}
+
+#tracking-cookie.successful-input {
+    background-color: #C2FF76;
+}
+
+#stage-label {
+    display: inline-block;
 }
 
 /* Change the spacing on bootstrap's tab elements to make vertical sizing */

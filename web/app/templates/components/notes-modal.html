@@ -1,7 +1,7 @@
 <div id="notesModal" class="modal hide fade" tabindex="-1" role="dialog" aria-hidden="true">
   <div class="modal-header">
     <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-    <h3>Notebook</h3>
+    <h3>Notes</h3>
   </div>
   <div class="modal-body">
     {# Don't set a default value here (i.e. don't get the first note in the
@@ -12,23 +12,89 @@
 
        Just do it in Javascript.
      #}
-    <!--<textarea id="notesInput"></textarea>-->
-
-    {# TODO properly escape this #}
-    <iframe src="https://docs.google.com/forms/d/1mKKaxrhsBr4wekKnOzQmOcvC9zYJEpo5qo4rb3mBWLo/viewform?ttl=0&entry.283307280={{ g.user.email }}">Loading form...</iframe>
-
+    <textarea id="notesInput"></textarea>
   </div>
-  <!--<div class="modal-footer">-->
-    <!--<span class="modal-status" id="notesStatus"></span>-->
-    <!--<a href="#" data-dismiss="modal" aria-hidden="true" class="btn">Close</a>-->
-    <!--<a href="#" id="noteSave" class="btn btn-primary">Save note</a>-->
-  <!--</div>-->
+  {# Disable for current study
+  <div class="modal-footer">
+    <span class="modal-status" id="notesStatus"></span>
+    <a href="#" id="noteSave" class="btn btn-primary">Submit note</a>
+  </div>
+  #}
 </div>
 <script>
 $('#notesModal').on('hidden', function (e) {
+  var notesInput = $("#notesInput");
+
+  localStorage.setItem("note", notesInput.val());
+  Utils.log("[NOTE] " + notesInput.val());
   Utils.log("Hid notes");
-})
+});
 $('#notesModal').on('shown', function (e) {
   Utils.log("Opened notes");
-})
+});
+$(function() {
+    // TODO error handling and security
+    // try to get the first note
+    var first_note_id = null;
+    var notesInput = $("#notesInput");
+    var notesStatus = $("#notesStatus");
+
+    /* XXX commented out because it's only disabled for the current study
+     * (we don't want to confuse the subject).
+     * If you find this, and there's no study happening, uncomment it!
+     */
+    /*
+    $.get('/api/notes', function(data) {
+      if (data.ids.length != 0) {
+        first_note_id = data.ids[0];
+        $.get('/api/notes/' + first_note_id, function(data) {
+          notesInput.val(data.contents);
+        });
+      } else {
+        notesStatus.text("Couldn't find any notes on the server.");
+      }
+    });
+    */
+
+    var cached_note = localStorage.getItem("note");
+    if (cached_note !== null) {
+        notesInput.val(cached_note);
+    }
+
+    /* XXX Commented out for a study. */
+    /*
+    $("#noteSave").click(function() {
+      var method;
+      var endpoint;
+      if (first_note_id === null) {
+        method = 'POST';
+        endpoint = '/api/notes';
+      } else {
+        method = 'PUT';
+        endpoint = '/api/notes/' + first_note_id;
+      }
+
+      notesStatus.text("Submitting...");
+
+      localStorage.setItem("note", notesInput.val());
+      Utils.log("[SUBMIT] " + notesInput.val());
+
+      notesStatus.text("Submitted!");
+
+      $.ajax({
+        url: endpoint,
+        method: method,
+        data: {
+          contents: notesInput.val()
+        },
+        success: function() {
+          notesStatus.text("Submitted!");
+        },
+        error: function() {
+          notesStatus.text("Failed to submit. Please wait a few minutes and try again.");
+        }
+      });
+    });
+    */
+});
 </script>
