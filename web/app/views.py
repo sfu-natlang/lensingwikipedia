@@ -3,7 +3,6 @@ from flask import (request, url_for, render_template, g, redirect,
 from flask.ext.login import login_required, logout_user, current_user
 from social.apps.flask_app import routes    # noqa
 from functools import wraps
-import json
 from . import app, db, lm, forms
 from .models import User, Tab, Note
 
@@ -66,15 +65,11 @@ def index():
     tabs_with_names = [t.name_pair for t in sorted(visible_tabs, key=_order)]
     tab_configs = {tab.name: tab.config for tab in visible_tabs}
 
-    # TODO move this to a proper place
-    admin_config = json.dumps({"show_facet_search": True})
-
     tracking_cookie = request.cookies.get("tracking", "")
 
     resp = make_response(render_template("index.html",
                                          title=app.config["SITETITLE"],
                                          tabs=tabs_with_names,
-                                         admin_config=admin_config,
                                          tracking_cookie=tracking_cookie,
                                          tab_configs=tab_configs))
 

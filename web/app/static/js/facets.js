@@ -309,7 +309,7 @@ function setup(container, globalQuery, name, field, fieldSelection) {
 	listBox.globalQuery = globalQuery
 	listBox.facetName = name
 	listBox.setupWatchQuery(globalQuery);
-	if (AdminConfig.show_facet_search) {
+	if (TabConfig["facets"]["hide-search"] != "true") {
 		var searchElt = listBox.makeSearchElement();
 		searchElt.appendTo(topBoxElt);
 	}
