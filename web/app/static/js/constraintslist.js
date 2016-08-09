@@ -38,6 +38,7 @@ function setup(container, globalQuery) {
 		cnstrTextElt.append(cnstr.name());
 		container.trigger('changedSize');
 		cnstrElt.click(function() {
+			Utils.log("clear, " + JSON.stringify(cnstr._value));
 			cnstr.clear();
 			globalQuery.update();
 			removeElement(cnstrElt);
@@ -88,6 +89,7 @@ function setup(container, globalQuery) {
 	clearAllElt.click(function() {
 		globalQuery.clearAll();
 		globalQuery.update();
+		Utils.log("clear, all");
 	});
 
 	var numErrors = 0;

@@ -207,6 +207,7 @@ FacetListBox.prototype.makeSearchElement = function () {
 			type: 'textsearch',
 			value: searchTerm
 		});
+		Utils.log("facet search, " + searchTerm);
 	});
 
 	searchBoxElt.submit(function () {
@@ -282,6 +283,7 @@ FieldSelections.prototype.get = function (field) {
 				field: field,
 				value: value
 			});
+			Utils.log("facet filter, " + name + ":" + value);
 			return constraint;
 		});
 		this._cache[field] = {
@@ -316,6 +318,10 @@ function setup(container, globalQuery, name, field, fieldSelection) {
 	LayoutUtils.fillElement(container, facetElt, 'vertical');
 	LayoutUtils.setupPanelled(facetElt, topBoxElt, listBox.outerElt, 'vertical', 0, false);
 	setupSelectionClearButton(clearElt, fieldSelection.selection);
+
+	clearElt.click(function() {
+		Utils.log("clear, " + name);
+	});
 
 	return {
 		ownCnstrQuery: fieldSelection.ownCnstrQuery,

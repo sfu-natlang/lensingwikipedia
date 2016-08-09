@@ -1,6 +1,7 @@
 from flask import (request, url_for, render_template, g, redirect,
-                   flash, abort, make_response, send_from_directory, jsonify)
+                   flash, abort, make_response, jsonify, Response)
 from flask.ext.login import login_required, logout_user, current_user
+from werkzeug.datastructures import Headers
 from social.apps.flask_app import routes    # noqa
 from functools import wraps
 from . import app, db, lm, forms
@@ -65,6 +66,12 @@ def index():
     tabs_with_names = [t.name_pair for t in sorted(visible_tabs, key=_order)]
     tab_configs = {tab.name: tab.config for tab in visible_tabs}
 
+    # The Javascript code that reads this stuff will be cleaner if we have empty
+    # configs instead of 'null'.
+    for k, v in tab_configs.items():
+        if v is None:
+            tab_configs[k] = {}
+
     tracking_cookie = request.cookies.get("tracking", "")
 
     resp = make_response(render_template("index.html",
@@ -74,8 +81,8 @@ def index():
                                          tab_configs=tab_configs))
 
     if g.user.is_authenticated():
-        # Since we may allow the user to set a tracking cookie, and we can't
-        # easily verify its uniqueness, we'll also keep track of the user email
+        # so that the query backend is able to log using the user's email
+        # address without having to know about user accounts
         resp.set_cookie("email", value=g.user.email)
 
         if "tracking" not in request.cookies:
@@ -147,22 +154,20 @@ def user(id):
 
 
 @app.route('/log', methods=['POST'])
+@login_required
 def client_log():
     """Log anything the client sends us for later processing."""
 
-    # we're not reading g.user.email here because we want to be consistent with
-    # the backend.py
-    email = request.cookies.get("email", "no-email")
+    email = g.user.email
     tracking_code = request.cookies.get("tracking", "")
-    log_tracker = '[' + email + ' ' + tracking_code + '] '
+    message = ", ".join([email, tracking_code])
 
     try:
-        message = request.form['message']
+        client_message = request.form['message']
     except KeyError:
         return make_response(("FAIL", 400))
 
-    log_message = log_tracker + message
-
+    log_message = ", ".join([message, client_message])
     app.logger.info(log_message)
 
     return "OK"
@@ -181,8 +186,29 @@ def admin_console():
 @login_required
 @admin_required
 def get_user_log():
-    return send_from_directory('/var/log', 'rsyslog.log', as_attachment=True,
-                               mimetype='text/plain')
+
+    def generate():
+        with open("/var/log/rsyslog.log", encoding='utf-8') as log:
+            for line in log:
+                parts = line.strip().split()
+                if parts[2] == "[frontend]":
+                    csv_line = " ".join([parts[0] + ","] + parts[3:])
+
+                    csv = csv_line.split(', ', 4)
+                    if csv[3].startswith("notes "):
+                        try:
+                            csv[4] = '"{}"'.format(csv[4].replace('"', r'\"'))
+                        except IndexError:
+                            # sometimes notes get opened/closed without having
+                            # any contents
+                            pass
+
+                    yield ", ".join(csv) + "\n"
+
+    response_headers = Headers()
+    response_headers.add('Content-Disposition', 'attachment',
+                         filename='lensing.log')
+    return Response(generate(), mimetype='text/plain', headers=response_headers)
 
 
 @app.route('/api/notes', methods=['POST', 'GET'])

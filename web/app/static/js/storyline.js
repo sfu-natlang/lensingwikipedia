@@ -629,6 +629,14 @@ function setup(container, parameters) {
 		var entitySelection = new Selections.SimpleSetSelection();
 		var entityList = new Facets.FacetListBox(entityListMenuElts[fieldI], globalQuery, fieldInfo.field, entitySelection);
 		entityList.on('element-selection-change', function (value, itemElt, isSelected) {
+			if (isSelected) {
+			    Utils.log("storyline focus, " + fieldInfo.title + ":" + value);
+			} else {
+			    if (itemElt.css('background-color') !== 'white' &&
+				    itemElt.css('background-color') !== 'transparent')
+				Utils.log("storyline unfocus, " + fieldInfo.title + ":" + value);
+			}
+
 			itemElt.css('background-color', isSelected ? entityColour(value) : 'white');
 		});
 		// This is a bit messy since we rely on the structure of the FacetListBox elements
@@ -771,10 +779,12 @@ function setup(container, parameters) {
 
 	function onSelectNode(node) {
 		nodeSelection.toggle(node);
+		Utils.log("storyline filter, " + node.date.toISOString() + ":" + Object.keys(node.clusters).join(';'));
 	}
 	function onSelectEntityLine(entityLine) {
 		var entity = vis.lookupEntity(entityLine.entityId);
 		fieldSelections.get(entity.field).selection.toggle(entity.value);
+		Utils.log("storyline filter, " + entity.field + ":" + entity.value);
 	}
 
 	var data = null,

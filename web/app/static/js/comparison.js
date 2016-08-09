@@ -642,11 +642,13 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 					this.style.textDecoration = "line-through";
 					hidden_names_sel.add(d.name);
 					yRescale();
+					Utils.log("comparison filter, hide:" + d.name);
 				} else {
 					// enable
 					this.style.textDecoration = "";
 					hidden_names_sel.remove(d.name);
 					yRescale();
+					Utils.log("comparison filter, unhide:" + d.name);
 				}
 			})
 			.on("mouseover", function(d) {
@@ -665,7 +667,13 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 
 	var brush = d3.svg.brush()
 		.x(x2)
-		.on("brush", brushed);
+		.on("brush", brushed)
+		.on("brushend", function() {
+		    if (brush.empty())
+			Utils.log("comparison time filter, " + "all");
+		    else
+			Utils.log("comparison time filter, " + brush.extent()[0].toISOString() + " to " + brush.extent()[1].toISOString());
+		});
 
 	// hack because dates in JS are annoying
 	if (current_domain[0] - complete_domain[0] != 0 &&

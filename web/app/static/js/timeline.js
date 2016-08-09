@@ -364,6 +364,7 @@ function setup(container, parameters) {
 			low: start,
 			high: end
 		});
+		Utils.log("timeline filter, " + start + " to " + end);
 	});
 
 	smoothElt.click(function() {

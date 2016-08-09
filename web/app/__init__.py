@@ -50,7 +50,7 @@ def per_process_init():
         syslog_handler = SysLogHandler(address='/run/rsyslog/rsyslog.sock')
         syslog_handler.setLevel(logging.INFO)
 
-        formatter = logging.Formatter("frontend - %(levelname)s: %(message)s")
+        formatter = logging.Formatter("[frontend] %(message)s")
         syslog_handler.setFormatter(formatter)
 
         app.logger.setLevel(logging.INFO)

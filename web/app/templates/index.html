@@ -90,10 +90,6 @@
 			var initialQuery = new Queries.Query(FrontendConfig.backendUrl);
 			var globalQuery = new Queries.Query(FrontendConfig.backendUrl);
 
-			globalQuery.addChangeWatcher(new Queries.ChangeWatcher(function(changeType, query, constraint) {
-			  Utils.log(changeType + ": " + "[" + constraint._name + "] " + JSON.stringify(constraint._value));
-			}));
-
 			function setupSidebar(container, globalQuery) {
 				var cnstrBoxElt = $(".constraintslistbox");
 				var eventDescBoxElt = $(".eventdescriptionslistbox");
@@ -148,9 +144,17 @@
 		</script>
 
 		<script>
+		  var active_tab = "facetstab";
 		  $('a[data-toggle="tab"]').on('shown', function (e) {
-		    Utils.log("Switched tab to: "  + e.target.href.split('#').pop());
+		    active_tab = e.target.href.split("#").pop();
+		    Utils.log("tab change, "  + active_tab);
 		  })
+		  $(window).focus(function () {
+		    Utils.log("focus, " + active_tab);
+		  });
+		  $(window).blur(function () {
+		    Utils.log("blur, ");
+		  });
 		</script>
 
 {% endblock %}

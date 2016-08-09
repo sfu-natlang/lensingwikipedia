@@ -26,11 +26,11 @@ $('#notesModal').on('hidden', function (e) {
   var notesInput = $("#notesInput");
 
   localStorage.setItem("note", notesInput.val());
-  Utils.log("[NOTE] " + notesInput.val());
-  Utils.log("Hid notes");
+  Utils.log("notes close, " + notesInput.val());
 });
 $('#notesModal').on('shown', function (e) {
-  Utils.log("Opened notes");
+  var notesInput = $("#notesInput");
+  Utils.log("notes open, " + notesInput.val());
 });
 $(function() {
     // TODO error handling and security
