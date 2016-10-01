@@ -1,15 +1,10 @@
-body {
-	overflow: hidden;
-}
-
 .comparison {
 	width: 100%;
 	margin: 0;
 	padding: 0;
-	overflow: hidden;
 }
 
-.comparison .topbox {
+.comparison .controls {
 	margin: 0;
 	padding: 0 10px 0 10px;
 }

@@ -2,6 +2,7 @@ body,html {
 	margin: 0;
 	padding: 0;
 	height: 100%;
+	overflow: hidden;
 }
 
 .contentarea {
@@ -23,6 +24,10 @@ div.selectorsarea {
 	width: 75%;
 	margin: 0;
 	padding: 0;
+	overflow: hidden;
+}
+
+.tab-content {
 	overflow: hidden;
 }
 
