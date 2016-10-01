@@ -536,17 +536,144 @@ function drawAll(outer, svg, legend, detailBox, selectBox, data, initialBrushExt
 	};
 }
 
+function getUniqFields(entities, forField) {
+	if (entities.length == 0) {
+		return [];
+	} else if (forField == null) {
+		var fields = [],
+				seenFields = {};
+		entities.each(function (entity) {
+			if (!seenFields.hasOwnProperty(entity.field)) {
+				fields.push(entity.field);
+				seenFields[entity.field] = true;
+			}
+		});
+		return fields;
+	} else {
+		return [forField];
+	}
+}
+
+function organizeEntities(entities, forField) {
+	if (entities.length == 0) {
+		return {};
+	} else if (forField == null) {
+		var entitiesLookup = {};
+		entities.each(function (entity) {
+			if (!entitiesLookup.hasOwnProperty(entity.field))
+				entitiesLookup[entity.field] = [];
+			entitiesLookup[entity.field].push(entity.value);
+		});
+		return entitiesLookup;
+	} else {
+		var entitiesLookup = {};
+		entities.each(function (value) {
+			if (!entitiesLookup.hasOwnProperty(forField))
+				entitiesLookup[forField] = [];
+			entitiesLookup[forField].push(value);
+		});
+		return entitiesLookup;
+	}
+}
+
+function setupModeElt(modeSel, modeElt, queryElt, queryFormElt, storylineFields, entityListMenuElts) {
+	var selectedViewFieldI = null;
+
+	var maxFieldTitleLen = 0;
+	$.each(storylineFields, function (fieldI, fieldInfo) {
+		if (fieldInfo.title.length > maxFieldTitleLen)
+			maxFieldTitleLen = fieldInfo.title.length;
+		$("<option value=\"" + fieldI + "\">" + fieldInfo.title + " facet</option>").appendTo(modeElt);
+	});
+	$("<option value=\"query\">Manual query</option>").appendTo(modeElt);
+	modeElt.width("" + maxFieldTitleLen + "em");
+	modeElt.bind('change', function () {
+		var value = this.options[this.selectedIndex].value;
+		if (value != 'query')
+			value = +value;
+		modeSel.set(value);
+	});
+
+	var defaultFieldI = -1;
+	$.each(storylineFields, function (fieldI, fieldInfo) {
+		if (fieldInfo.hasOwnProperty('isDefault') && fieldInfo.isDefault) {
+			defaultFieldI = fieldI;
+			return false;
+		}
+	});
+	modeElt.val(defaultFieldI >= 0 ? defaultFieldI : 'query');
+	modeElt.change();
+}
+
+function setupEntitiesMenu(queryEntitiesSelSel, storylineFields, facetsByField, entityListMenuElts, container, modeSel, entityColour) {
+	var entityLists = $.map(storylineFields, function (fieldInfo, fieldI) {
+		var facet = facetsByField[fieldInfo.field];
+
+		var entitySelection = new Selections.SimpleSetSelection();
+		var entityList = new Facets.FacetListBox(entityListMenuElts[fieldI], parameters.connection, fieldInfo.field, entitySelection);
+
+		// This is a bit messy since we rely on the structure of the FacetListBox elements
+		entityList.outerElt.addClass('dropdown-menu');
+		var btnBox = $('<div class="clearbuttonbox"></div>').prependTo(entityList.outerElt);
+		var updateBtn = $('<button type="button" class="btn btn-mini btn-primary" title="Update menu to match facet.">Update</button>').appendTo(btnBox);
+		var clearEntitiesBtn = $('<button type="button" class="btn btn-mini btn-warning clearviewentities" title="Clear view entities.">Clear</button>').appendTo(btnBox);
+		entityList.on('element-selection-change', function (value, itemElt, isSelected) {
+			itemElt.css('background-color', isSelected ? entityColour(value) : 'white');
+		});
+
+		LayoutUtils.fillElement(container, entityList.outerElt, 'vertical', 100);
+
+		setupSelectionClearButton(clearEntitiesBtn, entitySelection);
+
+		updateBtn.bind('click', function (fromEvent) {
+			fromEvent.stopPropagation();
+			entityList.constraintSet(new Queries.ConstraintSets.ConstraintSet(parameters.globalConstraintSet));
+			parameters.connection.update();
+		});
+		updateBtn.click();
+
+		return entityList;
+	});
+
+	modeSel.on('change', function (mode, oldMode) {
+		if (oldMode != null && oldMode != 'query')
+			entityListMenuElts[oldMode].hide();
+		if (mode != 'query') {
+			queryEntitiesSelSel.set(entityLists[mode].selection);
+			entityListMenuElts[mode].show();
+		}
+	});
+}
+
+function setupQueryElt(queryEntitiesSelSel, queryFormElt, queryElt, updateElt, modeSel) {
+	var entitiesSel = new Selections.SimpleSetSelection();
+	entitiesSel.valueHash = function (e) { return e.field + ":" + e.value; };
+
+	modeSel.on('change', function (mode) {
+		if (mode == 'query') {
+			queryFormElt.show();
+			queryEntitiesSelSel.set(entitiesSel);
+		} else
+			queryFormElt.hide();
+	});
+	updateElt.bind('click', function(fromEvent) {
+		fromEvent.stopPropagation();
+		entitiesSel.modify(function (modify) {
+			modify.clear();
+			parseQueryString(queryElt.val()).forEach(modify.add);
+		});
+	});
+	queryFormElt.submit(function () {
+		return false;
+	});
+}
+
 /*
  * Setup the control in some container element.
  * container: container element as a jquery selection
- * initialQuery: the initial (empty) query
- * globalQuery: the global query
+ * parameters: shared view control parameters
  */
 function setup(container, parameters) {
-    var globalQuery = parameters.globalQuery;
-    var facets = parameters.facetsExpanded;
-    var fieldSelections = parameters.fieldSelections;
-
 	// The view space for SVG; this doesn't have to correspond to screen units.
 	var viewBox = { x: 0, y : 0, width: 1024, height: 768 };
 	// Margins for the graph
@@ -560,8 +687,9 @@ function setup(container, parameters) {
 	var legendElt = $('<div class="legend"></div>').appendTo(outerElt);
 	var outerSvgElt = $("<svg class=\"outersvg\"></svg>").appendTo(outerElt);
 	var svgElt = $("<svg class=\"innersvg\" viewBox=\"" + viewBox.x + " " + viewBox.y + " " + viewBox.width + " " + viewBox.height + "\" preserveAspectRatio=\"none\"></svg>").appendTo(outerSvgElt);
-	var initHelpElt = $("<div class=\"alert alert-warning alert-dismissable\"></div>").appendTo(outerElt);
-	var queryHelpElt = $("<div class=\"alert alert-warning alert-dismissable\"></div>").appendTo(outerElt);
+	var helpElt = $("<div></div>").appendTo(outerElt);
+	var initHelpElt = $("<div class=\"alert alert-warning alert-dismissable\"></div>").appendTo(helpElt);
+	var queryHelpElt = $("<div class=\"alert alert-warning alert-dismissable\"></div>").appendTo(helpElt);
 
 	var formElt = $("<form></form>").appendTo(topBoxElt);
 	var clearSelElt = $("<button type=\"button\" class=\"btn btn-mini btn-warning clear mapclear\" title=\"Clear the storyline node selection.\">Clear node selection</button>").appendTo(formElt);
@@ -585,7 +713,7 @@ function setup(container, parameters) {
 	var scaleSvg = D3Utils.dontScaleSvgParts(outerSvgElt, 'text,.tick');
 
 	var facetsByField = {};
-	$.each(facets, function (facetI, facet) {
+	$.each(parameters.facetsExpanded, function (facetI, facet) {
 		facetsByField[facet.field] = facet;
 	});
 
@@ -595,22 +723,6 @@ function setup(container, parameters) {
 	$.each(FrontendConfig.helpFieldsList, function (fieldI, field) {
 		$("<li>" + field + "</li>").appendTo(queryHelpFieldExElt);
 	});
-	var allHelpElts = [initHelpElt, queryHelpElt],
-	    useHelpElt = null;
-	function updateHelp(show) {
-		if (show) {
-			$.each(allHelpElts, function (helpEltI, helpElt) {
-				if (helpElt == useHelpElt)
-					helpElt.show();
-				else
-					helpElt.hide();
-			});
-		} else {
-			$.each(allHelpElts, function (helpEltI, helpElt) {
-					helpElt.hide();
-			});
-		}
-	}
 
 	var width = viewBox.width - margins.left - margins.right,
 	    height = viewBox.height - margins.top - margins.bottom - margins.between;
@@ -619,121 +731,34 @@ function setup(container, parameters) {
 
 	var entityColour = d3.scale.category10()
 
-	var ownCnstrQuery = new Queries.Query(globalQuery.backendUrl());
-	var contextQuery = new Queries.Query(globalQuery.backendUrl(), 'setminus', globalQuery, ownCnstrQuery);
-
-	var resultWatcher = new Queries.ResultWatcher(function () {});
-	contextQuery.addResultWatcher(resultWatcher);
-
-	var entityLists = $.map(storylineFields, function (fieldInfo, fieldI) {
-		var entitySelection = new Selections.SimpleSetSelection();
-		var entityList = new Facets.FacetListBox(entityListMenuElts[fieldI], globalQuery, fieldInfo.field, entitySelection);
-		entityList.on('element-selection-change', function (value, itemElt, isSelected) {
-			itemElt.css('background-color', isSelected ? entityColour(value) : 'white');
-		});
-		// This is a bit messy since we rely on the structure of the FacetListBox elements
-		var facet = facetsByField[fieldInfo.field];
-		function updateMenu() {
-			var menuQuery = new Queries.Query(globalQuery.backendUrl(), 'copy', globalQuery);
-			entityList.setupWatchQuery(menuQuery);
-			menuQuery.update();
-		}
-		entityList.outerElt.addClass('dropdown-menu');
-		var btnBox = $('<div class="clearbuttonbox"></div>').prependTo(entityList.outerElt);
-		var updateBtn = $('<button type="button" class="btn btn-mini btn-primary" title="Update menu to match facet.">Update</button>').appendTo(btnBox);
-		var clearEntitiesBtn = $('<button type="button" class="btn btn-mini btn-warning clearviewentities" title="Clear view entities.">Clear</button>').appendTo(btnBox);
-		LayoutUtils.fillElement(container, entityList.outerElt, 'vertical', 100);
-		clearEntitiesBtn.bind('click', function (event) {
-			entityList.selection.clear();
-			event.stopPropagation();
-		});
-		updateBtn.bind('click', function (fromEvent) {
-			fromEvent.stopPropagation();
-			updateMenu();
-		});
-		updateMenu();
-		return entityList;
-	});
-	var entityList = entityLists[0];
-	entityListMenuElts[0].show();
-	function setClearEntitiesEnabled(enabled) {
-		var elts = topBoxElt.find('.clearviewentities');
-		if (!enabled)
-			elts.attr('disabled', 'disabled');
-		else
-			elts.removeAttr('disabled');
-	}
-
-
-	function setLoadingIndicator(enabled) {
-		svgElt.css('display', !enabled ? '' : 'none');
-		loadingIndicator.enabled(enabled);
-	}
-
-	var queryEntities = [],
-	    oldResultWatcher = null,
-	    drawEntityTitlePrefixes = true,
-	    drawImportantEntities = {};
-	function updateQuery() {
-		function getUniqFields(entities) {
-			var fields = [],
-			    seenFields = {};
-			$.each(entities, function (entityI, entity) {
-				if (!seenFields.hasOwnProperty(entity.field)) {
-					fields.push(entity.field);
-					seenFields[entity.field] = true;
-				}
-			});
-			return fields;
-		}
-		function organizeEntities(entities) {
-			var entitiesLookup = {};
-			for (var i = 0; i < entities.length; i++) {
-				var entity = entities[i];
-				if (!entitiesLookup.hasOwnProperty(entity.field))
-					entitiesLookup[entity.field] = [];
-				entitiesLookup[entity.field].push(entity.value);
-			}
-			return entitiesLookup;
-		}
-		if (queryEntities.length > 0) {
-			var entities = organizeEntities(queryEntities);
-			var view = {
-				"plottimeline": {
-					"type": "plottimeline",
-					"clusterField": FrontendConfig.storylineClusterField,
-					"entities": entities
-				}
-			};
-			view.plottimeline.cooccurrences = 'and';
-			view.plottimeline.cooccurrenceFields = getUniqFields(queryEntities);
-			drawEntityTitlePrefixes = view.plottimeline.cooccurrenceFields.length > 1;
-			drawImportantEntities = entities;
-			if (oldResultWatcher != null)
-				oldResultWatcher.clear();
-			oldResultWatcher = resultWatcher;
-			resultWatcher.set(view);
-			contextQuery.update();
-			updateHelp(false);
-			setLoadingIndicator(true);
-			clearQueryElt.removeAttr('disabled');
-			setClearEntitiesEnabled(true);
-		} else {
-			resultWatcher.clear();
-			setLoadingIndicator(false);
-			clearQueryElt.attr('disabled', 'disabled');
-			nodeSelection.clear();
-			updateHelp(true);
-			statusElt.html("");
-			outerSvgElt.hide();
-			legendElt.hide();
-			setClearEntitiesEnabled(false);
-		}
-	}
+	var localConstraintSet = new Queries.ConstraintSets.ConstraintSet();
 
 	var nodeSelection = new Selections.SimpleSetSelection();
-	nodeSelection.hashValue = function (n) { return n.key; };
-	function cleanSelectionToMatchData() {
+	nodeSelection.valueHash = function (n) { return n.key; };
+
+	var modeSel = new Selections.SimpleSingleValueSelection();
+	var queryEntitiesSelSel = new Selections.SimpleSingleValueSelection(),
+	    queryEntitiesSel = new Selections.FlattenSingle(queryEntitiesSelSel);
+
+	var query = new Queries.Queries.Query(
+			parameters.connection,
+			new Queries.ConstraintSets.SetMinus(parameters.globalConstraintSet, localConstraintSet)
+		);
+
+	// This is drawing stuff that we currently communicate outside of data sources
+	var drawEntityTitlePrefixes = true,
+	    drawImportantEntities = {};
+	var vis = null,
+	    lastBrushSelection = null;
+
+	function onSelectNode(node) {
+		nodeSelection.toggle(node);
+	}
+	function onSelectEntityLine(entityLine) {
+		var entity = vis.lookupEntity(entityLine.entityId);
+		parameters.fieldSelections.get(entity.field).selection.toggle(entity.value);
+	}
+	function cleanNodeSelectionToMatchData() {
 		if (vis != null) {
 			var toRemove = [];
 			nodeSelection.each(function (node, nodeKey) {
@@ -744,47 +769,58 @@ function setup(container, parameters) {
 				for (var nodeI = 0; nodeI < toRemove.length; nodeI++)
 					selMod.remove(toRemove[nodeI]);
 			});
+			return toRemove.length > 0;
+		} else
+			return false;
+	}
+
+	modeSel.on('change', function (mode) {
+		if (mode == 'query') {
+			initHelpElt.hide();
+			queryHelpElt.show();
+		} else {
+			initHelpElt.show();
+			queryHelpElt.hide();
 		}
-	}
-	Selections.syncSetSelectionWithConstraint(nodeSelection, globalQuery, ownCnstrQuery, function () {
-		return new Queries.Constraint();
-	}, function (constraint, selection, changeType, changeValues) {
-		var nodeCount = 0,
-		    seen = {},
-		    selPointStrs = [];
-		selection.each(function (node, nodeKey) {
-			nodeCount += 1;
-			$.each(node.clusters, function (cluster, mem) {
-				if (!seen.hasOwnProperty(cluster)) {
-					seen[cluster] = true;
-					selPointStrs.push(cluster);
-				}
-			});
-		});
-		constraint.name("Storyline: " + nodeCount + (nodeCount == 1 ? " node" : " nodes"));
-		constraint.set({
-			type: 'referencepoints',
-			points: selPointStrs
-		});
 	});
-	setupSelectionClearButton(clearSelElt, nodeSelection);
 
-	function onSelectNode(node) {
-		nodeSelection.toggle(node);
-	}
-	function onSelectEntityLine(entityLine) {
-		var entity = vis.lookupEntity(entityLine.entityId);
-		fieldSelections.get(entity.field).selection.toggle(entity.value);
-	}
+	setupEntitiesMenu(queryEntitiesSelSel, storylineFields, facetsByField, entityListMenuElts, container, modeSel, entityColour);
+	setupQueryElt(queryEntitiesSelSel, queryFormElt, queryElt, updateElt, modeSel);
+	setupModeElt(modeSel, modeElt, queryElt, queryFormElt, storylineFields, entityListMenuElts);
 
-	var data = null,
-	    vis = null,
-	    lastBrushSelection = null;
-	function draw() {
+	queryEntitiesSel.on('change', function () {
+		if (queryEntitiesSel.isEmpty()) {
+			statusElt.html("");
+			query.setView(null);
+		} else {
+			var useField = modeSel.get() == 'query' ? null : entityFields[modeSel.get()];
+			var entities = organizeEntities(queryEntitiesSel, useField);
+			var view = {
+				"type": "plottimeline",
+				"clusterField": FrontendConfig.storylineClusterField,
+				"entities": entities
+			};
+			view.cooccurrences = 'and';
+			view.cooccurrenceFields = getUniqFields(queryEntitiesSel, useField);
+			drawEntityTitlePrefixes = view.cooccurrenceFields.length > 1;
+			drawImportantEntities = entities;
+			query.setView(view);
+			parameters.connection.update();
+		}
+	});
+
+	setupSelectionClearButton(clearQueryElt, queryEntitiesSel);
+
+	var data = new DataSource.Merged({
+			timeline: query,
+			queryEntities: new DataSource.OfSetSelection(queryEntitiesSel, false)
+		});
+
+	data.on('result', function (results) {
 		function getSelectedEntityIds(lookupEntityId) {
 			var ids = [];
-			if (selectedViewFieldI != null) {
-				var field = entityFields[selectedViewFieldI];
+			if (modeSel.get() != 'query') {
+				var field = entityFields[modeSel.get()];
 				facetsByField[field].facet.selection.each(function (value) {
 					ids.push(lookupEntityId(field, value));
 				});
@@ -799,154 +835,57 @@ function setup(container, parameters) {
 			}
 			return ids;
 		}
-		if (data != null) {
-			svgElt.children().remove();
-			var outer = D3Utils.jqueryToD3(outerElt);
-			var svg = D3Utils.jqueryToD3(svgElt);
-			var legend = D3Utils.jqueryToD3(legendElt);
-			setLoadingIndicator(false);
-			outerSvgElt.show();
-			legendElt.show();
-			function onBrush(selection) {
-				lastBrushSelection = selection;
-			}
-			vis = drawAll(outer, svg, legend, detailBox, selectBox, data, lastBrushSelection, drawEntityTitlePrefixes, drawImportantEntities, entityColour, onSelectNode, onSelectEntityLine, onBrush);
-			cleanSelectionToMatchData();
+		svgElt.children().remove();
+		var outer = D3Utils.jqueryToD3(outerElt);
+		var svg = D3Utils.jqueryToD3(svgElt);
+		var legend = D3Utils.jqueryToD3(legendElt);
+		function onBrush(selection) {
+			lastBrushSelection = selection;
+		}
+		vis = drawAll(outer, svg, legend, detailBox, selectBox, results.timeline, lastBrushSelection, drawEntityTitlePrefixes, drawImportantEntities, entityColour, onSelectNode, onSelectEntityLine, onBrush);
+		if (!cleanNodeSelectionToMatchData()) { // if we have to remove nodes, then the query will change so wait for another update
 			vis.selectNodes(nodeSelection, true);
 			vis.selectEntities(getSelectedEntityIds(vis.lookupEntityId), true);
 			statusElt.html(
 				"showing "
-				+ queryEntities.length
+				+ results.queryEntities.length()
 				+ " selected and "
-				+ (data.numIncludedCooccurringEntities < data.numCooccurringEntities ? "top" : "all")
+				+ (results.timeline.numIncludedCooccurringEntities < results.timeline.numCooccurringEntities ? "top" : "all")
 				+ " "
-				+ data.numIncludedCooccurringEntities
+				+ results.timeline.numIncludedCooccurringEntities
 				+ " co-occurring entities"
 			);
 			scaleSvg();
-		} else {
-			setLoadingIndicator(false);
 		}
-	}
+	});
+
+	DataSource.setupMergedDataLoadingIndicator(loadingIndicator, data, [outerSvgElt, legendElt], {}, { queryEntities: [helpElt] });
 
 	nodeSelection.on('change', function () {
 		vis.selectNodes(nodeSelection, true);
 	});
 
-	resultWatcher.setCallback(function onResult(result) {
-		if (result.plottimeline.hasOwnProperty('error')) {
-			data = null;
-			loadingIndicator.error('storyline', true);
-			loadingIndicator.enabled(true);
-		} else {
-			loadingIndicator.error('storyline', false);
-			loadingIndicator.enabled(false);
-			data = result.plottimeline;
-			outerSvgElt.show();
-			draw();
-		}
-	});
-
-	updateElt.bind('click', function() {
-		setLoadingIndicator(true);
-		queryEntities = parseQueryString(queryElt.val());
-		updateQuery();
-	});
-	queryFormElt.submit(function () {
-		return false;
-	});
-
-	clearQueryElt.bind('click', function () {
-		queryEntities = [];
-		updateQuery();
-	});
-
-	var defaultFieldI = -1;
-	$.each(storylineFields, function (fieldI, fieldInfo) {
-		if (fieldInfo.hasOwnProperty('isDefault') && fieldInfo.isDefault) {
-			defaultFieldI = fieldI;
-			return false;
-		}
-	});
-
-	var selectedViewFieldI = null,
-	    savedQueryEntities = [];
-	var maxFieldTitleLen = 0;
-	$.each(storylineFields, function (fieldI, fieldInfo) {
-		if (fieldInfo.title.length > maxFieldTitleLen)
-			maxFieldTitleLen = fieldInfo.title.length;
-		$("<option value=\"" + fieldI + "\">" + fieldInfo.title + " facet</option>").appendTo(modeElt);
-	});
-	$("<option value=\"query\">Manual query</option>").appendTo(modeElt);
-	modeElt.width("" + maxFieldTitleLen + "em");
-	modeElt.bind('change', function () {
-		var newMode = this.options[this.selectedIndex].value;
-		var curQueryText = $.trim(queryElt.val());
-		if (selectedViewFieldI != null)
-			savedQueryEntities[selectedViewFieldI] = queryEntities;
-		if (newMode == 'query') {
-			queryFormElt.show();
-			if (selectedViewFieldI != null)
-				entityListMenuElts[selectedViewFieldI].hide();
-			useHelpElt = queryHelpElt;
-			if (curQueryText)
-				updateElt.click();
-			selectedViewFieldI = null;
-			queryEntities = [];
-		} else {
-			newMode = +newMode;
-			queryFormElt.hide();
-			if (selectedViewFieldI != null && selectedViewFieldI != newMode)
-				entityListMenuElts[selectedViewFieldI].hide();
-			entityListMenuElts[newMode].show();
-			useHelpElt = initHelpElt;
-			if (savedQueryEntities.hasOwnProperty(newMode))
-				queryEntities = savedQueryEntities[newMode];
-			else
-				queryEntities = [];
-			selectedViewFieldI = newMode;
-		}
-		updateHelp(true);
-		nodeSelection.clear();
-		updateQuery();
-	});
-	queryFormElt.hide();
-	if (defaultFieldI >= 0) {
-		useHelpElt = queryHelpElt;
-		modeElt.val(defaultFieldI);
-	} else {
-		useHelpElt = initHelpElt;
-		modeElt.val('query');
-	}
-	modeElt.change();
-	updateQuery();
-
-	function findEntity(field, value) {
-		var i = -1;
-		for (var j = 0; j < queryEntities.length; j++) {
-			var entity = queryEntities[j];
-			if (entity.value == value && entity.field == field) {
-				i = j;
-				break;
-			}
-		}
-		return i;
-	}
-	$.each(storylineFields, function (fieldI, fieldInfo) {
-		var entityList = entityLists[fieldI];
-		entityList.selection.on('change', function (added, removed, newLength) {
-			for (var valueI = 0; valueI < added.length; valueI++) {
-				var value = added[valueI];
-				if (findEntity(fieldInfo.field, value) < 0)
-					queryEntities.push({ value: value, field: fieldInfo.field });
-			}
-			for (var valueI = 0; valueI < removed.length; valueI++) {
-				var value = removed[valueI];
-				queryEntities.splice(findEntity(fieldInfo.field, value), 1);
-			}
-			updateQuery();
+	Selections.syncSetSelectionWithConstraint(nodeSelection, parameters.connection, parameters.globalConstraintSet, [localConstraintSet], function (selection) {
+		if (selection.isEmpty())
+			return null;
+		var nodeCount = 0,
+		    seen = {},
+		    selPointStrs = [];
+		selection.each(function (node, nodeKey) {
+			nodeCount += 1;
+			$.each(node.clusters, function (cluster, mem) {
+				if (!seen.hasOwnProperty(cluster)) {
+					seen[cluster] = true;
+					selPointStrs.push(cluster);
+				}
+			});
 		});
+		return new Queries.Constraint({
+			type: 'referencepoints',
+			points: selPointStrs
+		}, "Storyline: " + nodeCount + (nodeCount == 1 ? " node" : " nodes"));
 	});
+	setupSelectionClearButton(clearSelElt, nodeSelection);
 
 	$('a[data-toggle="tab"]').on('shown', function (e) {
 		if ($(e.target.getAttribute('href'))[0] === container[0] && vis != null)

@@ -1,25 +1,13 @@
 var Comparison = (function () {
 
-var currentFacet;
-var topCount = 5;
-var smooth_k = 5;
-
-// contains {name, counts} objects
-var data_allPairs = [];
-var data_allNames = [];
-
-var hidden_names_sel = new Selections.SimpleSetSelection();
-
 var current_domain = null;
 
 /*
  * Setup the control in some container element.
  * container: container element as a jquery selection
- * initialQuery: the initial (empty) query
- * globalQuery: the global query
+ * parameters: shared view control parameters
  */
 function setup(container, parameters) {
-    var globalQuery = parameters.globalQuery;
     var facets = parameters.facetsExpanded;
 
 	/************************** CONSTANTS *****************************/
@@ -49,7 +37,6 @@ function setup(container, parameters) {
 	var outerElt = $('<div class="comparison"></div>').appendTo(container);
 
 	var controlsElt = $('<div class="controls"></div>').appendTo(outerElt);
-	var clearSelElt = $('<button type="button" class="btn btn-mini btn-warning clear mapclear" title="Clear">Clear selection</button>').appendTo(controlsElt);
 	var modeElt = $('<select class="btn btn-mini"></select>').appendTo(controlsElt);
 	var numElt = $('<select class="btn btn-mini"> \
 										<option value="1">Top 1</option> \
@@ -74,18 +61,11 @@ function setup(container, parameters) {
 										).appendTo(controlsElt);
 	var smoothBtn = $('<button class="btn btn-warning" title="Update smoothing">Smooth</button></ul>').appendTo(controlsElt);
 
-	// legend needs to come before outersvg because we've got float:right on it
 	var legendElt = $('<div class="legend"><ul></ul></div>').appendTo(outerElt);
 	var outerSvgElt = $('<svg class="outersvg"></svg>').appendTo(outerElt);
 	var svgElt = $('<svg id="comparisonsvg"</svg>').appendTo(outerSvgElt);
 
-
 	var loadingIndicator = new LoadingIndicator.LoadingIndicator(outerElt);
-
-	function setLoadingIndicator(enabled) {
-		//svgElt.css('display', !enabled ? '' : 'none');
-		loadingIndicator.enabled(enabled);
-	}
 
 	$.each(facets, function(idx, facet) {
 		$('<option value="' + idx + '">' + facet.title + ' facet</option>').appendTo(modeElt);
@@ -95,110 +75,115 @@ function setup(container, parameters) {
 	LayoutUtils.setupPanelled(outerElt, controlsElt, outerSvgElt, 'vertical', 0, false);
 	var scaleSvg = D3Utils.dontScaleSvgParts(outerSvgElt, 'text,.tick');
 
+	var namesQuery = new Queries.Queries.Query(
+			parameters.connection,
+			parameters.globalConstraintSet,
+			{
+				type: 'countbyfieldvalue',
+				field: facets[0].field
+			}
+		);
+	var countQueries = null;
+
+	var smoothingSel = new Selections.SimpleSingleValueSelection(),
+	    hiddenNamesSel = new Selections.SimpleSetSelection();
+	var countsDataSource = new DataSource.Emitter();
+	var data = new DataSource.Merged({
+			counts: countsDataSource,
+			smooth_k: new DataSource.OfSingleValueSelection(smoothingSel),
+			hidden_names_sel: new DataSource.OfSetSelection(hiddenNamesSel)
+		});
+
 	/************************* END BUILD UI **************************/
 
 	/********************** BEGIN CALLBACKS **************************/
 
-	clearSelElt.click(function(event) {
-		//clearElement(contentElt);
+	DataSource.setupMergedDataLoadingIndicator(loadingIndicator, data, [svgElt]);
+
+	data.on('result', function (results, changes) {
+		drawCompare(viewBox, detailBox, selectBox, margins, results.counts.allNames, results.counts.allPairs, results.smooth_k, container, outerElt, current_domain, results.hidden_names_sel);
 	});
 
 	smoothBtn.click(function(event) {
-		setLoadingIndicator(true);
-		smooth_k = Number(smoothSel[0].value);
-		drawCompare(viewBox, detailBox, selectBox, margins, data_allNames,
-								data_allPairs, smooth_k, container, outerElt);
-		setLoadingIndicator(false);
+		smoothingSel.set(Number(smoothSel[0].value));
 	});
+	smoothingSel.set(5);
 
 	updateBtn.click(function(event) {
-		//clearElement(contentElt);
-		setLoadingIndicator(true);
+		var topCount = Number(numElt[0].value); // topCount == -1 means we want all the items in the facet
+		var currentFacet = facets[Number(modeElt[0].value)];
 
-		currentFacet = facets[Number(modeElt[0].value)];
-		topCount = Number(numElt[0].value);
+		// Clear out our old queries
+		if (countQueries != null)
+			for (var i = 0; i < countQueries.length; i++)
+					countQueries[i].forget();
 
-		if (topCount < 0) {
-			// topCount == -1 means we want all the items in the facet
-
-		}
-
-		globalQuery.onResult({
-			counts: {
-				type: 'countbyfieldvalue',
-				field: currentFacet.field
-			}
-		}, function(result) {
-			// TODO: This function will be called once for each constraints.
-			//		 It might be a good idea to check if it was already
-			//		 executed so we don't reload too many times.
-			var topNames = [];
-			current_domain = null;
-			hidden_names_sel.clear();
-
-			if (topCount < 0) {
-				topCount = result.counts.counts.length;
-			}
-
-			$.each(result.counts.counts, function(idx, count) {
-				if (idx < topCount)
-					topNames.push(count[0]);
-			});
-
-			data_allPairs = [];
-			data_allNames = [];
-			$.each(topNames, function(idx, name) {
-				//$('<p>' + name + '</p>').appendTo(contentElt);
-				console.log("Got new name: " + name);
-				data_allNames.push(name);
-				getYearlyCountsForName(currentFacet.field, name, function(res) {
-					// TODO do something wih the yearly counts we get here.
-					var data_pairs = buildYearCountObjects(res.counts.counts);
-					console.log("Got counts!");
-
-					data_allPairs.push({name: name, counts: data_pairs});
-
-					// check if we've gotten counts for all top X names
-					// This is a callback, so this is the only way we can do
-					// this
-					if (data_allPairs.length == topCount) {
-						var first_year = d3.min(data_allPairs, function(c) { return d3.min(c.counts, function(v) { return v.year; }); }) - 100;
-						var last_year = d3.max(data_allPairs, function(c) { return d3.max(c.counts, function(v) { return v.year; }); }) + 100;
-						add_zeroes(data_allPairs, first_year, last_year);
-
-						drawCompare(viewBox, detailBox, selectBox, margins,
-									data_allNames, data_allPairs, smooth_k, container, outerElt);
-						setLoadingIndicator(false);
-					}
-				});
-			});
+		namesQuery.forget();
+		namesQuery.on('invalidate', function () { countsDataSource.invalidate(); });
+		namesQuery.setView({
+			type: 'countbyfieldvalue',
+			field: currentFacet.field
 		});
-		globalQuery.update();
+		namesQuery.on('result', function (result) {
+			hiddenNamesSel.clear();
+
+			var useTopCount = Math.min(Math.max(0, topCount), result.counts.length);
+			var topNames = [];
+			for (var countI = 0; countI < useTopCount; countI++)
+				topNames.push(result.counts[countI][0]);
+
+			countQueries = [];
+			var data = { allPairs: [], allNames: [] };
+			for (var countI = 0; countI < topNames.length; countI++) {
+				var name = topNames[countI];
+				data.allNames.push(name);
+				var query = makeYearlyCountQuery(currentFacet.field, name, parameters.connection);
+				countQueries.push(query);
+				watchQuery(query, name, topCount, data, countsDataSource);
+			}
+			parameters.connection.update();
+		});
+
+		parameters.connection.update();
 	});
+
+	updateBtn.click();
 
 	/********************* END CALLBACKS ****************************/
 }
 
 /****************** HELPERS *****************************************/
-function getYearlyCountsForName(field, name, callback) {
-	var query = new Queries.Query(globalQuery.backendUrl());
-	var nameConstraint = new Queries.Constraint();
+function watchQuery(query, name, topCount, data, countsDataSource) {
+	query.on('result', function (result) {
+		// TODO do something wih the yearly counts we get here.
+		var data_pairs = buildYearCountObjects(result.counts);
 
-	query.addConstraint(nameConstraint);
+		data.allPairs.push({name: name, counts: data_pairs});
 
-	nameConstraint.set({
-		type: 'fieldvalue',
-		field: field,
-		value: name
+		// Check if we've gotten counts for all top X names and update the data source if so
+		if (data.allPairs.length == topCount) {
+			var first_year = d3.min(data.allPairs, function(c) { return d3.min(c.counts, function(v) { return v.year; }); }) - 100;
+			var last_year = d3.max(data.allPairs, function(c) { return d3.max(c.counts, function(v) { return v.year; }); }) + 100;
+			add_zeroes(data.allPairs, first_year, last_year);
+			countsDataSource.result(data);
+		}
 	});
+}
 
-	query.onResult({
-		counts: {
+function makeYearlyCountQuery(field, name, connection) {
+	var constraintSet = new Queries.ConstraintSets.ConstraintSet();
+	constraintSet.add(new Queries.Constraint({
+			type: 'fieldvalue',
+			field: field,
+			value: name
+		}));
+	return new Queries.Queries.Query(
+		parameters.connection,
+		constraintSet,
+		{
 			type: 'countbyyear'
 		}
-	}, callback);
-
-	query.update();
+	);
 }
 
 function buildYearCountObjects(data) {
@@ -409,7 +394,7 @@ function highlightPerson(outer, name, value, personColour) {
 		});
 }
 
-function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth_k, container, outerElt) {
+function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth_k, container, outerElt, current_domain, hidden_names_sel) {
 	var processed = processData(data, names, smooth_k);
 
 	var persons = processed.persons;

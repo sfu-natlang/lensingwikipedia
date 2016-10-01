@@ -14,6 +14,7 @@
   <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
   <script src="{{ url_for('static', filename='js/layoututils.js') }}"></script>
   <script src="{{ url_for('static', filename='js/selections.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/datasource.js') }}"></script>
   <script src="{{ url_for('static', filename='js/d3utils.js') }}"></script>
   <script src="{{ url_for('static', filename='js/timeaxis.js') }}"></script>
   <script src="{{ url_for('static', filename='js/loadingindicator.js') }}"></script>
@@ -77,7 +78,7 @@
 					</ul> \
 					<div class="tab-content" id="tabcontents"> \
                       {% for tab, tabname in tabs %}
-                        <div class="tab-pane active" id="{{ tab }}tab"></div> \
+                        <div class="tab-pane{% if loop.first %} active{% endif %}" id="{{ tab }}tab"></div> \
                       {% endfor %}
 					</div> \
 				</div> \
@@ -86,36 +87,36 @@
 			LayoutUtils.setupPanelled($('body'), $('.header'), $('.contentarea'), 'vertical', 4);
 			LayoutUtils.setupPanelled($('.selectorsarea'), $('#tabbar'), $('.tab-content'), 'vertical');
 
-			var initialQuery = new Queries.Query(FrontendConfig.backendUrl);
-			var globalQuery = new Queries.Query(FrontendConfig.backendUrl);
+			var connection = new Queries.Connection(FrontendConfig.backendUrl);
+			var globalConstraintSet = new Queries.ConstraintSets.ConstraintSet();
 
-			function setupSidebar(container, globalQuery) {
+			function setupSidebar(container, globalConstraintSet) {
 				var cnstrBoxElt = $(".constraintslistbox");
 				var eventDescBoxElt = $(".eventdescriptionslistbox");
 
-				ConstraintsList.setup(cnstrBoxElt, globalQuery);
-				EventDescriptionsList.setup(eventDescBoxElt, globalQuery);
+				ConstraintsList.setup(cnstrBoxElt, globalConstraintSet, connection);
+				EventDescriptionsList.setup(eventDescBoxElt, globalConstraintSet, connection);
 
 				LayoutUtils.setupPanelled(container, cnstrBoxElt, eventDescBoxElt, 'vertical', 0, true);
 			}
-			setupSidebar($(".sidebar"), globalQuery);
+			setupSidebar($(".sidebar"), globalConstraintSet);
 
-			var fieldSelections = new Facets.FieldSelections(globalQuery);
+			var fieldSelections = new Facets.FieldSelections(connection, globalConstraintSet);
 			var facetsExpanded = [];
 			var facetMakers = $.map(FrontendConfig.facets, function (facet) {
 				return function (container) {
 					fieldSelections.setName(facet.field, facet.title);
 					facetsExpanded.push(Utils.extendObject([facet], {
-						facet: Facets.setup(container, globalQuery, facet.title, facet.field, fieldSelections.get(facet.field))
+						facet: Facets.setup(container, connection, globalConstraintSet, facet.title, facet.field, fieldSelections.get(facet.field))
 					}));
 				}
 			});
 
             var parameters = {
-              globalQuery: globalQuery,
+							connection: connection,
+              globalConstraintSet: globalConstraintSet,
               facetsExpanded: facetsExpanded,
               fieldSelections: fieldSelections,
-              initialQuery: initialQuery,
               mapDataUrl: mapDataUrl,
               minMapZoom: FrontendConfig.minMapZoom,
               maxMapZoom: FrontendConfig.maxMapZoom
@@ -133,8 +134,7 @@
             {% endfor %}
 
 			// Update the queries only after setting up all the controls
-			initialQuery.update();
-			globalQuery.update();
+			connection.update();
 
 			// Fake a window resize on changing tabs, so ensure that the contents are sized properly
 			$('a[data-toggle="tab"]').on('shown', function () {

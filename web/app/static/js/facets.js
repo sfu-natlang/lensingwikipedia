@@ -9,43 +9,34 @@ var Facets = (function () {
  *
  * event 'element-selection-change': triggered when the visual selection status of an item element is changed; can be used to apply extra styles to the element
  */
-function FacetListBox(container, query, field, selection) {
+function FacetListBox(container, connection, field, selection, constraintSet) {
 	var listBox = this;
 
 	Utils.SimpleWatchable.call(this);
 	
-	this.query = query;
+	this.connection = connection;
 	this.field = field;
 	this.selection = selection;
 
-	this.dataCounts = null;
+	this.query = null;
+	this.dataCounts = [];
 	this.dataElts = {};
+
+	this.viewValue = {
+		type: 'countbyfieldvalue',
+		field: field,	
+		requiredkeys: []
+	};
 
 	this.outerElt = $('<div class="facetlistbox"></div>').appendTo(container);
 	this.loadingIndicator = new LoadingIndicator.LoadingIndicator(this.outerElt);
 	this.listElt = $('<ul></ul>').appendTo(this.outerElt);
 	var moreBoxElt = $('<div class="buttonbox"></div>').appendTo(this.outerElt);
-	this.moreElt = $('<button type="button" class="btn" disabled="true">More</button>').appendTo(moreBoxElt);
-	this.loadingIndicator.enabled(true);
-
-	this.viewValue = {
-		counts: {
-			type: 'countbyfieldvalue',
-			field: field,	
-			requiredkeys: []
-		}
-	};
+	this.moreElt = $('<button type="button" class="btn btn-primary" disabled="true">More</button>').appendTo(moreBoxElt);
 
 	this._watchSelection(this.viewValue, selection);
-
-	this.watchQueryResultWatcher = null;
-	this.onMore = function () {};
-	listBox.moreElt.click(function(fromEvent) {
-		listBox.onMore();
-		fromEvent.stopPropagation();
-	});
-
-	this._reset();
+	if (constraintSet != null)
+		this.constraintSet(constraintSet);
 }
 
 Utils.extendObject([Utils.SimpleWatchable.prototype], FacetListBox.prototype);
@@ -56,7 +47,7 @@ FacetListBox.prototype._watchSelection = function (viewValue, selection) {
 		if (newLength > 0) {
 			for (var valueI = 0; valueI < added.length; valueI++) {
 				var value = added[valueI];
-				listBox.viewValue.counts.requiredkeys.push(value);
+				listBox.viewValue.requiredkeys.push(value);
 				if (listBox._dataElts.hasOwnProperty(value)) {
 					listBox.outerElt.addClass('selected');
 					var elt = listBox._dataElts[value];
@@ -66,7 +57,7 @@ FacetListBox.prototype._watchSelection = function (viewValue, selection) {
 			}
 			for (var valueI = 0; valueI < removed.length; valueI++) {
 				var value = removed[valueI];
-				listBox.viewValue.counts.requiredkeys = listBox.viewValue.counts.requiredkeys.splice($.inArray(value, listBox.viewValue.counts.requiredkeys), 1);
+				listBox.viewValue.requiredkeys = listBox.viewValue.requiredkeys.splice($.inArray(value, listBox.viewValue.requiredkeys), 1);
 				if (listBox._dataElts.hasOwnProperty(value)) {
 					var elt = listBox._dataElts[value];
 					elt.removeClass('selected');
@@ -87,52 +78,39 @@ FacetListBox.prototype._watchSelection = function (viewValue, selection) {
 	});
 }
 
-FacetListBox.prototype.setupWatchQuery = function (query) {
-	var listBox = this,
-	    continuer = null;
-
-	this._reset();
-
-	if (this.watchQueryResultWatcher != null)
-		this.watchQueryResultWatcher.enabled(false);
-
-	this.watchQueryResultWatcher = new Queries.ResultWatcher(function () {});
-	this.watchQueryResultWatcher.set(this.viewValue);
-	query.addResultWatcher(this.watchQueryResultWatcher);
-
-	this.watchQueryResultWatcher.setCallback(function(result, getContinuer) {
+FacetListBox.prototype._watchQuery = function (query) {
+	var listBox = this;
+	DataSource.setupLoadingIndicator(listBox.loadingIndicator, query);
+	query.on('invalidated', function (result) {
 		listBox.dataCounts = [];
-		if (result.counts.hasOwnProperty('error')) {
-			listBox.loadingIndicator.error('counts', true);
-			listBox.loadingIndicator.enabled(true);
-			listBox._setMoreEnabled(false);
-		} else {
-			listBox.loadingIndicator.error('counts', false);
-			listBox.loadingIndicator.enabled(false);
-			continuer = getContinuer();
-			listBox._setMoreEnabled(continuer.hasMore());
-			listBox.dataCounts = listBox.dataCounts.concat(result.counts.counts);
-		}
 		listBox._setData(listBox.dataCounts);
 	});
-
-	this.onMore = function (fromEvent) {
-		if (continuer != null)
-			continuer.fetchNext(function(result) {
-				listBox.dataCounts = listBox.dataCounts.concat(result.counts.counts);
-				listBox._setData(listBox.dataCounts);
-			});
-	};
-
-	query.onChange(function () {
-		listBox.loadingIndicator.enabled(true);
+	query.on('error', function (result) {
+		listBox.dataCounts = [];
+		listBox._setData(listBox.dataCounts);
+	});
+	query.on('result', function (result) {
+		listBox.dataCounts = listBox.dataCounts.concat(result.counts);
+		listBox._setData(listBox.dataCounts);
 	});
 }
 
-FacetListBox.prototype._reset = function () {
-	this.listElt.find('li').remove();
-	this.loadingIndicator.enabled(true);
-	this.dataCounts = null;
+FacetListBox.prototype.constraintSet = function(newConstraintSet) {
+	if (newConstraintSet == null) {
+		if (this.query == null)
+			return null;
+		else
+			return this.query.constraintSet();
+	} else {
+		if (this.query != null) {
+			this.query.forget();
+			this.query.setConstraintSet(newConstraintSet);
+		} else {
+			this.query = new Queries.Queries.PaginatedQuery(this.connection, newConstraintSet, this.viewValue);
+			this._watchQuery(this.query);
+			DataSource.setupNextPageButton(this.moreElt, this.query, this.connection);
+		}
+	}
 }
 
 FacetListBox.prototype._setData = function (dataCounts) {
@@ -223,21 +201,12 @@ FacetListBox.prototype._setSearchData = function (dataCounts) {
 	}
 }
 
-FacetListBox.prototype._setMoreEnabled = function (enabled) {
-	if (enabled) {
-		this.moreElt.addClass('btn-primary');
-		this.moreElt.removeAttr('disabled');
-	} else {
-		this.moreElt.removeClass('btn-primary');
-		this.moreElt.attr('disabled', 'disabled');
-	}
-}
-
 /*
 * Manage per-field selections, with synchronization to constraints.
 */
-function FieldSelections(globalQuery) {
-	this._globalQuery = globalQuery;
+function FieldSelections(connection, globalConstraintSet) {
+	this.connection = connection;
+	this.globalConstraintSet = globalConstraintSet;
 	this._cache = {};
 	this._names = {};
 }
@@ -255,24 +224,21 @@ FieldSelections.prototype.setName = function (field, name) {
 FieldSelections.prototype.get = function (field) {
 	if (!this._cache.hasOwnProperty(field)) {
 		var fieldSelections = this;
-		var ownCnstrQuery = new Queries.Query(this._globalQuery.backendUrl());
-		var contextQuery = new Queries.Query(this._globalQuery.backendUrl(), 'setminus', this._globalQuery, ownCnstrQuery);
+		var ownConstraintSet = new Queries.ConstraintSets.ConstraintSet();
+		var contextConstraintSet = new Queries.ConstraintSets.SetMinus(this.globalConstraintSet, ownConstraintSet);
 		var selection = new Selections.SimpleSetSelection();
 		var name = this._names.hasOwnProperty(field) ? this._names[field] : field;
-		Selections.syncSetSelectionWithConstraints(selection, fieldSelections._globalQuery, ownCnstrQuery, function (value) {
-			var constraint = new Queries.Constraint();
-			constraint.name(name + ": " + value);
-			constraint.set({
-				type: 'fieldvalue',
-				field: field,
-				value: value
-			});
-			return constraint;
+		Selections.syncSetSelectionWithConstraints(selection, this.connection, fieldSelections.globalConstraintSet, [ownConstraintSet], function (value) {
+			return new Queries.Constraint({
+					type: 'fieldvalue',
+					field: field,
+					value: value
+				}, name + ": " + value);
 		});
 		this._cache[field] = {
 			selection: selection,
-			ownCnstrQuery: ownCnstrQuery,
-			contextQuery: contextQuery
+			ownConstraintSet: ownConstraintSet,
+			contextConstraintSet: contextConstraintSet
 		};
 	}
 	return this._cache[field];
@@ -281,17 +247,16 @@ FieldSelections.prototype.get = function (field) {
 /*
  * Setup the control in some container element.
  * container: container element as a jquery selection
- * globalQuery: the global query
+ * globalConstraintSet: the global set of all constraints
  * name: name for the facet, to show the user
  * field: field name to use in requesting views from the backend
  */
-function setup(container, globalQuery, name, field, fieldSelection) {
+function setup(container, connection, globalConstraintSet, name, field, fieldSelection) {
 	var facetElt = $("<div class=\"facet\"></div>").appendTo(container);
 	var topBoxElt = $("<div class=\"topbox\"></div>").appendTo(facetElt);
 	$("<h1>" + name + "</h1>").appendTo(topBoxElt);
 	var clearElt = $("<button type=\"button\" class=\"btn btn-block btn-mini btn-warning\" title=\"Clear the facet selection.\">Clear selection</button></ul>").appendTo(topBoxElt);
-	var listBox = new FacetListBox(facetElt, fieldSelection.contextQuery, field, fieldSelection.selection);
-	listBox.setupWatchQuery(globalQuery);
+	var listBox = new FacetListBox(facetElt, connection, field, fieldSelection.selection, globalConstraintSet);
 	var searchElt = listBox.makeSearchElement();
 	searchElt.appendTo(topBoxElt);
 	LayoutUtils.fillElement(container, facetElt, 'vertical');
@@ -299,8 +264,8 @@ function setup(container, globalQuery, name, field, fieldSelection) {
 	setupSelectionClearButton(clearElt, fieldSelection.selection);
 
 	return {
-		ownCnstrQuery: fieldSelection.ownCnstrQuery,
-		contextQuery: fieldSelection.contextQuery,
+		ownConstraintSet: fieldSelection.ownConstraintSet,
+		contextConstraintSet: fieldSelection.contextConstraintSet,
 		selection: fieldSelection.selection
 	}
 }

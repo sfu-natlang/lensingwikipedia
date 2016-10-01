@@ -6,7 +6,6 @@ var Timeline = (function () {
 
 // Number for generating unique clipping element IDs
 var timelineClipNum = 0;
-var smooth_k = 5;
 
 /*
  * Convert results from the backend into sequence data we can use for plotting.
@@ -84,10 +83,7 @@ function smoothData(data, k) {
 /*
  * Draw histogram of counts by year.
  */
-function drawCounts(data, box, draw, scales, classStr, clipId, showInitial) {
-
-	var interpolation = smooth_k >= 0 ? 'basis' : 'step-before';
-
+function drawCounts(data, box, draw, scales, classStr, clipId, showInitial, interpolation) {
 	if (showInitial) {
 		var initialArea = d3.svg.area()
 			.interpolate(interpolation)
@@ -131,7 +127,7 @@ function drawCounts(data, box, draw, scales, classStr, clipId, showInitial) {
 /*
  * Draw a single complete plot, including axes.
  */
-function drawPlot(svg, box, data, classStr, matchScales, fitY, logY, clipId, showInitial) {
+function drawPlot(svg, box, data, classStr, matchScales, fitY, logY, clipId, showInitial, interpolation) {
 	var draw = svg.append('g')
 		.attr('transform', "translate(" + box.x + "," + box.y + ")");
 	var scales = {
@@ -173,7 +169,7 @@ function drawPlot(svg, box, data, classStr, matchScales, fitY, logY, clipId, sho
 		}
 	}
 	fitYScale();
-	var updatePlot = drawCounts(data, box, draw, scales, classStr, clipId, showInitial);
+	var updatePlot = drawCounts(data, box, draw, scales, classStr, clipId, showInitial, interpolation);
 	draw.append('g')
 		.attr('class', "x axis " + classStr)
 		.attr('transform', "translate(0," + box.height + ")")
@@ -254,7 +250,7 @@ function updateSvgVisibility(svgElt, haveSelection) {
 /*
  * Draw the whole timeline visualization.
  */
-function drawAll(svgElt, svg, detailBox, selectBox, data, selection) {
+function drawAll(svgElt, svg, detailBox, selectBox, data, selection, smoothingK) {
 	var clipId = "timelineclip" + timelineClipNum;
 	timelineClipNum++;
 	svg.append('defs')
@@ -263,8 +259,9 @@ function drawAll(svgElt, svg, detailBox, selectBox, data, selection) {
 		.append('rect')
 		.attr('width', detailBox.width)
 		.attr('height', detailBox.height);
-	var detailPlot = drawPlot(svg, detailBox, data, 'detail', null, true, false, clipId, false);
-	var selectPlot = drawPlot(svg, selectBox, data, 'selection', detailPlot.scales, false, false, null, true);
+	var interpolation = smoothingK >= 0 ? 'basis' : 'step-before';
+	var detailPlot = drawPlot(svg, detailBox, data, 'detail', null, true, false, clipId, false, interpolation);
+	var selectPlot = drawPlot(svg, selectBox, data, 'selection', detailPlot.scales, false, false, null, true, interpolation);
 	var brush = d3.svg.brush()
 		.x(selectPlot.scales.x);
 	var brushVis = selectPlot.draw.append('g')
@@ -297,13 +294,9 @@ function drawAll(svgElt, svg, detailBox, selectBox, data, selection) {
 /*
  * Setup the control in some container element.
  * container: container element as a jquery selection
- * initialQuery: the initial (empty) query
- * globalQuery: the global query
+ * parameters: shared view control parameters
  */
 function setup(container, parameters) {
-    var initialQuery = parameters.initialQuery;
-    var globalQuery = parameters.globalQuery;
-
 	// The view space for SVG; this doesn't have to correspond to screen units.
 	var viewBox = { x: 0, y : 0, width: 1024, height: 768 };
 	// Margins for the main graphs (but not for the axes and axes labels, which go in the margin space).
@@ -339,87 +332,55 @@ function setup(container, parameters) {
 	var detailBox = { x: viewBox.x + margins.left, y: viewBox.y + margins.top, width: width, height: height * split };
 	var selectBox = { x: viewBox.x + margins.left, y: viewBox.y + margins.top + detailBox.height + margins.between, width: width, height: height * (1.0 - split) };
 
-	function setLoadingIndicator(enabled) {
-		svgElt.css('display', !enabled ? '' : 'none');
-		loadingIndicator.enabled(enabled);
-	}
-	setLoadingIndicator(true);
-
-	var ownCnstrQuery = new Queries.Query(globalQuery.backendUrl());
-	var contextQuery = new Queries.Query(globalQuery.backendUrl(), 'setminus', globalQuery, ownCnstrQuery);
+	var viewJson = { type: 'countbyyear' };
+	var localConstraintSet = new Queries.ConstraintSets.ConstraintSet();
 
 	var selection = new Selections.SimpleSingleValueSelection();
 	Selections.setupSelectionClearButton(clearElt, selection);
-	Selections.syncSingleValueSelectionWithConstraint(selection, globalQuery, ownCnstrQuery, function () {
-		return new Queries.Constraint();
-	}, function (constraint, selection, value) {
+	Selections.syncSingleValueSelectionWithConstraint(selection, connection, globalConstraintSet, [localConstraintSet], function (value) {
 		var start = value[0],
 		    end = value[1];
 		function formatYear(year) {
 			return (year >= 0 ? year : -year) + (year >= 0 ? "CE" : "BCE");
 		}
-		constraint.name("Timeline: " + formatYear(start) + " - " + formatYear(end));
-		constraint.set({
-			type: 'timerange',
-			low: start,
-			high: end
+		return new Queries.Constraint({
+				type: 'timerange',
+				low: start,
+				high: end
+			}, "Timeline: " + formatYear(start) + " - " + formatYear(end));
+	});
+
+	var smoothingSel = new Selections.SimpleSingleValueSelection();
+	var data = new DataSource.Merged({
+			initialData: new Queries.Queries.Query(
+					parameters.connection,
+					new Queries.ConstraintSets.ConstraintSet(),
+					viewJson
+				),
+			contextData: new Queries.Queries.Query(
+					parameters.connection,
+					new Queries.ConstraintSets.SetMinus(parameters.globalConstraintSet, localConstraintSet),
+					viewJson
+				),
+			smoothing: new DataSource.OfSingleValueSelection(smoothingSel)
 		});
-	});
 
-	smoothElt.click(function() {
-		var k = $('#smoothSel').val();
-		smooth_k = parseInt(k);
-		draw();
-	});
-
-	var initialData = null;
-	var contextData = null;
-	function draw() {
-		if (initialData != null && contextData != null) {
+	DataSource.setupMergedDataLoadingIndicator(loadingIndicator, data, [svgElt]);
+	data.on('result', function (results) {
+			var initialData = Utils.pairListToDict(results.initialData.counts);
+			var contextData = Utils.pairListToDict(results.contextData.counts);
 			svgElt.children().remove();
 			var svg = D3Utils.jqueryToD3(svgElt);
-			var plotData = smoothData(resultToPlotData(initialData, contextData), smooth_k);
-			setLoadingIndicator(false);
-			drawAll(svgElt, svg, detailBox, selectBox, plotData, selection);
-			scaleSvg();
-		}
-	}
+			var plotData = smoothData(resultToPlotData(initialData, contextData), results.smoothing);
+			drawAll(svgElt, svg, detailBox, selectBox, plotData, selection, results.smoothing);
 
-	initialQuery.onChange(function () {
-		setLoadingIndicator(true);
+			scaleSvg();
+		});
+
+	smoothingSel.set(5);
+	smoothElt.click(function() {
+		smoothingSel.set(parseInt($('#smoothSel').val()));
 	});
-	initialQuery.onResult({
-		counts: {
-			type: 'countbyyear'
-		}
-	}, function(result) {
-		if (result.counts.hasOwnProperty('error')) {
-			loadingIndicator.error('counts', true);
-			setLoadingIndicator(true);
-		} else {
-			loadingIndicator.error('counts', false);
-			initialData = Utils.pairListToDict(result.counts.counts);
-			draw();
-		}
-	});
-	contextQuery.onChange(function () {
-		setLoadingIndicator(true);
-	});
-	contextQuery.onResult({
-		counts: {
-			type: 'countbyyear'
-		}
-	}, function(result) {
-		if (result.counts.hasOwnProperty('error')) {
-			loadingIndicator.error('counts', true);
-			setLoadingIndicator(true);
-		} else {
-			loadingIndicator.error('counts', false);
-			contextData = Utils.pairListToDict(result.counts.counts);
-			draw();
-		}
-	});
-	contextData = {};
 
 	return {
 		selection: selection
