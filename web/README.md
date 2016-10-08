@@ -18,9 +18,9 @@ alembic documentation at http://alembic.readthedocs.org/en/latest/index.html.
 
 ### The steps
 
-1. It's strongly recommended to set up a virtualenv for this:
+1. It's strongly recommended to set up a virtual environment for this:
 
-    virtualenv venv
+    python3 -m venv venv
     source venv/bin/activate
 
 2. To install all necessary packages. **NOTE:** Don't edit this file directly!

@@ -4,6 +4,33 @@ from social.apps.flask_app.default import models    # noqa
 
 from collections import OrderedDict
 
+
+import sqlalchemy.types as types
+import sqlalchemy.dialects.postgresql as postgresql
+import json
+
+
+class StringyJSON(types.TypeDecorator):
+    """Stores and retrieves JSON as TEXT."""
+
+    impl = types.TEXT
+
+    def process_bind_param(self, value, dialect):
+        if value is not None:
+            value = json.dumps(value)
+        return value
+
+    def process_result_value(self, value, dialect):
+        if value is not None:
+            value = json.loads(value)
+        return value
+
+
+# We want our magic JSON type to use the regular Postgres JSON type when
+# possible, since we only want to dump the JSON to a string when using SQLite
+MagicJSON = StringyJSON().with_variant(postgresql.JSON(), 'postgresql')
+
+
 ROLE = {'user': 0, 'admin': 1}
 STATUS = {'regular': 0, 'banned': 1}
 
@@ -32,7 +59,7 @@ class Tab(db.Model):
     external_name = db.Column(db.String, unique=True)
     visible = db.Column(db.Boolean, default=True)
     order = db.Column(db.Integer, unique=True)
-    config = db.Column(db.JSON)
+    config = db.Column(MagicJSON)
 
     @property
     def name_pair(self):
