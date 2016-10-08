@@ -6,7 +6,6 @@ from collections import OrderedDict
 
 
 import sqlalchemy.types as types
-import sqlalchemy.dialects.postgresql as postgresql
 import json
 
 
@@ -28,7 +27,7 @@ class StringyJSON(types.TypeDecorator):
 
 # We want our magic JSON type to use the regular Postgres JSON type when
 # possible, since we only want to dump the JSON to a string when using SQLite
-MagicJSON = StringyJSON().with_variant(postgresql.JSON(), 'postgresql')
+MagicJSON = types.JSON().with_variant(StringyJSON, 'sqlite')
 
 
 ROLE = {'user': 0, 'admin': 1}
