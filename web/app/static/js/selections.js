@@ -334,6 +334,16 @@ setupSelectionClearButton = function (buttonElt, selection) {
 		buttonElt.removeAttr('disabled');
 }
 
+function addConstraint(constraint, globalConstraintSet, otherConstraintSets) {
+	otherConstraintSets.forEach(function (cs) { cs.add(constraint); });
+	globalConstraintSet.add(constraint);
+}
+
+function removeConstraint(constraint, globalConstraintSet, otherConstraintSets) {
+	globalConstraintSet.remove(constraint);
+	otherConstraintSets.forEach(function (cs) { cs.remove(constraint); });
+}
+
 /*
  * Update a single constraint from a single-value selection.
  */ 
@@ -342,10 +352,8 @@ function syncSingleValueSelectionWithConstraint(selection, connection, globalCon
 	function remove() {
 		var toRemove = selCnstr;
 		selCnstr = null;
-		if (toRemove != null) {
-			globalConstraintSet.remove(toRemove);
-			otherConstraintSets.forEach(function (cs) { cs.remove(toRemove); });
-		}
+		if (toRemove != null)
+			removeConstraint(toRemove, globalConstraintSet, otherConstraintSets);
 	}
 	globalConstraintSet.on('change', function (added, removed) {
 		for (var cnstrI = 0; cnstrI < removed.length; cnstrI++)
@@ -355,8 +363,7 @@ function syncSingleValueSelectionWithConstraint(selection, connection, globalCon
 	selection.on('change', function (value) {
 		remove();
 		selCnstr = makeConstraint(value);
-		globalConstraintSet.add(selCnstr);
-		otherConstraintSets.forEach(function (cs) { cs.add(selCnstr); });
+		addConstraint(selCnstr, globalConstraintSet, otherConstraintSets);
 		connection.update();
 	});
 	selection.on('empty', function () {
@@ -374,13 +381,11 @@ function syncSetSelectionWithConstraint(selection, connection, globalConstraintS
 		if (constraint != null) {
 			var cnstr = constraint;
 			constraint = null;
-			globalConstraintSet.remove(cnstr);
-			otherConstraintSets.forEach(function (cs) { cs.remove(cnstr); });
+			removeConstraint(cnstr, globalConstraintSet, otherConstraintSets);
 		}
 		var cnstr = makeConstraint(selection);
 		if (cnstr != null) {
-			globalConstraintSet.add(cnstr);
-			otherConstraintSets.forEach(function (cs) { cs.add(cnstr); });
+			addConstraint(cnstr, globalConstraintSet, otherConstraintSets);
 			constraint = cnstr;
 		}
 		connection.update();
@@ -407,8 +412,7 @@ function syncSetSelectionWithConstraints(selection, connection, globalConstraint
 				var value = added[valueI];
 				if (!constraintsByValue.hasOwnProperty(value)) {
 					var cnstr = makeConstraint(value);
-					globalConstraintSet.add(cnstr);
-					otherConstraintSets.forEach(function (cs) { cs.add(cnstr); });
+					addConstraint(cnstr, globalConstraintSet, otherConstraintSets);
 					constraintsByValue[value] = cnstr;
 					valuesById[cnstr.id()] = value;
 				} else
@@ -419,15 +423,13 @@ function syncSetSelectionWithConstraints(selection, connection, globalConstraint
 				var cnstr = constraintsByValue[value];
 				delete constraintsByValue[value];
 				delete valuesById[cnstr.id()];
-				globalConstraintSet.remove(cnstr);
-				otherConstraintSets.forEach(function (cs) { cs.remove(cnstr); });
+				removeConstraint(cnstr, globalConstraintSet, otherConstraintSets);
 			}
 			connection.update();
 		} else if (Object.keys(constraintsByValue).length > 0) {
 			for (value in constraintsByValue) {
 				var cnstr = constraintsByValue[value];
-				globalConstraintSet.remove(cnstr);
-				otherConstraintSets.forEach(function (cs) { cs.remove(cnstr); });
+				removeConstraint(cnstr, globalConstraintSet, otherConstraintSets);
 			}
 			constraintsByValue = {};
 			valuesById = {};
