@@ -635,7 +635,8 @@ function setupEntitiesMenu(queryEntitiesSelSel, storylineFields, facetsByField, 
 		updateBtn.bind('click', function (fromEvent) {
 			fromEvent.stopPropagation();
 			entityList.constraintSet(new Queries.ConstraintSets.ConstraintSet(parameters.globalConstraintSet));
-			parameters.connection.update();
+			if (!fromEvent.isTrigger) // if we are updating from a simulated click, assume some other code will trigger the update
+				parameters.connection.update();
 		});
 		updateBtn.click();
 

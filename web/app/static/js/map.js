@@ -633,7 +633,8 @@ function setup(container, parameters) {
 		mouseDownOnMarker = false;
 	});
 	D3Utils.makeDragPan(drag, function (movement) {
-		panSel.set(movement);
+		if (selModeSel.get() != 'drag')
+			panSel.set(movement);
 	}, function () { var p = panSel.get(); return [p[0], p[1]]; }, function () { return panFactor; }, function () {
 		return (selModeSel.get() == 'toggle' && !mouseDownOnMarker) || selModeSel.get() == 'pan';
 	});

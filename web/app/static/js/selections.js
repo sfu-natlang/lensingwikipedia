@@ -82,8 +82,8 @@ function SimpleSetSelection(otherSet) {
 	this._length = 0;
 
 	if (otherSet != null) {
-		for (var key in otherSet._selected)
-			this._selected[key] = otherSet._selected[key];
+		for (var hash in otherSet._selected)
+			this._selected[hash] = otherSet._selected[hash];
 		this._length = otherSet._length;
 	}
 }
@@ -95,7 +95,7 @@ SimpleSetSelection.prototype.valueHash = function(value) {
 }
 
 SimpleSetSelection.prototype.mem = function(value) {
-	return this._selected.hasOwnProperty(value);
+	return this._selected.hasOwnProperty(this.valueHash(value));
 }
 
 // Add a single item and immediately trigger a change event
@@ -226,7 +226,7 @@ SimpleSetSelection.prototype.map = function(f) {
 	return list;
 }
 
-SimpleSetSelection.prototype.length = function(f) {
+SimpleSetSelection.prototype.length = function() {
 	return this._length;
 }
 

@@ -74,11 +74,11 @@ function setup(container, parameters) {
 
 	var smoothBtn = $('<button class="btn btn-warning" title="Update smoothing">Smooth</button></ul>').appendTo(controlsElt);
 
+	var loadingIndicator = new LoadingIndicator.LoadingIndicator(outerElt);
+
 	var legendElt = $('<div class="legend"><ul></ul></div>').appendTo(outerElt);
 	var outerSvgElt = $('<svg class="outersvg"></svg>').appendTo(outerElt);
 	var svgElt = $('<svg id="comparisonsvg"</svg>').appendTo(outerSvgElt);
-
-	var loadingIndicator = new LoadingIndicator.LoadingIndicator(outerElt);
 
 	$.each(facets, function(idx, facet) {
 		$('<option value="' + facet.field + '">' + facet.title + ' facet</option>').appendTo(modeElt);
@@ -127,10 +127,37 @@ function setup(container, parameters) {
 	});
 	smoothingSel.set(5);
 
-	updateBtn.click(function(event) {
-		var topCount = Number(numElt[0].value); // topCount == -1 means we want all the items in the facet
+	var topCount = null,
+	    currentFacet = null;
+	namesQuery.on('invalidate', function () { countsDataSource.invalidate(); });
+	namesQuery.on('result', function (result) {
+		hiddenNamesSel.clear();
 
-		var currentFacet = null;
+		var useTopCount = Math.min(Math.max(0, topCount), result.counts.length);
+		var topNames = [];
+		for (var countI = 0; countI < useTopCount; countI++)
+			topNames.push(result.counts[countI][0]);
+
+		countQueries = [];
+		var data = { allPairs: [], allNames: [] };
+		for (var countI = 0; countI < topNames.length; countI++) {
+			var name = topNames[countI];
+			data.allNames.push(name);
+			var query = makeYearlyCountQuery(currentFacet.field, name, parameters.connection);
+			countQueries.push(query);
+			watchQuery(query, name, topCount, data, countsDataSource);
+		}
+		parameters.connection.update();
+	});
+	updateBtn.click(function(event) {
+		countsDataSource.invalidate();
+
+		// Clear out our old queries
+		if (countQueries != null)
+			for (var i = 0; i < countQueries.length; i++)
+					countQueries[i].forget();
+
+		currentFacet = null;
 		for (var idx in facets) {
 		    if (facets[idx].field == modeElt[0].value) {
 						currentFacet = facets[idx];
@@ -138,38 +165,16 @@ function setup(container, parameters) {
 		    }
 		}
 
-		// Clear out our old queries
-		if (countQueries != null)
-			for (var i = 0; i < countQueries.length; i++)
-					countQueries[i].forget();
+		topCount = Number(numElt[0].value); // topCount == -1 means we want all the items in the facet
 
 		namesQuery.forget();
-		namesQuery.on('invalidate', function () { countsDataSource.invalidate(); });
 		namesQuery.setView({
 			type: 'countbyfieldvalue',
 			field: currentFacet.field
 		});
-		namesQuery.on('result', function (result) {
-			hiddenNamesSel.clear();
 
-			var useTopCount = Math.min(Math.max(0, topCount), result.counts.length);
-			var topNames = [];
-			for (var countI = 0; countI < useTopCount; countI++)
-				topNames.push(result.counts[countI][0]);
-
-			countQueries = [];
-			var data = { allPairs: [], allNames: [] };
-			for (var countI = 0; countI < topNames.length; countI++) {
-				var name = topNames[countI];
-				data.allNames.push(name);
-				var query = makeYearlyCountQuery(currentFacet.field, name, parameters.connection);
-				countQueries.push(query);
-				watchQuery(query, name, topCount, data, countsDataSource);
-			}
+		if (!event.isTrigger) // if we are updating from a simulated click, assume some other code will trigger the update
 			parameters.connection.update();
-		});
-
-		parameters.connection.update();
 	});
 
 	parameters.globalConstraintSet.on('change', function () {
