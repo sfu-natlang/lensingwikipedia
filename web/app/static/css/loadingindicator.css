@@ -1,6 +1,14 @@
 .loadingindicator {
 	display: block;
-	color: red;
+	float: right;
+	position: absolute;
+	z-index: 3;
+	margin: 0;
+	padding: 0;
+	background-color:rgba(252, 248, 227, 0.5);
+}
+.loadingindicator .alert {
 	font-size: large;
-	margin: 1em;
+	background-color:rgba(252, 248, 227, 0.5);
+	margin: 0;
 }

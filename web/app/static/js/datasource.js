@@ -229,10 +229,14 @@ function setupNextPageButton(buttonElt, query, connection) {
 	disable();
 }
 
+function showElts(elts) {
+	elts.forEach(function (e) { e.css('display', ''); });
+}
+
 /*
  * Setup a loading indicator to show the loading and error status of a data source.
  *
- * displayElts: Optional list of DOM elements that should be hidden while the loading indicator is on.
+ * displayElts: Optional list of DOM elements that should be disabled while the loading indicator is on.
  */
 function setupLoadingIndicator(loadingIndicator, dataSource, displayElts) {
 	if (displayElts == null)
@@ -240,11 +244,10 @@ function setupLoadingIndicator(loadingIndicator, dataSource, displayElts) {
 
 	function show() {
 		loadingIndicator.enabled(true);
-		displayElts.forEach(function (e) { e.css('display', 'none'); });
 	}
 	function hide() {
 		loadingIndicator.enabled(false);
-		displayElts.forEach(function (e) { e.css('display', ''); });
+		showElts(displayElts);
 	}
 
 	dataSource.on('invalidated', function () {
@@ -263,6 +266,7 @@ function setupLoadingIndicator(loadingIndicator, dataSource, displayElts) {
 /*
  * Setup a loading indicator to show the loading and error status of a merged data source using the format of Merged.
  *
+ * displayElts: Optional list of DOM elements that should be disabled while the loading indicator is on.
  * errorMessages: Optional error messages keyed for each input data sources.
  * invalidElts: Optional elements to display instead of the loading indicator when a data source is invalidated.
  */
@@ -291,13 +295,12 @@ function setupMergedDataLoadingIndicator(loadingIndicator, dataSource, displayEl
 			}
 		}
 		loadingIndicator.enabled(useLoading);
-		displayElts.forEach(function (e) { e.css('display', 'none'); });
 	}
 	function hide() {
 		loadingIndicator.enabled(false);
 		for (var dataKey in invalidElts)
 			invalidElts[dataKey].forEach(function (e) { e.css('display', 'none'); });
-		displayElts.forEach(function (e) { e.css('display', ''); });
+		showElts(displayElts);
 	}
 
 	dataSource.on('invalidated', function (ready) {

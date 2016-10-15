@@ -9,7 +9,9 @@ var LoadingIndicator = (function () {
  * container: container element as a jquery selection
  */
 function LoadingIndicator(container) {
-	this._elt = $("<div class=\"loadingindicator\"></div>").appendTo(container);
+	this._container = container;
+	this._outerElt = $("<div class=\"loadingindicator\"></div>").appendTo(container);
+	this._elt = $("<div class=\"alert\"></div>").appendTo(this._outerElt);
 	this._baseErrorMessage = "Error";
 	this._enabled = false;
 	this._errors = {};
@@ -51,9 +53,11 @@ LoadingIndicator.prototype.enabled = function(isEnabled) {
 		return this._enabled;
 	} else {
 		this._enabled = isEnabled;
-		if (isEnabled)
+		if (isEnabled) {
 			this._update();
-		this._elt.css('display', isEnabled ? '' : 'none');
+			this._outerElt.width(this._container.innerWidth());
+		}
+		this._outerElt.css('display', isEnabled ? '' : 'none');
 	}
 }
 
