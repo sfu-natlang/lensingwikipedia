@@ -343,6 +343,7 @@ function setup(container, parameters) {
 		function formatYear(year) {
 			return (year >= 0 ? year : -year) + (year >= 0 ? "CE" : "BCE");
 		}
+		Utils.log("timeline filter, " + start + " to " + end);
 		return new Queries.Constraint({
 				type: 'timerange',
 				low: start,

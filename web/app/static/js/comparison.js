@@ -37,6 +37,11 @@ function setup(container, parameters) {
 	var outerElt = $('<div class="comparison"></div>').appendTo(container);
 
 	var controlsElt = $('<div class="controls"></div>').appendTo(outerElt);
+
+	if (TabConfig["comparison"]["hide-controls"] == "true") {
+			controlsElt.hide();
+	}
+
 	var modeElt = $('<select class="btn btn-mini"></select>').appendTo(controlsElt);
 	var numElt = $('<select class="btn btn-mini"> \
 										<option value="1">Top 1</option> \
@@ -47,6 +52,9 @@ function setup(container, parameters) {
 										<option value="20" >Top 20</option> \
 										<option value="-1">All</option> \
 								 </select>').appendTo(controlsElt);
+	if (TabConfig["comparison"]["top"] !== undefined) {
+	    numElt[0].value = +TabConfig["comparison"]["top"];
+	}
 	var updateBtn = $('<button type="submit" class="btn btn-warning" title="Update the visualization">Update</button></ul>').appendTo(controlsElt);
 
 	var smoothSel = $('<select class="btn btn-mini"> \
@@ -59,6 +67,11 @@ function setup(container, parameters) {
 												<option value="100">100</option> \
 										</select>'
 										).appendTo(controlsElt);
+
+	if (TabConfig["comparison"]["smooth"] !== undefined) {
+	    smoothSel[0].value = +TabConfig["comparison"]["smooth"];
+	}
+
 	var smoothBtn = $('<button class="btn btn-warning" title="Update smoothing">Smooth</button></ul>').appendTo(controlsElt);
 
 	var legendElt = $('<div class="legend"><ul></ul></div>').appendTo(outerElt);
@@ -68,8 +81,13 @@ function setup(container, parameters) {
 	var loadingIndicator = new LoadingIndicator.LoadingIndicator(outerElt);
 
 	$.each(facets, function(idx, facet) {
-		$('<option value="' + idx + '">' + facet.title + ' facet</option>').appendTo(modeElt);
+		$('<option value="' + facet.field + '">' + facet.title + ' facet</option>').appendTo(modeElt);
 	});
+
+	if (TabConfig["comparison"]["default-facet"] !== undefined) {
+	    modeElt[0].value = TabConfig["comparison"]["default-facet"];
+	}
+
 
 	LayoutUtils.fillElement(container, outerElt, 'vertical');
 	LayoutUtils.setupPanelled(outerElt, controlsElt, outerSvgElt, 'vertical', 0, false);
@@ -111,7 +129,14 @@ function setup(container, parameters) {
 
 	updateBtn.click(function(event) {
 		var topCount = Number(numElt[0].value); // topCount == -1 means we want all the items in the facet
-		var currentFacet = facets[Number(modeElt[0].value)];
+
+		var currentFacet = null;
+		for (var idx in facets) {
+		    if (facets[idx].field == modeElt[0].value) {
+						currentFacet = facets[idx];
+						break;
+		    }
+		}
 
 		// Clear out our old queries
 		if (countQueries != null)
@@ -145,6 +170,10 @@ function setup(container, parameters) {
 		});
 
 		parameters.connection.update();
+	});
+
+	parameters.globalConstraintSet.on('change', function () {
+		updateBtn.click();
 	});
 
 	updateBtn.click();
@@ -597,11 +626,13 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 					this.style.textDecoration = "line-through";
 					hidden_names_sel.add(d.name);
 					yRescale();
+					Utils.log("comparison filter, hide:" + d.name);
 				} else {
 					// enable
 					this.style.textDecoration = "";
 					hidden_names_sel.remove(d.name);
 					yRescale();
+					Utils.log("comparison filter, unhide:" + d.name);
 				}
 			})
 			.on("mouseover", function(d) {
@@ -620,7 +651,13 @@ function drawCompare(viewBox, detailBox, selectBox, margins, names, data, smooth
 
 	var brush = d3.svg.brush()
 		.x(x2)
-		.on("brush", brushed);
+		.on("brush", brushed)
+		.on("brushend", function() {
+		    if (brush.empty())
+			Utils.log("comparison time filter, " + "all");
+		    else
+			Utils.log("comparison time filter, " + brush.extent()[0].toISOString() + " to " + brush.extent()[1].toISOString());
+		});
 
 	// hack because dates in JS are annoying
 	if (current_domain[0] - complete_domain[0] != 0 &&

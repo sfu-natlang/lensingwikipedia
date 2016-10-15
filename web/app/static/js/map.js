@@ -13,235 +13,235 @@ var mapSphereId = 0;
 
 // Map projections to use
 var mapProjections = {
-	winkel3: {
-		name: "Flat",
-		longName: "Winkel Tripel",
-		moveType: 'pan',
-		initialScaleFactor: 0.20,
-		scaleFactorChange: 0.3,
-		panMode: 'translate',
-		proj: function() {
-			return d3.geo.winkel3();
-		}
-	},
-	orthographic: {
-		name: "Globe",
-		longName: "Orthographic",
-		moveType: 'origin',
-		initialScaleFactor: 0.30,
-		scaleFactorChange: 0.3,
-		panMode: 'rotate',
-		proj: function() {
-			return d3.geo.orthographic()
-				.clipAngle(90);
-		}
-	},
-	waterman: {
-		name: "Butterfly",
-		longName: "Waterman Butterfly",
-		initialScaleFactor: 0.20,
-		scaleFactorChange: 0.3,
-		panMode: 'translate',
-		proj: function() {
-			return d3.geo.polyhedron.waterman()
-				.rotate([20, 0]);
-		}
-	}
+    winkel3: {
+        name: "Flat",
+        longName: "Winkel Tripel",
+        moveType: 'pan',
+        initialScaleFactor: 0.20,
+        scaleFactorChange: 0.3,
+        panMode: 'translate',
+        proj: function() {
+            return d3.geo.winkel3();
+        }
+    },
+    orthographic: {
+        name: "Globe",
+        longName: "Orthographic",
+        moveType: 'origin',
+        initialScaleFactor: 0.30,
+        scaleFactorChange: 0.3,
+        panMode: 'rotate',
+        proj: function() {
+            return d3.geo.orthographic()
+                .clipAngle(90);
+        }
+    },
+    waterman: {
+        name: "Butterfly",
+        longName: "Waterman Butterfly",
+        initialScaleFactor: 0.20,
+        scaleFactorChange: 0.3,
+        panMode: 'translate',
+        proj: function() {
+            return d3.geo.polyhedron.waterman()
+                .rotate([20, 0]);
+        }
+    }
 }
 defaultMapProjection = 'winkel3';
 
 function makeRefPointLinkLookup(refPointResult) {
-	var lookup = {};
-	$.each(refPointResult.links, function (linkId, link) {
-		for (var i = 0; i < 2; i++) {
-			var refPoint1 = link.refpoints[i],
-			    refPoint2 = link.refpoints[1 - i];
-			if (!lookup.hasOwnProperty(refPoint1))
-				lookup[refPoint1] = {};
-			if (lookup[refPoint1].hasOwnProperty(refPoint2))
-				console.log("warning: duplicate reference point link ", refPoint1, refPoint2);
-			lookup[refPoint1][refPoint2] = { count: link.count };
-		}
-	});
-	return lookup;
+    var lookup = {};
+    $.each(refPointResult.links, function (linkId, link) {
+        for (var i = 0; i < 2; i++) {
+            var refPoint1 = link.refpoints[i],
+                refPoint2 = link.refpoints[1 - i];
+            if (!lookup.hasOwnProperty(refPoint1))
+                lookup[refPoint1] = {};
+            if (lookup[refPoint1].hasOwnProperty(refPoint2))
+                console.log("warning: duplicate reference point link ", refPoint1, refPoint2);
+            lookup[refPoint1][refPoint2] = { count: link.count };
+        }
+    });
+    return lookup;
 }
 
 /*
  * Draw the world map.
  */
 function drawWorld(svg, group, worldData, projection) {
-	// This is from d3's Waterman Butterfly example
+    // This is from d3's Waterman Butterfly example
 
-	var path = d3.geo.path()
-		.projection(projection);
+    var path = d3.geo.path()
+        .projection(projection);
 
-	var graticule = d3.geo.graticule()
-		.extent([[-180, -90], [180, 90]]);
+    var graticule = d3.geo.graticule()
+        .extent([[-180, -90], [180, 90]]);
 
-	var sphereId = "mapsphere" + mapSphereId;
-	mapSphereId++;
-	svg.append("defs").append("path")
-		.datum({type: "Sphere"})
-		.attr("id", sphereId)
-		.attr("d", path);
+    var sphereId = "mapsphere" + mapSphereId;
+    mapSphereId++;
+    svg.append("defs").append("path")
+        .datum({type: "Sphere"})
+        .attr("id", sphereId)
+        .attr("d", path);
 
-	var clipId = "mapclip" + mapClipId;
-	mapClipId++;
-	svg.append("clipPath")
-		.attr("id", clipId)
-		.append("use")
-		.attr("xlink:href", "#" + sphereId);
+    var clipId = "mapclip" + mapClipId;
+    mapClipId++;
+    svg.append("clipPath")
+        .attr("id", clipId)
+        .append("use")
+        .attr("xlink:href", "#" + sphereId);
 
-	group.append("use")
-		.attr("class", "map background")
-		.attr("xlink:href", "#" + sphereId);
-	group.append("use")
-		.attr("class", "map foreground")
-		.attr("xlink:href", "#" + sphereId);
+    group.append("use")
+        .attr("class", "map background")
+        .attr("xlink:href", "#" + sphereId);
+    group.append("use")
+        .attr("class", "map foreground")
+        .attr("xlink:href", "#" + sphereId);
 
-	group.insert("path", ".graticule")
-		.datum(topojson.feature(worldData, worldData.objects.land))
-		.attr("clip-path", "url(#" + clipId + ")")
-		.attr("class", "map land")
-		.attr("d", path);
-	group.insert("path", "map .graticule")
-		.datum(topojson.feature(worldData, worldData.objects.lakes))
-		.attr("clip-path", "url(#" + clipId + ")")
-		.attr("class", "map lake")
-		.attr("d", path);
-	group.insert("path", ".graticule")
-		.datum(topojson.feature(worldData, worldData.objects.rivers))
-		.attr("clip-path", "url(#" + clipId + ")")
-		.attr("class", "map river")
-		.attr("d", path);
-	group.append("g")
-		.attr("class", "map graticule")
-		.attr("clip-path", "url(#" + clipId + ")")
-		.selectAll("path")
-		.data(graticule.lines)
-		.enter().append("path")
-		.attr("d", path);
-	group.insert("path", ".graticule")
-		.datum(topojson.feature(worldData, worldData.objects.countries, function(a, b) { return a !== b; }))
-		.attr("clip-path", "url(#" + clipId + ")")
-		.attr("class", "map currentcountryboundary")
-		.attr("d", path);
+    group.insert("path", ".graticule")
+        .datum(topojson.feature(worldData, worldData.objects.land))
+        .attr("clip-path", "url(#" + clipId + ")")
+        .attr("class", "map land")
+        .attr("d", path);
+    group.insert("path", "map .graticule")
+        .datum(topojson.feature(worldData, worldData.objects.lakes))
+        .attr("clip-path", "url(#" + clipId + ")")
+        .attr("class", "map lake")
+        .attr("d", path);
+    group.insert("path", ".graticule")
+        .datum(topojson.feature(worldData, worldData.objects.rivers))
+        .attr("clip-path", "url(#" + clipId + ")")
+        .attr("class", "map river")
+        .attr("d", path);
+    group.append("g")
+        .attr("class", "map graticule")
+        .attr("clip-path", "url(#" + clipId + ")")
+        .selectAll("path")
+        .data(graticule.lines)
+        .enter().append("path")
+        .attr("d", path);
+    group.insert("path", ".graticule")
+        .datum(topojson.feature(worldData, worldData.objects.countries, function(a, b) { return a !== b; }))
+        .attr("clip-path", "url(#" + clipId + ")")
+        .attr("class", "map currentcountryboundary")
+        .attr("d", path);
 
-	return path;
+    return path;
 }
 
 /*
  * Generate a class name for a map marker give it's point string.
  */
 function classForMarker(pointStr) {
-	return "p" + pointStr.replace(/[.,]/g, '_');
+    return "p" + pointStr.replace(/[.,]/g, '_');
 }
 
 /*
  * Draw markers on the map.
  */
 function drawMarkers(svg, group, proj, initialCounts, contextCounts, refPointLinkLookup) {
-	var points = {};
-	var allCounts = [initialCounts, contextCounts];
-	for (var i = 0; i < allCounts.length; i++) {
-		var counts = allCounts[i];
-		for (var pointStr in counts)
-			points[pointStr] = pointStr.split(",");
-	}
+    var points = {};
+    var allCounts = [initialCounts, contextCounts];
+    for (var i = 0; i < allCounts.length; i++) {
+        var counts = allCounts[i];
+        for (var pointStr in counts)
+            points[pointStr] = pointStr.split(",");
+    }
 
-	var maxCount = 0;
-	for (var pointStr in points) {
-		if (initialCounts[pointStr] > maxCount)
-			maxCount = initialCounts[pointStr];
-		if (contextCounts[pointStr] > maxCount)
-			maxCount = contextCounts[pointStr];
-	}
+    var maxCount = 0;
+    for (var pointStr in points) {
+        if (initialCounts[pointStr] > maxCount)
+            maxCount = initialCounts[pointStr];
+        if (contextCounts[pointStr] > maxCount)
+            maxCount = contextCounts[pointStr];
+    }
 
-	var toDraw = [];
-	var screenPoints = {};
-	var path = d3.geo.path().projection(proj);
-	for (var pointStr in points) {
-		var point = points[pointStr];
-		var screenPoint = path({ type: "Point", coordinates: point });
-		if (screenPoint != undefined) {
-			toDraw.push(pointStr);
-			screenPoints[pointStr] = proj(point);
-		}
-	}
+    var toDraw = [];
+    var screenPoints = {};
+    var path = d3.geo.path().projection(proj);
+    for (var pointStr in points) {
+        var point = points[pointStr];
+        var screenPoint = path({ type: "Point", coordinates: point });
+        if (screenPoint != undefined) {
+            toDraw.push(pointStr);
+            screenPoints[pointStr] = proj(point);
+        }
+    }
 
-	// Custom events to communicate clicks
-	function triggerDown(pointStr) {
-		$(svg).trigger('clickmarkerdown', [pointStr]);
-	}
-	function triggerUp(pointStr) {
-		$(svg).trigger('clickmarkerup', [pointStr]);
-	}
+    // Custom events to communicate clicks
+    function triggerDown(pointStr) {
+        $(svg).trigger('clickmarkerdown', [pointStr]);
+    }
+    function triggerUp(pointStr) {
+        $(svg).trigger('clickmarkerup', [pointStr]);
+    }
 
-	var countScale = 10.81;
-	var subgroup = group.selectAll("markers")
-		.data(toDraw)
-		.enter()
-		.append("g")
-		.attr("class", "marker")
-		.on("mouseover", function () {
-			// Bring group to front (see https://gist.github.com/trtg/3922684)
-			var sel = d3.select(this);
-			sel.each(function () {
-				this.parentNode.appendChild(this);
-			});
-		});
-	var arc = d3.geo.greatArc()
-		.source(function (d) { return d[0].split(","); })
-		.target(function (d) { return d[1].split(","); });
-	subgroup.selectAll("refpointlinks")
-		.data(function (p1) {
-			var list = [];
-			if (refPointLinkLookup.hasOwnProperty(p1))
-				for (var p2 in refPointLinkLookup[p1])
-					if (refPointLinkLookup.hasOwnProperty(p2))
-						list.push([p1, p2]);
-			return list;
-		})
-		.enter()
-		.append("path")
-		.attr("class", function (d) {
-			var dst = d[1];
-			var extra = contextCounts.hasOwnProperty(dst) && contextCounts[dst] > 0 ? "context" : "initial";
-			return "refpointlink " + extra;
-		})
-		.style("stroke-width", function (d) {
-			var scale = refPointLinkLookup[d[0]][d[1]].count / initialCounts[d[0]];
-			return 1 + Math.round((mapRefPointMaxWidth - 1) * scale);
-		})
-		.attr("d", function(pair) { return path(arc(pair)); });
-	subgroup.append("circle")
-		.attr("cx", function(p) { return screenPoints[p][0]; })
-		.attr("cy", function(p) { return screenPoints[p][1]; })
-		.attr("r", function(p) { return initialCounts.hasOwnProperty(p) ? Math.sqrt(initialCounts[p] * countScale * proj.scale() / maxCount) : 0; })
-		.attr("class", function(p) { return "marker initial " + classForMarker(p); })
-		.on('mousedown', triggerDown)
-		.on('mouseup', triggerUp);
-	subgroup.append("circle")
-		.attr("cx", function(p) { return screenPoints[p][0]; })
-		.attr("cy", function(p) { return screenPoints[p][1]; })
-		.attr("r", function(p) { return contextCounts.hasOwnProperty(p) ? Math.sqrt(contextCounts[p] * countScale * proj.scale() / maxCount) : 0; })
-		.attr("class", function(p) { return "marker context " + classForMarker(p); })
-		.on('mousedown', triggerDown)
-		.on('mouseup', triggerUp);
-	subgroup.append("text")
-		.attr("x", function(p) { return screenPoints[p][0]; })
-		.attr("y", function(p) { return screenPoints[p][1]; })
-		.attr("dy", "0.35em")
-		.attr("text-anchor", 'middle')
-		.text(function (p) { return contextCounts[p] > 0 ? contextCounts[p] : ""; })
-		.attr("class", function(p) { return "marker counttext " + classForMarker(p); })
-		.on('mousedown', triggerDown)
-		.on('mouseup', triggerUp);
+    var countScale = 10.81;
+    var subgroup = group.selectAll("markers")
+        .data(toDraw)
+        .enter()
+        .append("g")
+        .attr("class", "marker")
+        .on("mouseover", function () {
+            // Bring group to front (see https://gist.github.com/trtg/3922684)
+            var sel = d3.select(this);
+            sel.each(function () {
+                this.parentNode.appendChild(this);
+            });
+        });
+    var arc = d3.geo.greatArc()
+        .source(function (d) { return d[0].split(","); })
+        .target(function (d) { return d[1].split(","); });
+    subgroup.selectAll("refpointlinks")
+        .data(function (p1) {
+            var list = [];
+            if (refPointLinkLookup.hasOwnProperty(p1))
+                for (var p2 in refPointLinkLookup[p1])
+                    if (refPointLinkLookup.hasOwnProperty(p2))
+                        list.push([p1, p2]);
+            return list;
+        })
+        .enter()
+        .append("path")
+        .attr("class", function (d) {
+            var dst = d[1];
+            var extra = contextCounts.hasOwnProperty(dst) && contextCounts[dst] > 0 ? "context" : "initial";
+            return "refpointlink " + extra;
+        })
+        .style("stroke-width", function (d) {
+            var scale = refPointLinkLookup[d[0]][d[1]].count / initialCounts[d[0]];
+            return 1 + Math.round((mapRefPointMaxWidth - 1) * scale);
+        })
+        .attr("d", function(pair) { return path(arc(pair)); });
+    subgroup.append("circle")
+        .attr("cx", function(p) { return screenPoints[p][0]; })
+        .attr("cy", function(p) { return screenPoints[p][1]; })
+        .attr("r", function(p) { return initialCounts.hasOwnProperty(p) ? Math.sqrt(initialCounts[p] * countScale * proj.scale() / maxCount) : 0; })
+        .attr("class", function(p) { return "marker initial " + classForMarker(p); })
+        .on('mousedown', triggerDown)
+        .on('mouseup', triggerUp);
+    subgroup.append("circle")
+        .attr("cx", function(p) { return screenPoints[p][0]; })
+        .attr("cy", function(p) { return screenPoints[p][1]; })
+        .attr("r", function(p) { return contextCounts.hasOwnProperty(p) ? Math.sqrt(contextCounts[p] * countScale * proj.scale() / maxCount) : 0; })
+        .attr("class", function(p) { return "marker context " + classForMarker(p); })
+        .on('mousedown', triggerDown)
+        .on('mouseup', triggerUp);
+    subgroup.append("text")
+        .attr("x", function(p) { return screenPoints[p][0]; })
+        .attr("y", function(p) { return screenPoints[p][1]; })
+        .attr("dy", "0.35em")
+        .attr("text-anchor", 'middle')
+        .text(function (p) { return contextCounts[p] > 0 ? contextCounts[p] : ""; })
+        .attr("class", function(p) { return "marker counttext " + classForMarker(p); })
+        .on('mousedown', triggerDown)
+        .on('mouseup', triggerUp);
 
-	return {
-		path: path,
-		screenPoints: screenPoints
-	}
+    return {
+        path: path,
+        screenPoints: screenPoints
+    }
 }
 
 /*
@@ -294,11 +294,13 @@ function makeControls(container, projections, minZoom, maxZoom, defaults) {
 	$.each([1, 2, 3, 4, 5], function (key, value) {
 		$('<button class="btn btn-mini" value="' + value + '" + title="Zoom level ' + value + '.">' + value + '</button>').appendTo(zoomElt);
 	});
-	zoomElt.find("button").bind('click', function () {
+	zoomElt.find("button").bind('click', function (e) {
 		var value = $(this).val();
 		zoomBtnElt.find(".value").html(value);
 		$(this).button('toggle');
 		curZoom = +value;
+		if (e.hasOwnProperty('originalEvent'))
+		    Utils.log("map zoom, " + curZoom);
 	});
 	function updateZoom() {
 		var btn = zoomElt.find("button[value=" + curZoom + "]");
@@ -388,41 +390,41 @@ function loadSettingsCookies(defaults) {
  * Save settings back to cookies.
  */
 function saveSettingsCookie(name, value) {
-	$.cookie(name, value, { expires: 7 });
+    $.cookie(name, value, { expires: 7 });
 }
 
 /*
  * Update the SVG markers for points to match the selection one time.
  */
 function styleSelectedMarkers(svg, selection) {
-	if (selection.isEmpty())
-		return;
-	var classStr = "",
-	    isFirst = true;
-	selection.each(function (pointStr) {
-		if (isFirst) 
-			isFirst = false;
-		else
-			classStr += ",";
-		classStr += ".marker." + classForMarker(pointStr);
-	});
-	svg.selectAll(classStr).classed("selected", true);
+    if (selection.isEmpty())
+        return;
+    var classStr = "",
+        isFirst = true;
+    selection.each(function (pointStr) {
+        if (isFirst) 
+            isFirst = false;
+        else
+            classStr += ",";
+        classStr += ".marker." + classForMarker(pointStr);
+    });
+    svg.selectAll(classStr).classed("selected", true);
 }
 
 /*
  * Make the SVG markers for points match the selection as it changes.
  */
 function syncMarkerStylesWithSelection(svg, selection) {
-	selection.on('change', function (added, removed, newLength) {
-		if (newLength > 0) {
-			if (added.length > 0)
-				svg.selectAll(added.map(function (ps) { return ".marker." + classForMarker(ps); }).join(",")).classed("selected", true);
-			if (removed.length > 0)
-				svg.selectAll(removed.map(function (ps) { return ".marker." + classForMarker(ps); }).join(",")).classed("selected", false);
-		} else {
-			svg.selectAll(".marker").classed("selected", false);
-		}
-	});
+    selection.on('change', function (added, removed, newLength) {
+        if (newLength > 0) {
+            if (added.length > 0)
+                svg.selectAll(added.map(function (ps) { return ".marker." + classForMarker(ps); }).join(",")).classed("selected", true);
+            if (removed.length > 0)
+                svg.selectAll(removed.map(function (ps) { return ".marker." + classForMarker(ps); }).join(",")).classed("selected", false);
+        } else {
+            svg.selectAll(".marker").classed("selected", false);
+        }
+    });
 }
 
 /*
@@ -614,6 +616,17 @@ function setup(container, parameters) {
 	$(svg).bind('clickmarkerup', function (event, pointStr) {
 		if (mouseDownOnMarker && selModeSel.get() == 'toggle') {
 			selection.toggle(pointStr);
+			// this is basically the same as what happens in
+			// selection.toggle, but as we can't hook into that
+			// code directly, we'll have to reproduce it here
+			//
+			// NOTE: the if/else is swapped from selection.toggle
+			// since the toggle has already happened!
+			var pointsStrHash = selection.valueHash(pointStr);
+			if (selection._selected.hasOwnProperty(pointsStrHash))
+				Utils.log("map filter, " + pointStr);
+			else
+				Utils.log("map filter, remove:" + pointStr);
 		}
 	});
 	D3Utils.makeDragEndWatcher(drag, function () {
@@ -656,12 +669,26 @@ function setup(container, parameters) {
 
 	initControls();
 
+	var prev_pan = [0, 0];
+	drag.on("dragend.pan", function () {
+		// since clicking a marker on the map will also register a drag event,
+		// we need to check if there was actually any drag.
+		// TODO: figure out how to prevent this event being triggered on a
+		// marker click (if it's even posible)
+		var pan = panSel.get();
+		if (prev_pan.toString() !== pan.toString()) {
+			Utils.log("map pan, " + pan);
+			prev_pan = pan.slice();
+		}
+		return true;
+	});
+
 	return {
 		selection: selection
 	};
 }
 
 return {
-	setup: setup
+    setup: setup
 };
 }());

@@ -17,6 +17,9 @@ function setup(container, constraintSet, connection) {
 	var loadingIndicator = new LoadingIndicator.LoadingIndicator(outerElt);
 
 	Selections.setupSelectionClearButton(clearAllElt, constraintSet);
+	clearAllElt.click(function() {
+		Utils.log("clear, all");
+	});
 
 	loadingIndicator.baseErrorMessage("The current constraints caused an error in processing the query");
 	connection.on('error', function () {
@@ -37,6 +40,7 @@ function setup(container, constraintSet, connection) {
 			var cnstrTextElt = $("<span></span>").appendTo(cnstrElt);
 			cnstrTextElt.append(cnstr.name());
 			cnstrElt.click(function() {
+				Utils.log("clear, " + JSON.stringify(cnstr._value));
 				constraintSet.remove(cnstr);
 				connection.update();
 			});

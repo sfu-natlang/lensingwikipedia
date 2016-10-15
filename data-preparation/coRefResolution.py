@@ -52,11 +52,11 @@ def findLables((fileName,filePath), outJson, outTokenized):
 			print >> outFile, " ".join(sentWords)
 		sentences.append(sentWords)
 	print >> outFile, "PAR_SPLITTER_SYMBOL ."
-	outFile.close
+	outFile.close()
 	jsonName = ".".join(filePath.split(".")[:-1])+".json"
 	inFile = codecs.open(jsonName, "r", "utf-8")
 	fline = inFile.readline()
-	inFile.close
+	inFile.close()
 	jStat = json.loads(fline[:-1], "utf-8")
 	### adding ner info to json entry
 	jStat["ner_info"] = {"person": personLst, "locations": locationLst, "organization": organLst}
@@ -83,7 +83,7 @@ def findLables((fileName,filePath), outJson, outTokenized):
 				
 	outFile = codecs.open(outJson, "a", "utf-8")
 	print >> outFile, json.dumps(jStat)
-	outFile.close
+	outFile.close()
 	return 1
 
 def main():
@@ -120,9 +120,9 @@ def main():
 		print >> foutPer, per.strip()
 	for org in organDict:
 		print >> foutOrg, org.strip()
-	foutLoc.close
-	foutPer.close
-	foutOrg.close
+	foutLoc.close()
+	foutPer.close()
+	foutOrg.close()
 
 
 if __name__ == '__main__':

@@ -54,6 +54,7 @@
 
   <script>
     FrontendConfig.backendUrl = "{{ config.BACKEND_URL }}";
+    TabConfig = {{ tab_configs|tojson }};
   </script>
 
 {% endblock %}
@@ -136,6 +137,20 @@
 			$('a[data-toggle="tab"]').on('shown', function () {
 				$(window).trigger('resize');
 			});
+		</script>
+
+		<script>
+		  var active_tab = "facetstab";
+		  $('a[data-toggle="tab"]').on('shown', function (e) {
+		    active_tab = e.target.href.split("#").pop();
+		    Utils.log("tab change, "  + active_tab);
+		  })
+		  $(window).focus(function () {
+		    Utils.log("focus, " + active_tab);
+		  });
+		  $(window).blur(function () {
+		    Utils.log("blur, ");
+		  });
 		</script>
 
 {% endblock %}

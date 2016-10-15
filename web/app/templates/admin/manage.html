@@ -1,0 +1,107 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+
+<div class="page-header">
+  <h1>Admin console</h1>
+</div>
+
+<h2>Tab management</h2>
+<div class="tabbable tabs-left">
+  <ul id="tabTitles" class="nav nav-tabs">
+    {% for tab in tabs %}
+      <li {% if loop.first %}class="active"{% endif %}>
+        <a href="#tab-{{ tab.name }}" data-toggle="tab">
+          {{ tab.external_name }}
+        </a>
+      </li>
+    {% endfor %}
+  </ul>
+  <div id="tabContent" class="tab-content">
+    {% for tab in tabs %}
+      <div class="tab-pane {% if loop.first %}active{% endif %}" id="tab-{{ tab.name}}">
+        <div class="control-group">
+          <label class="checkbox inline">
+            <input type="checkbox" name='visible' {% if tab.visible %}checked{% endif %}> Visible
+          </label>
+        </div>
+        <div class="tab-fields">
+        {% if tab.config %}
+          {% for k, v in tab.config.items() %}
+            <div class="control-group key-value-pair">
+              Key: <input class="span3" type="text" name="key" value="{{ k }}" required>
+              Value: <input class="span3" type="text" name="value" value="{{ v }}">
+            </div>
+          {% endfor %}
+        {% endif %}
+        </div>
+        <input type="hidden" name="tab-name" value="{{ tab.name }}">
+        <button class="btn" name="new-field">New field</button>
+        <button class="btn btn-primary" name='save-tab'>Save tab</button>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<h2>User logs</h2>
+<p><a href="{{ url_for('get_user_log') }}">Download</a></p>
+
+{% endblock content %}
+
+{% block bottom_scripts %}
+  <script>
+    $(document).ready(function() {
+
+      $("#tabContent button[name='new-field']").on("click", function(event) {
+        event.preventDefault();
+
+        var tabPane = $(this).siblings(".tab-fields");
+        var newControls = $("<div class='control-group key-value-pair'>Key: <input class='span3' type='text' name='key' required> Value: <input class='span3' type='text' name='value'></div>");
+        newControls.appendTo(tabPane);
+      });
+
+      $("button[name='save-tab']").on("click", function(event) {
+        event.preventDefault();
+
+        var tabName = $(this).siblings("input[name='tab-name']").val();
+        var fields = $("#tab-" + tabName + " .tab-fields .key-value-pair");
+
+        var configList = fields.map(function(index, elem) {
+          var key = $(elem).find("input[name='key']").val();
+          var val = $(elem).find("input[name='value']").val();
+
+          // double wrap because otherwise jQuery will create an object where
+          // each of 'key' and 'value' are separate values (with int keys)
+          return [[key, val]];
+        });
+
+        // we use this instead of a Map because Maps don't jsonify nicely
+        var config = Object.create(null);
+
+        for (var [k, v] of configList.get()) {
+          if (v.length == 0) {
+            v = null;
+          }
+          if (k.length > 0) {
+            config[k] = v;
+          }
+        }
+
+        var visible = $("#tab-" + tabName + " input[name='visible']").prop('checked');
+
+        config["visible"] = visible;
+
+        $.ajax("/api/tabs/" + tabName + "/config", {
+          dataType: "json",
+          method: "PUT",
+          data: JSON.stringify(config),
+          success: function(data) {
+            console.log(data);
+          }
+        });
+
+      });
+
+    });
+  </script>
+{% endblock %}

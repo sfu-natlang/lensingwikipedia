@@ -72,10 +72,21 @@ function addToDescriptionList(descriptions, listElt) {
 		dtElt.find("a").attr('target', '_blank');
 		ddElt.find("a").attr('target', '_blank');
 
+		dtElt.find("a").click(function () {
+			Utils.log("follow link, " + this.href);
+		});
+		ddElt.find("a").click(function () {
+			Utils.log("follow link, " + this.href);
+		});
+
+
 		// Expansion to long description
 		if (event.description != event.sentence) {
+
 			var expandFullElt = $("<a href='#' class='expand-desc-btn'>[+]</a>").appendTo(ddElt);
 			var fullElt = $("<div class=\"eventfulldescription\">" + longDesc + "</div>").appendTo(ddElt);
+			fullElt.find("a").attr('target', '_blank');
+
 			expandFullElt.click(function () {
                 if (fullElt.hasClass('expanded')) {
                     expandFullElt.text('[+]');

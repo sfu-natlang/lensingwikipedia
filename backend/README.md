@@ -15,19 +15,20 @@ After the domain code is in place then the following steps will work.
 
 ### Building domain-specific programs
 
-Domain-specific files for Wikipedia and AVHerald are found in domains/. You can
-ask the Makefile to use one of these by setting the `CONFIG` environment
-variable:
+Domain-specific files for Wikipedia and AVHerald are found in `domain_config/`.
 
-    CONFIG=wikipediahistory make
-    CONFIG=avherald make
+The build is identical regardless of the domain, but you have to specify the
+domain through the `LENSING_DOMAIN` environment variable.
 
-To set a default for `CONFIG`, you can create a `Makefile.local` file in the
-directory you run make from, containing eg:
+To build everything, just run
 
-    CONFIG?=wikipediahistory
+    make build
 
-See Makefile for more details.
+**Note:** You probably don't want to build the TSNE code since that's just used
+when building the index (read below). If you just want the backend query
+handler, all you need is:
+
+    make python
 
 You can then use the programs in build/ for the following steps.
 
@@ -39,20 +40,25 @@ Whoosh index. A Whoosh index is just a directory that Whoosh keeps its files
 in. The input to this step is a data file where each line of the file is a JSON
 object for a single event.
 
-Let's say that the data file is called data.json and we want to put it in a new
-Whoosh index called data.index. First we index the base data:
+To build the backend, first run (in the parent directory)
 
-	buildindex data.index data.json
+    make prepare-index-build
 
-You can also omit the Json file name and send the data on standard input
-instead.
+That will create a `build/` directory and create the Docker image from which
+you'll run the container to build the index. This will check if the image is
+already built (so it won't rebuilt it), but you should run this every time to
+create the `build/` directory.
 
-Next we need to assign references points to all events, which we do with the
-cluster program:
+Next, copy your `fullData.json` file into the `build/` directory, and then run
+(in the parent directory)
 
-	cluster data.index
+    make index
 
-This updates the index in-place. See the usage for other options.
+That will create a Docker image and container, install everything needed within
+the container, build the index, cluster it, and run the TSNE code on it (all
+within the container).
+
+The result will be in `build/fullData.index`.
 
 Starting the backend
 --------------------

@@ -18,7 +18,6 @@ function FacetListBox(container, connection, field, selection, constraintSet) {
 	this.field = field;
 	this.selection = selection;
 
-	this.query = null;
 	this.dataCounts = [];
 	this.dataElts = {};
 
@@ -158,7 +157,7 @@ FacetListBox.prototype.elementForValue = function (value) {
 	return this._dataElts[value];
 }
 
-FacetListBox.prototype.makeSearchElement = function () {
+FacetListBox.prototype.makeSearchElement = function (facetName, globalConstraintSet) {
 	var listBox = this;
 
 	var outerElt = $('<div class="topbox"></div>');
@@ -174,13 +173,26 @@ FacetListBox.prototype.makeSearchElement = function () {
 			listBox.searchInputElt.removeClass('error');
 	}
 
+	var localConstraintSet = new Queries.ConstraintSets.ConstraintSet();
+	var selection = new Selections.SimpleSingleValueSelection();
+
+	Selections.syncSingleValueSelectionWithConstraint(selection, this.connection, globalConstraintSet, [localConstraintSet], function (searchTerm) {
+		Utils.log("facet search, " + searchTerm);
+		return new Queries.Constraint({
+			type: 'textsearch',
+			value: searchTerm
+		}, "Text search: " + searchTerm);
+	});
+
 	searchBoxElt.submit(function () {
-		var value = listBox.searchInputElt.val();
-		if (listBox._dataElts.hasOwnProperty(value)) {
-			setSearchErrorStatus(false);
-			listBox.selection.add(value);
-		} else
-			setSearchErrorStatus(true);
+		var searchTerm = $.trim(listBox.searchInputElt.val());
+		if (searchTerm.length > 0) {
+			// TODO Determine the search prefix in a more reliable way since we may
+			// want to change the facet name.
+			selection.set(facetName.toLowerCase() + ":" + searchTerm);
+		} else {
+			selection.clear();
+		}
 		return false;
 	});
 
@@ -229,6 +241,7 @@ FieldSelections.prototype.get = function (field) {
 		var selection = new Selections.SimpleSetSelection();
 		var name = this._names.hasOwnProperty(field) ? this._names[field] : field;
 		Selections.syncSetSelectionWithConstraints(selection, this.connection, fieldSelections.globalConstraintSet, [ownConstraintSet], function (value) {
+			Utils.log("facet filter, " + name + ":" + value);
 			return new Queries.Constraint({
 					type: 'fieldvalue',
 					field: field,
@@ -257,11 +270,17 @@ function setup(container, connection, globalConstraintSet, name, field, fieldSel
 	$("<h1>" + name + "</h1>").appendTo(topBoxElt);
 	var clearElt = $("<button type=\"button\" class=\"btn btn-block btn-mini btn-warning\" title=\"Clear the facet selection.\">Clear selection</button></ul>").appendTo(topBoxElt);
 	var listBox = new FacetListBox(facetElt, connection, field, fieldSelection.selection, globalConstraintSet);
-	var searchElt = listBox.makeSearchElement();
-	searchElt.appendTo(topBoxElt);
+	if (TabConfig["facets"]["hide-search"] != "true") {
+		var searchElt = listBox.makeSearchElement(name, globalConstraintSet);
+		searchElt.appendTo(topBoxElt);
+	}
 	LayoutUtils.fillElement(container, facetElt, 'vertical');
 	LayoutUtils.setupPanelled(facetElt, topBoxElt, listBox.outerElt, 'vertical', 0, false);
 	setupSelectionClearButton(clearElt, fieldSelection.selection);
+
+	clearElt.click(function() {
+		Utils.log("clear, " + name);
+	});
 
 	return {
 		ownConstraintSet: fieldSelection.ownConstraintSet,

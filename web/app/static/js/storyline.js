@@ -615,10 +615,17 @@ function setupEntitiesMenu(queryEntitiesSelSel, storylineFields, facetsByField, 
 		// This is a bit messy since we rely on the structure of the FacetListBox elements
 		entityList.outerElt.addClass('dropdown-menu');
 		var btnBox = $('<div class="clearbuttonbox"></div>').prependTo(entityList.outerElt);
-		var updateBtn = $('<button type="button" class="btn btn-mini btn-primary" title="Update menu to match facet.">Update</button>').appendTo(btnBox);
+		var updateBtn = $('<button type="button" class="btn btn-mini btn-primary storyline-update" title="Update menu to match facet.">Update</button>').appendTo(btnBox);
 		var clearEntitiesBtn = $('<button type="button" class="btn btn-mini btn-warning clearviewentities" title="Clear view entities.">Clear</button>').appendTo(btnBox);
 		entityList.on('element-selection-change', function (value, itemElt, isSelected) {
 			itemElt.css('background-color', isSelected ? entityColour(value) : 'white');
+			if (isSelected) {
+			    Utils.log("storyline focus, " + fieldInfo.title + ":" + value);
+			} else {
+			    if (itemElt.css('background-color') !== 'white' &&
+				    itemElt.css('background-color') !== 'transparent')
+				Utils.log("storyline unfocus, " + fieldInfo.title + ":" + value);
+			}
 		});
 
 		LayoutUtils.fillElement(container, entityList.outerElt, 'vertical', 100);
@@ -753,10 +760,12 @@ function setup(container, parameters) {
 
 	function onSelectNode(node) {
 		nodeSelection.toggle(node);
+		Utils.log("storyline filter, " + node.date.toISOString() + ":" + Object.keys(node.clusters).join(';'));
 	}
 	function onSelectEntityLine(entityLine) {
 		var entity = vis.lookupEntity(entityLine.entityId);
 		parameters.fieldSelections.get(entity.field).selection.toggle(entity.value);
+		Utils.log("storyline filter, " + entity.field + ":" + entity.value);
 	}
 	function cleanNodeSelectionToMatchData() {
 		if (vis != null) {
@@ -775,6 +784,8 @@ function setup(container, parameters) {
 	}
 
 	modeSel.on('change', function (mode) {
+		outerSvgElt.css('display', 'none');
+		legendElt.css('display', 'none');
 		if (mode == 'query') {
 			initHelpElt.hide();
 			queryHelpElt.show();
@@ -890,6 +901,10 @@ function setup(container, parameters) {
 	$('a[data-toggle="tab"]').on('shown', function (e) {
 		if ($(e.target.getAttribute('href'))[0] === container[0] && vis != null)
 			vis.update();
+	});
+
+	parameters.globalConstraintSet.on('change', function () {
+		outerElt.find('button.storyline-update').click();
 	});
 
 	return {
