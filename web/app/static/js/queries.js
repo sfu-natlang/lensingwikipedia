@@ -402,7 +402,8 @@ var Queries = (function () {
 		for (var prop in this._view)
 			if (this._view.hasOwnProperty(prop))
 				view[prop] = this._view[prop];
-		view.page = this._page;
+		if (this._page != 0)
+			view.page = this._page;
 		return view;
 	}
 
