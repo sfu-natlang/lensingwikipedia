@@ -39,10 +39,13 @@ function SimpleWatchable() {
 	this._watchers = {};
 }
 
-SimpleWatchable.prototype.on = function (eventType, callback) {
+SimpleWatchable.prototype.on = function (eventType, callback, priority) {
 	if (!this._watchers.hasOwnProperty(eventType))
 		this._watchers[eventType] = [];
-	this._watchers[eventType].push(callback);
+	if (priority)
+		this._watchers[eventType].unshift(callback);
+	else
+		this._watchers[eventType].push(callback);
 	return this;
 }
 

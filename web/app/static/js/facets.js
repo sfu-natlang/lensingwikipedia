@@ -23,8 +23,7 @@ function FacetListBox(container, connection, field, selection, constraintSet) {
 
 	this.viewValue = {
 		type: 'countbyfieldvalue',
-		field: field,	
-		requiredkeys: []
+		field: field
 	};
 
 	this.outerElt = $('<div class="facetlistbox"></div>').appendTo(container);
@@ -43,6 +42,8 @@ Utils.extendObject([Utils.SimpleWatchable.prototype], FacetListBox.prototype);
 FacetListBox.prototype._watchSelection = function (viewValue, selection) {
 	var listBox = this;
 	selection.on('change', function (added, removed, newLength) {
+		if (!listBox.viewValue.hasOwnProperty('requiredkeys'))
+			listBox.viewValue.requiredkeys = [];
 		if (newLength > 0) {
 			for (var valueI = 0; valueI < added.length; valueI++) {
 				var value = added[valueI];
@@ -56,7 +57,7 @@ FacetListBox.prototype._watchSelection = function (viewValue, selection) {
 			}
 			for (var valueI = 0; valueI < removed.length; valueI++) {
 				var value = removed[valueI];
-				listBox.viewValue.requiredkeys = listBox.viewValue.requiredkeys.splice($.inArray(value, listBox.viewValue.requiredkeys), 1);
+				listBox.viewValue.requiredkeys.splice($.inArray(value, listBox.viewValue.requiredkeys), 1);
 				if (listBox._dataElts.hasOwnProperty(value)) {
 					var elt = listBox._dataElts[value];
 					elt.removeClass('selected');
@@ -66,6 +67,7 @@ FacetListBox.prototype._watchSelection = function (viewValue, selection) {
 				}
 			}
 		} else {
+			listBox.viewValue.requiredkeys = [];
 			for (var valueI = 0; valueI < removed.length; valueI++) {
 				var value = removed[valueI],
 				    elt = listBox._dataElts[value];
@@ -74,7 +76,9 @@ FacetListBox.prototype._watchSelection = function (viewValue, selection) {
 			listBox.listElt.find('li').removeClass('selected');
 			listBox.outerElt.removeClass('selected');
 		}
-	});
+		if (listBox.viewValue.requiredkeys.length == 0)
+			delete listBox.viewValue['requiredkeys'];
+	}, true);
 }
 
 FacetListBox.prototype._watchQuery = function (query) {
