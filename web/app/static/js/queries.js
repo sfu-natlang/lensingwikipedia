@@ -19,11 +19,7 @@ function makeConstraintSetJson(constraintSet) {
 		cnstrJsons.sort();
 		json += '"' + 0 + '":' + cnstrJsons[0];
 		for (var cnstrI = 1; cnstrI < cnstrJsons.length; cnstrI++) {
-			if (cnstrI == 0)
-				isFirst = false;
-			else
-				json += ",";
-			json += '"' + cnstrI + '":' + cnstrJsons[cnstrI];
+			json += ',"' + cnstrI + '":' + cnstrJsons[cnstrI];
 		}
 	}
 	json += '}';
