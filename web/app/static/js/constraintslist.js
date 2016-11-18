@@ -7,102 +7,55 @@ var ConstraintsList = (function () {
 /*
  * Setup the control in some container element.
  * container: container element as a jquery selection
- * globalQuery: the global query
+ * constraintSet: constraint set to show
+ * connection: connection to server
  */
-function setup(container, globalQuery) {
+function setup(container, constraintSet, connection) {
 	var outerElt = $('<div class="constraintslist">').appendTo(container);
-
 	var clearAllElt = $('<button type="button" class="btn btn-block btn-mini btn-warning" title="Remove all current constraints.">Clear all constraints</button></ul>').appendTo(outerElt);
 	var listElt = $('<ul></ul>').appendTo(outerElt);
-	var errorBox = $('<div class="alert alert-error" style="display: none"></div>').appendTo(outerElt);
+	var loadingIndicator = new LoadingIndicator.LoadingIndicator(outerElt);
 
-	function setClearEnabled(enabled) {
-		if (enabled)
-			clearAllElt.removeAttr('disabled');
-		else
-			clearAllElt.attr('disabled', 'disabled');
-	}
-	setClearEnabled(false);
-
-	function removeElement(elt) {
-		elt.slideUp(400, function() {
-			container.trigger('changedSize');
-		});
-	};
-
-	function addConstraintElement(cnstr) {
-		var itemElt = $('<li></li>').appendTo(listElt);
-		var cnstrElt = $('<div class="alert alert-constraint" title="Click to remove this constraint."></div>').appendTo(itemElt);
-		$('<button type="button" class="close">&times;</button>').appendTo(cnstrElt);
-		var cnstrTextElt = $("<span></span>").appendTo(cnstrElt);
-		cnstrTextElt.append(cnstr.name());
-		container.trigger('changedSize');
-		cnstrElt.click(function() {
-			Utils.log("clear, " + JSON.stringify(cnstr._value));
-			cnstr.clear();
-			globalQuery.update();
-			removeElement(cnstrElt);
-		});
-		cnstr.onChange(function(changeType, query, cnstr) {
-			if (query == globalQuery) {
-				if (changeType =="removed")
-					removeElement(cnstrElt);
-				else if (changeType == "changed")
-					cnstrTextElt.html(cnstr.name());
-			}
-		});
-	}
-
-	var alreadyError = true;
-	var errorMessages = {};
-	function setError(message) {
-		if (message == null) {
-			if (alreadyError) {
-				alreadyError = false;
-				errorMessages = {};
-		 		errorBox.css('display', 'none');
-			}
-		} else {
-			if (!alreadyError || message != true && !errorMessages.hasOwnProperty(message)) {
-				if (message != true)
-					errorMessages[message] = true;
-				messagesStrs = $.map(errorMessages, function (value, key)  { return key; });
-				var text = "The current constraints caused an error in processing the query";
-				if (messagesStrs.length > 0)
-					text += ": " + messagesStrs.join("; ");
-				text += ".";
-				errorBox.html(text);
-				alreadyError = true;
-		 		errorBox.css('display', '');
-				container.trigger('changedSize');
-			}
-		}
-	}
-	setError(null);
-
-	globalQuery.onChange(function (changeType, query, cnstr) {
-		if (changeType == "current" || changeType == "added")
-			addConstraintElement(cnstr)
-		setClearEnabled(!globalQuery.isEmpty());
-	}, true);
-
+	Selections.setupSelectionClearButton(clearAllElt, constraintSet);
 	clearAllElt.click(function() {
-		globalQuery.clearAll();
-		globalQuery.update();
 		Utils.log("clear, all");
 	});
 
-	var numErrors = 0;
-	globalQuery.onError(function (message, fromChild, onResolve) {
-		numErrors += 1;
-		setError(message);
-		onResolve(function () {
-			if (numErrors > 0) {
-				numErrors -= 1;
-				if (numErrors == 0)
-					setError(null);
-			}
+	loadingIndicator.baseErrorMessage("The current constraints caused an error in processing the query");
+	connection.on('error', function () {
+		loadingIndicator.error('connection', true);
+		loadingIndicator.enabled(true);
+	});
+	connection.on('no-error', function () {
+		loadingIndicator.enabled(false);
+		loadingIndicator.error('connection', false);
+	});
+
+	var itemElts = {};
+	globalConstraintSet.on('change', function (added, removed, newLength) {
+		added.forEach(function (cnstr) {
+			var itemElt = $('<li></li>').appendTo(listElt);
+			var cnstrElt = $('<div class="alert alert-constraint" title="Click to remove this constraint."></div>').appendTo(itemElt);
+			$('<button type="button" class="close">&times;</button>').appendTo(cnstrElt);
+			var cnstrTextElt = $("<span></span>").appendTo(cnstrElt);
+			cnstrTextElt.append(cnstr.name());
+			cnstrElt.click(function() {
+				Utils.log("clear, " + JSON.stringify(cnstr._value));
+				constraintSet.remove(cnstr);
+				connection.update();
+			});
+			itemElts[cnstr.id()] = itemElt;
 		});
+		removed.forEach(function (cnstr) {
+			var elt = itemElts[cnstr.id()];
+			elt.slideUp(400);
+		});
+		if (removed.length > 0)
+			setTimeout(function () {
+				container.trigger('changedSize');
+			}, 450);
+		else
+			container.trigger('changedSize');
 	});
 }
 

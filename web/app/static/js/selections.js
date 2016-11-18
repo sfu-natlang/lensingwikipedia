@@ -10,6 +10,10 @@
  *	isEmpty(): checks if the selection is empty
  *	event 'empty': the selection becomes empty
  *	event 'not-empty': the selection becomes non-empty
+ *
+ * Additionally, selections should generally implement a 'change' event which
+ * indicates that the selected value(s) has/have changed and provides
+ * information about the change.
  */
 
 var Selections = (function () {
@@ -18,14 +22,16 @@ var Selections = (function () {
  * Class for selection of single value.
  */
 
-function SimpleSingleValueSelection() {
+function SimpleSingleValueSelection(value) {
 	Utils.SimpleWatchable.call(this);
 	this._value = null;
+	if (value != null)
+		this.set(value);
 }
 
 Utils.extendObject([Utils.SimpleWatchable.prototype], SimpleSingleValueSelection.prototype);
 
-SimpleSingleValueSelection.prototype.hashValue = function(value) {
+SimpleSingleValueSelection.prototype.valueHash = function(value) {
 	return value;
 }
 
@@ -61,29 +67,40 @@ SimpleSingleValueSelection.prototype.isEmpty = function() {
 	return this._value == null;
 }
 
+SimpleSingleValueSelection.prototype.each = function(f) {
+	if (this._value != null)
+		f(this._value);
+}
+
 /*
  * Class for simple sets of selected values.
  */
 
-function SimpleSetSelection() {
+function SimpleSetSelection(otherSet) {
 	Utils.SimpleWatchable.call(this);
 	this._selected = {};
 	this._length = 0;
+
+	if (otherSet != null) {
+		for (var hash in otherSet._selected)
+			this._selected[hash] = otherSet._selected[hash];
+		this._length = otherSet._length;
+	}
 }
 
 Utils.extendObject([Utils.SimpleWatchable.prototype], SimpleSetSelection.prototype);
 
-SimpleSetSelection.prototype.hashValue = function(value) {
+SimpleSetSelection.prototype.valueHash = function(value) {
 	return value;
 }
 
 SimpleSetSelection.prototype.mem = function(value) {
-	return this._selected.hasOwnProperty(value);
+	return this._selected.hasOwnProperty(this.valueHash(value));
 }
 
 // Add a single item and immediately trigger a change event
 SimpleSetSelection.prototype.add = function(value) {
-	var valueHash = this.hashValue(value);
+	var valueHash = this.valueHash(value);
 	if (!this._selected.hasOwnProperty(valueHash)) {
 		var oldLength = this._length;
 		this._selected[valueHash] = value;
@@ -96,7 +113,7 @@ SimpleSetSelection.prototype.add = function(value) {
 
 // Remove a single item and immediately trigger a change event
 SimpleSetSelection.prototype.remove = function(value) {
-	var valueHash = this.hashValue(value);
+	var valueHash = this.valueHash(value);
 	if (this._selected.hasOwnProperty(valueHash)) {
 		delete this._selected[valueHash];
 		this._length -= 1;
@@ -108,7 +125,7 @@ SimpleSetSelection.prototype.remove = function(value) {
 
 // Toggle (add or remove) a single item and immediately trigger a change event
 SimpleSetSelection.prototype.toggle = function(value) {
-	var valueHash = this.hashValue(value);
+	var valueHash = this.valueHash(value);
 	if (!this._selected.hasOwnProperty(valueHash))
 		this.add(value);
 	else
@@ -144,14 +161,15 @@ SimpleSetSelection.prototype.modify = function(f) {
 			for (var valueHash in selection._selected)
 				if (selection._selected.hasOwnProperty(valueHash))
 					toRemove[valueHash] = selection._selected[valueHash];
+			toAdd = {};
 		},
 		add: function (value) {
-			var valueHash = selection.hashValue(value);
+			var valueHash = selection.valueHash(value);
 			toAdd[valueHash] = value;
 			delete toRemove[valueHash];
 		},
 		remove: function (value) {
-			var valueHash = selection.hashValue(value);
+			var valueHash = selection.valueHash(value);
 			toRemove[valueHash] = value;
 			delete toAdd[valueHash];
 		}
@@ -176,13 +194,15 @@ SimpleSetSelection.prototype.modify = function(f) {
 		}
 	}
 
-	this._triggerEvent('change', added, removed, this._length);
-	if (this._length == 0) {
-		if (oldLength != 0)
-			this._triggerEvent('empty');
-	} else {
-		if (oldLength == 0)
-			this._triggerEvent('not-empty');
+	if (added.length > 0 || removed.length > 0) {
+		this._triggerEvent('change', added, removed, this._length);
+		if (this._length == 0) {
+			if (oldLength != 0)
+				this._triggerEvent('empty');
+		} else {
+			if (oldLength == 0)
+				this._triggerEvent('not-empty');
+		}
 	}
 }
 
@@ -206,13 +226,91 @@ SimpleSetSelection.prototype.map = function(f) {
 	return list;
 }
 
-SimpleSetSelection.prototype.length = function(f) {
+SimpleSetSelection.prototype.length = function() {
 	return this._length;
 }
 
 SimpleSetSelection.prototype.isEmpty = function() {
 	return this._length == 0;
 }
+
+/*
+ * Flattens a single-value selection of (any kind of) selection.
+ */
+
+function FlattenSingle(selection) {
+	Utils.SimpleWatchable.call(this);
+
+	this._value = null;
+	var flatten = this;
+
+	function makeHandlers(value) {
+		return {
+			'empty': function () { flatten._triggerEvent('empty'); },
+			'not-empty': function () { flatten._triggerEvent('not-empty'); },
+			'change': function (a1, a2, a3) { flatten._triggerEvent('change', a1, a2, a3); }
+		};
+	}
+	function installHandlers(value, handlers) {
+		for (var key in handlers)
+			value.on(key, handlers[key]);
+	}
+	function removeHandlers(value, handlers) {
+		for (var key in handlers)
+			value.removeOn(key, handlers[key]);
+	}
+
+	var curHandlers = null;
+	selection.on('change', function (value) {
+		if (flatten._value != null)
+			removeHandlers(flatten._value, curHandlers);
+		var wasEmpty = flatten._value == null ? true : flatten._value.isEmpty();
+		flatten._value = value;
+		curHandlers = makeHandlers(value);
+		installHandlers(value, curHandlers);
+		var isEmpty = flatten._value.isEmpty();
+		flatten._triggerEvent('change');
+		if (isEmpty != wasEmpty)
+			flatten._triggerEvent(isEmpty ? 'empty' : 'not-empty');
+	});
+}
+
+Utils.extendObject([Utils.SimpleWatchable.prototype], FlattenSingle.prototype);
+
+FlattenSingle.prototype.mem = function(value) {
+	return this._value != null && this._value.mem(value);
+}
+
+FlattenSingle.prototype.isEmpty = function() {
+	return this._value == null || this._value.isEmpty();
+}
+
+FlattenSingle.prototype.each = function(f) {
+	if (this._value != null)
+		this._value.each(f);
+}
+
+FlattenSingle.prototype.map = function(f) {
+	if (this._value != null)
+		return this._value.map(f);
+}
+
+FlattenSingle.prototype.clear = function() {
+	if (this._value != null)
+		this._value.clear();
+}
+
+FlattenSingle.prototype.length = function() {
+	if (this._value != null)
+		return this._value.length();
+}
+
+/*
+ *	mem(x): checks if x is in the selection
+ *	isEmpty(): checks if the selection is empty
+ *	event 'empty': the selection becomes empty
+ *	event 'not-empty': the selection becomes non-empty
+ */
 
 /*
  * Setup a button to clear a selection and update its disabled status automatically.
@@ -225,7 +323,8 @@ setupSelectionClearButton = function (buttonElt, selection) {
 		buttonElt.attr('disabled', 'disabled');
 	});
 
-	buttonElt.click(function () {
+	buttonElt.click(function (fromEvent) {
+		fromEvent.stopPropagation();
 		selection.clear();
 	});
 
@@ -235,98 +334,124 @@ setupSelectionClearButton = function (buttonElt, selection) {
 		buttonElt.removeAttr('disabled');
 }
 
+function addConstraint(constraint, globalConstraintSet, otherConstraintSets) {
+	otherConstraintSets.forEach(function (cs) { cs.add(constraint); });
+	globalConstraintSet.add(constraint);
+}
+
+function removeConstraint(constraint, globalConstraintSet, otherConstraintSets) {
+	globalConstraintSet.remove(constraint);
+	otherConstraintSets.forEach(function (cs) { cs.remove(constraint); });
+}
+
 /*
  * Update a single constraint from a single-value selection.
  */ 
-function syncSingleValueSelectionWithConstraint(selection, globalQuery, ownCnstrQuery, makeConstraint, updateConstraint) {
-	var constraint = makeConstraint();
-	globalQuery.addConstraint(constraint);
-	if (ownCnstrQuery != null)
-		ownCnstrQuery.addConstraint(constraint);
-	constraint.onChange(function (changeType, query) {
-		if (changeType == 'removed' && (ownCnstrQuery == null || query == ownCnstrQuery))
-			selection.clear();
+function syncSingleValueSelectionWithConstraint(selection, connection, globalConstraintSet, otherConstraintSets, makeConstraint) {
+	var selCnstr = null;
+	function remove() {
+		var toRemove = selCnstr;
+		selCnstr = null;
+		if (toRemove != null)
+			removeConstraint(toRemove, globalConstraintSet, otherConstraintSets);
+	}
+	globalConstraintSet.on('change', function (added, removed) {
+		for (var cnstrI = 0; cnstrI < removed.length; cnstrI++)
+			if (selCnstr != null && removed[cnstrI].equals(selCnstr))
+				selection.clear();
 	});
-	selection.on('change', function (start, end) {
-		updateConstraint(constraint, selection, start, end);
-		globalQuery.update();
+	selection.on('change', function (value) {
+		remove();
+		selCnstr = makeConstraint(value);
+		addConstraint(selCnstr, globalConstraintSet, otherConstraintSets);
+		connection.update();
 	});
 	selection.on('empty', function () {
-		constraint.clear();
-		globalQuery.update();
+		remove();
+		connection.update();
 	});
 }
 
 /*
  * Update a single constraint from a set selection.
  */
-function syncSetSelectionWithConstraint(selection, globalQuery, ownCnstrQuery, makeConstraint, updateConstraint) {
-	var constraint = makeConstraint();
-	globalQuery.addConstraint(constraint);
-	if (ownCnstrQuery != null)
-		ownCnstrQuery.addConstraint(constraint);
-	constraint.onChange(function (changeType, query) {
-		if (changeType == 'removed' && (ownCnstrQuery == null || query == ownCnstrQuery))
-			selection.clear();
-	});
+function syncSetSelectionWithConstraint(selection, connection, globalConstraintSet, otherConstraintSets, makeConstraint) {
+	var constraint = null;
 	selection.on('change', function (added, removed, newLength) {
-		if (newLength > 0)
-			updateConstraint(constraint, selection, added, removed);
-		else
-			constraint.clear();
-		globalQuery.update();
+		if (constraint != null) {
+			var cnstr = constraint;
+			constraint = null;
+			removeConstraint(cnstr, globalConstraintSet, otherConstraintSets);
+		}
+		var cnstr = makeConstraint(selection);
+		if (cnstr != null) {
+			addConstraint(cnstr, globalConstraintSet, otherConstraintSets);
+			constraint = cnstr;
+		}
+		connection.update();
+	});
+	globalConstraintSet.on('change', function (added, removed, newLength) {
+		if (constraint != null)
+			for (var removedI = 0; removedI < removed.length; removedI++) {
+				var cnstr = removed[removedI];
+				if (cnstr.equals(constraint))
+					selection.clear();
+			}
 	});
 }
 
 /*
  * Generate multiple constraints from a set selection, one constraint for each item.
  */
-function syncSetSelectionWithConstraints(selection, globalQuery, ownCnstrQuery, makeConstraint) {
-	var constraints = {};
+function syncSetSelectionWithConstraints(selection, connection, globalConstraintSet, otherConstraintSets, makeConstraint) {
+	var constraintsByValue = {},
+	    valuesById = {};
 	selection.on('change', function (added, removed, newLength) {
 		if (newLength > 0) {
 			for (var valueI = 0; valueI < added.length; valueI++) {
 				var value = added[valueI];
-				if (!constraints.hasOwnProperty(value)) {
-					var constraint = makeConstraint(value);
-					constraint.onChange(function (changeType, query) {
-						if (changeType == 'removed' && query == ownCnstrQuery && constraints.hasOwnProperty(value))
-							selection.remove(value);
-					});
-					globalQuery.addConstraint(constraint);
-					ownCnstrQuery.addConstraint(constraint);
-					constraints[value] = constraint;
+				if (!constraintsByValue.hasOwnProperty(value)) {
+					var cnstr = makeConstraint(value);
+					addConstraint(cnstr, globalConstraintSet, otherConstraintSets);
+					constraintsByValue[value] = cnstr;
+					valuesById[cnstr.id()] = value;
 				} else
 					console.log("error: duplicate constraint for value '" + value + "'");
 			}
 			for (var valueI = 0; valueI < removed.length; valueI++) {
 				var value = removed[valueI];
-				var constraint = constraints[value];
-				delete constraints[value];
-				globalQuery.removeConstraint(constraint);
-				ownCnstrQuery.removeConstraint(constraint);
+				var cnstr = constraintsByValue[value];
+				delete constraintsByValue[value];
+				delete valuesById[cnstr.id()];
+				removeConstraint(cnstr, globalConstraintSet, otherConstraintSets);
 			}
-			globalQuery.update();
-		} else {
-			var hadConstraints = false;
-			for (var value in constraints) {
-				if (constraints.hasOwnProperty(value)) {
-					var constraint = constraints[value];
-					globalQuery.removeConstraint(constraint);
-					ownCnstrQuery.removeConstraint(constraint);
-					hadConstraints = true;
+			connection.update();
+		} else if (Object.keys(constraintsByValue).length > 0) {
+			for (value in constraintsByValue) {
+				var cnstr = constraintsByValue[value];
+				removeConstraint(cnstr, globalConstraintSet, otherConstraintSets);
+			}
+			constraintsByValue = {};
+			valuesById = {};
+			connection.update();
+		}
+	});
+	globalConstraintSet.on('change', function (added, removed, newLength) {
+		selection.modify(function (modifySel) {
+			for (var removedI = 0; removedI < removed.length; removedI++) {
+				var cnstr = removed[removedI];
+				if (valuesById.hasOwnProperty(cnstr.id())) {
+					modifySel.remove(valuesById[cnstr.id()]);
 				}
 			}
-			constraints = {};
-			if (hadConstraints)
-				globalQuery.update();
-		}
+		});
 	});
 }
 
 return {
 	SimpleSingleValueSelection: SimpleSingleValueSelection,
 	SimpleSetSelection: SimpleSetSelection,
+	FlattenSingle: FlattenSingle,
 	setupSelectionClearButton: setupSelectionClearButton,
 	syncSingleValueSelectionWithConstraint: syncSingleValueSelectionWithConstraint,
 	syncSetSelectionWithConstraint: syncSetSelectionWithConstraint,

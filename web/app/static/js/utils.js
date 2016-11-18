@@ -39,10 +39,23 @@ function SimpleWatchable() {
 	this._watchers = {};
 }
 
-SimpleWatchable.prototype.on = function (eventType, callback) {
+SimpleWatchable.prototype.on = function (eventType, callback, priority) {
 	if (!this._watchers.hasOwnProperty(eventType))
 		this._watchers[eventType] = [];
-	this._watchers[eventType].push(callback);
+	if (priority)
+		this._watchers[eventType].unshift(callback);
+	else
+		this._watchers[eventType].push(callback);
+	return this;
+}
+
+SimpleWatchable.prototype.removeOn = function (eventType, callback) {
+	if (this._watchers.hasOwnProperty(eventType)) {
+		var i = this._watchers[eventType].indexOf(callback);
+		if (i >= 0)
+			this._watchers[eventType].splice(i, 1);
+	}
+	return this;
 }
 
 SimpleWatchable.prototype._triggerEvent = function(eventType) {

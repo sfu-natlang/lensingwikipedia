@@ -7,11 +7,9 @@ var Textsearch = (function () {
 /*
  * Setup the control in some container element.
  * container: container element as a jquery selection
- * globalQuery: the global query
+ * parameters: shared view parameters
  */
 function setup(container, parameters) {
-    var globalQuery = parameters.globalQuery;
-
 	var outerElt = $('<div class="textsearch"></div>').appendTo(container);
 
 	var formElt = $('<form></form>').appendTo(outerElt);
@@ -46,25 +44,28 @@ function setup(container, parameters) {
 
 	LayoutUtils.fillElement(container, outerElt, 'vertical');
 
-	var ownCnstrQuery = new Queries.Query(globalQuery.backendUrl());
-
 	var selection = new Selections.SimpleSingleValueSelection();
-	Selections.setupSelectionClearButton(clearElt, selection);
-	Selections.syncSingleValueSelectionWithConstraint(selection, globalQuery, ownCnstrQuery, function () {
-		return new Queries.Constraint();
-	}, function (constraint, selection, searchTerm) {
-		constraint.name("Text search: " + searchTerm);
-		constraint.set({
+
+	Selections.syncSingleValueSelectionWithConstraint(selection, parameters.connection, parameters.globalConstraintSet, [], function (searchTerm) {
+		return new Queries.Constraint({
 			type: 'textsearch',
 			value: searchTerm
-		});
+		}, "Text search: " + searchTerm);
 	});
 
+	Selections.setupSelectionClearButton(clearElt, selection);
 	selection.on('empty', function () {
 		if (searchInputElt.val() != "")
 			searchInputElt.val("");
+		searchElt.attr('disabled', 'disabled');
 	});
-
+	searchInputElt.bind('input', function() {
+		if (searchInputElt.val().length > 0)
+			searchElt.removeAttr('disabled');
+		else
+			searchElt.attr('disabled', 'disabled');
+	});
+	searchElt.attr('disabled', 'disabled');
 	searchElt.bind('click', function() {
 		var searchTerm = $.trim(searchInputElt.val());
 		if (searchTerm.length > 0)

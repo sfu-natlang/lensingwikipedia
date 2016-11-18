@@ -248,142 +248,142 @@ function drawMarkers(svg, group, proj, initialCounts, contextCounts, refPointLin
  * Make and manage the extra interface controls.
  */
 function makeControls(container, projections, minZoom, maxZoom, defaults) {
-    container.append(' \
-        <div class="selbox"> \
-            <button type="button" class="btn btn-mini btn-warning clear mapclear" title="Clear the map selection.">Clear selection</button> \
-            <div class="btn-group mode" data-toggle="buttons-radio"></div> \
-        </div> \
-        <div class="viewbox"> \
-            <div class="btn-group zoomcontrols"> \
-                <button class="btn btn-mini zoomout" title="Zoom out.">-</button> \
-                <a class="btn btn-mini dropdown-toggle zoomlevelbtn" data-toggle="dropdown" href="#"><span class="value"></span><span class="caret"></span></a> \
-                <div class="dropdown-menu zoomlevelmenu"> \
-                    <div class="btn-group btn-group-vertical zoomlevel" data-toggle="buttons-radio"></div> \
-                </div> \
-                <button class="btn btn-mini zoomin" title="Zoom in.">+</button> \
-            </div> \
-            <button type="button" class="btn btn-mini centreview" title="Re-centre the view.">Centre</button> \
-            <div class="btn-group"> \
-                <a class="btn btn-mini dropdown-toggle view" data-toggle="dropdown" href="#" title="View settings.">View<span class="caret"></span></a> \
-                <div class="dropdown-menu viewsettingsmenu"> \
-                    <div class="btn-group btn-group-vertical projection" data-toggle="buttons-radio"></div> \
-                    <ul class="viewchoices"></ul> \
-                </div> \
-            </div> \
-        </div> \
-    ');
+	container.append(' \
+		<div class="selbox"> \
+			<button type="button" class="btn btn-mini btn-warning clear mapclear" title="Clear the map selection.">Clear selection</button> \
+			<div class="btn-group mode" data-toggle="buttons-radio"></div> \
+		</div> \
+		<div class="viewbox"> \
+			<div class="btn-group zoomcontrols"> \
+				<button class="btn btn-mini zoomout" title="Zoom out.">-</button> \
+				<a class="btn btn-mini dropdown-toggle zoomlevelbtn" data-toggle="dropdown" href="#"><span class="value"></span><span class="caret"></span></a> \
+				<div class="dropdown-menu zoomlevelmenu"> \
+					<div class="btn-group btn-group-vertical zoomlevel" data-toggle="buttons-radio"></div> \
+				</div> \
+				<button class="btn btn-mini zoomin" title="Zoom in.">+</button> \
+			</div> \
+			<button type="button" class="btn btn-mini centreview" title="Re-centre the view.">Centre</button> \
+			<div class="btn-group"> \
+				<a class="btn btn-mini dropdown-toggle view" data-toggle="dropdown" href="#" title="View settings.">View<span class="caret"></span></a> \
+				<div class="dropdown-menu viewsettingsmenu"> \
+					<div class="btn-group btn-group-vertical projection" data-toggle="buttons-radio"></div> \
+					<ul class="viewoptionals"></ul> \
+				</div> \
+			</div> \
+		</div> \
+	');
 
-    var modeElt = container.find(".selbox .mode");
-    var inputModes = {
-        toggle: { title: "Toggle", desc: "Input mode to toggle selection on individual markers." },
-        drag: { title: "Drag", desc: "Input mode to drag-select markers." },
-        pan: { title: "Pan", desc: "Input mode to pan the view without changing the selection." }
-    };
-    $.each(inputModes, function (key, value) {
-        $('<button class="btn btn-mini" value="' + key + '" title="' + value.desc + '">' + value.title + '</button>').appendTo(modeElt);
-    });
-    function updateSelMode() {
-        var defBtn = modeElt.find("button[value=" + defaults.selectionMode + "]");
-        defBtn.button('toggle');
-        defBtn.trigger('click');
-    }
+	var modeElt = container.find(".selbox .mode");
+	var inputModes = {
+		toggle: { title: "Toggle", desc: "Input mode to toggle selection on individual markers." },
+		drag: { title: "Drag", desc: "Input mode to drag-select markers." },
+		pan: { title: "Pan", desc: "Input mode to pan the view without changing the selection." }
+	};
+	$.each(inputModes, function (key, value) {
+		$('<button class="btn btn-mini" value="' + key + '" title="' + value.desc + '">' + value.title + '</button>').appendTo(modeElt);
+	});
+	function updateSelMode() {
+		var defBtn = modeElt.find("button[value=" + defaults.selectionMode + "]");
+		defBtn.button('toggle');
+		defBtn.trigger('click');
+	}
 
-    var curZoom = defaults.zoomLevel;
-    var zoomBtnElt = container.find(".zoomlevelbtn");
-    var zoomElt = container.find(".zoomlevel");
-    $.each([1, 2, 3, 4, 5], function (key, value) {
-        $('<button class="btn btn-mini" value="' + value + '" + title="Zoom level ' + value + '.">' + value + '</button>').appendTo(zoomElt);
-    });
-    zoomElt.find("button").bind('click', function (e) {
-        var value = $(this).val();
-        zoomBtnElt.find(".value").html(value);
-        $(this).button('toggle');
-        curZoom = +value;
-        if (e.hasOwnProperty('originalEvent'))
-            Utils.log("map zoom, " + curZoom);
-    });
-    function updateZoom() {
-        var btn = zoomElt.find("button[value=" + curZoom + "]");
-        btn.button('toggle');
-        btn.trigger('click');
-    }
+	var curZoom = defaults.zoomLevel;
+	var zoomBtnElt = container.find(".zoomlevelbtn");
+	var zoomElt = container.find(".zoomlevel");
+	$.each([1, 2, 3, 4, 5], function (key, value) {
+		$('<button class="btn btn-mini" value="' + value + '" + title="Zoom level ' + value + '.">' + value + '</button>').appendTo(zoomElt);
+	});
+	zoomElt.find("button").bind('click', function (e) {
+		var value = $(this).val();
+		zoomBtnElt.find(".value").html(value);
+		$(this).button('toggle');
+		curZoom = +value;
+		if (e.hasOwnProperty('originalEvent'))
+		    Utils.log("map zoom, " + curZoom);
+	});
+	function updateZoom() {
+		var btn = zoomElt.find("button[value=" + curZoom + "]");
+		btn.button('toggle');
+		btn.trigger('click');
+	}
 
-    var zoomOutEnt = container.find(".zoomout");
-    var zoomInElt = container.find(".zoomin");
-    zoomOutEnt.on('click', function () {
-        if (curZoom > minZoom) {
-            curZoom -= 1;
-            updateZoom();
-        }
-    });
-    zoomInElt.on('click', function () {
-        if (curZoom < maxZoom) {
-            curZoom += 1;
-            updateZoom();
-        }
-    });
+	var zoomOutEnt = container.find(".zoomout");
+	var zoomInElt = container.find(".zoomin");
+	zoomOutEnt.on('click', function () {
+		if (curZoom > minZoom) {
+			curZoom -= 1;
+			updateZoom();
+		}
+	});
+	zoomInElt.on('click', function () {
+		if (curZoom < maxZoom) {
+			curZoom += 1;
+			updateZoom();
+		}
+	});
 
-    var projElt = container.find(".projection");
-    $.each(projections, function (key, proj) {
-        $('<button class="btn btn-mini" value="' + key + '" title="' + proj.longName + ' projection.">' + proj.name + '</button>').appendTo(projElt);
-    });
-    projElt.find("button").bind('click', function () {
-        $(this).button('toggle');
-    });
-    function updateProj() {
-        var curProj = defaults.projection;
-        var btn = projElt.find("button[value=" + curProj + "]");
-        btn.button('toggle');
-        btn.trigger('click');
-    }
+	var projElt = container.find(".projection");
+	$.each(projections, function (key, proj) {
+		$('<button class="btn btn-mini" value="' + key + '" title="' + proj.longName + ' projection.">' + proj.name + '</button>').appendTo(projElt);
+	});
+	projElt.find("button").bind('click', function () {
+		$(this).button('toggle');
+	});
+	function updateProj() {
+		var curProj = defaults.projection;
+		var btn = projElt.find("button[value=" + curProj + "]");
+		btn.button('toggle');
+		btn.trigger('click');
+	}
 
-    var choicesElt = container.find(".viewchoices");
-    var viewChoices = {
-        graticule: { title: "Graticules", desc: "Toggle graticule lines." },
-        currentcountryboundary: { title: "Current countries", desc: "Show boundaries of currently existing countries." }
-    };
-    $.each(viewChoices, function (key, value) {
-        $('<li><label class="checkbox" title="' + value.desc + '"><input type="checkbox" value="' + key + '">' + value.title + '</label></li>').appendTo(choicesElt);
-    });
-    // First pass to make the checkedness consistent
-    $.each(defaults.viewChoices, function (key, value) {
-        if (!value)
-            choicesElt.find("input[value=" + key + "]").trigger('click');
-    });
-    function updateViewChoices() {
-        var curChoices = defaults.viewChoices;
-        $.each(curChoices, function (key, value) {
-            choicesElt.find("input[value=" + key + "]").trigger('click');
-        });
-    }
+	var viewOptionalsElt = container.find(".viewoptionals");
+	var viewOptionals = {
+		graticule: { title: "Graticules", desc: "Toggle graticule lines." },
+		currentcountryboundary: { title: "Current countries", desc: "Show boundaries of currently existing countries." }
+	};
+	$.each(viewOptionals, function (key, value) {
+		$('<li><label class="checkbox" title="' + value.desc + '"><input type="checkbox" value="' + key + '">' + value.title + '</label></li>').appendTo(viewOptionalsElt);
+	});
+	// First pass to make the checkedness consistent
+	$.each(defaults.viewOptionals, function (key, value) {
+		if (!value)
+			viewOptionalsElt.find("input[value=" + key + "]").trigger('click');
+	});
+	function updateViewOptionals() {
+		var curOptionals = defaults.viewOptionals;
+		$.each(curOptionals, function (key, value) {
+			viewOptionalsElt.find("input[value=" + key + "]").trigger('click');
+		});
+	}
 
-    // Have our dropdown menus not close on a click inside them. This means that we
-    // have to manually call button('toggle') in a couple of places above to keep
-    // the visuals working.
-    container.find(".dropdown-menu").bind('click', function (event) {
-        event.stopPropagation();
-    });
+	// Have our dropdown menus not close on a click inside them. This means that we
+	// have to manually call button('toggle') in a couple of places above to keep
+	// the visuals working.
+	container.find(".dropdown-menu").bind('click', function (event) {
+		event.stopPropagation();
+	});
 
-    return function () {
-        updateSelMode();
-        updateZoom();
-        updateProj();
-        updateViewChoices();
-    }
+	return function () {
+		updateSelMode();
+		updateZoom();
+		updateProj();
+		updateViewOptionals();
+	}
 }
 
 /*
  * Restore settings from cookies.
  */
 function loadSettingsCookies(defaults) {
-    var value = $.cookie("mapprojection");
-    if (value != null && mapProjections.hasOwnProperty(value))
-        defaults.projection = value;
-    $.each(defaults.viewChoices, function (setting, choice) {
-        var value = $.cookie("mapviewchoice" + setting);
-        if (value != null)
-            defaults.viewChoices[setting] = (value == 'true');
-    });
+	var value = $.cookie("mapprojection");
+	if (value != null && mapProjections.hasOwnProperty(value))
+		defaults.projection = value;
+	$.each(defaults.viewOptionals, function (setting, choice) {
+		var value = $.cookie("mapviewchoice" + setting);
+		if (value != null)
+			defaults.viewOptionals[setting] = (value == 'true');
+	});
 }
 
 /*
@@ -430,295 +430,263 @@ function syncMarkerStylesWithSelection(svg, selection) {
 /*
  * Setup the control in some container element.
  * container: container element as a jquery selection
- * initialQuery: the initial (empty) query
- * globalQuery: the global query
- * mapDataUrl: the URL for the map data file (for world data like continent
- *  outlines), which can be relative
- * minZoom: minimum allowed zoom level
- * maxZoom: maximum allowed zoom level
+ * parameters: shared view control parameters
  */
 function setup(container, parameters) {
-    var initialQuery = parameters.initialQuery;
-    var globalQuery = parameters.globalQuery;
-    var mapDataUrl = parameters.mapDataUrl;
-    var minZoom = parameters.minMapZoom;
-    var maxZoom = parameters.maxMapZoom;
+	// The view space for SVG; this doesn't have to correspond to screen units.
+	var viewBox = { x: 0, y : 0, width: 1024, height: 768 };
+	// Margins for the map.
+	var margins = { left: 10, right: 10, top: 10, bottom: 10, between: 10 };
 
-    // The view space for SVG; this doesn't have to correspond to screen units.
-    var viewBox = { x: 0, y : 0, width: 1024, height: 768 };
-    // Margins for the map.
-    var margins = { left: 10, right: 10, top: 10, bottom: 10, between: 10 };
+	var outerElt = $('<div class="map"></div>').appendTo(container);
+	var topBoxElt = $('<div class="topbox"></div>').appendTo(outerElt);
+	var svgElt = $('<svg viewBox="' + viewBox.x + " " + viewBox.y + " " + viewBox.width + " " + viewBox.height + '" preserveAspectRatio="xMidYMid meet"></svg>').appendTo(outerElt);
+	var loadingIndicator = new LoadingIndicator.LoadingIndicator(outerElt);
 
-    var outerElt = $('<div class="map"></div>').appendTo(container);
-    var topBoxElt = $('<div class="topbox"></div>').appendTo(outerElt);
-    var svgElt = $('<svg viewBox="' + viewBox.x + " " + viewBox.y + " " + viewBox.width + " " + viewBox.height + '" preserveAspectRatio="xMidYMid meet"></svg>').appendTo(outerElt);
-    var loadingIndicator = new LoadingIndicator.LoadingIndicator(outerElt);
+	var defaultSettings = {
+		selectionMode: 'toggle',
+		zoomLevel: 1,
+		projection: defaultMapProjection,
+		viewOptionals: {
+			graticule: false,
+			currentcountryboundary: false
+		}
+	};
+	loadSettingsCookies(defaultSettings);
+	var initControls = makeControls(topBoxElt, mapProjections, parameters.minMapZoom, parameters.maxMapZoom, defaultSettings);
 
-    var defaultSettings = {
-        selectionMode: 'toggle',
-        zoomLevel: 1,
-        projection: defaultMapProjection,
-        viewChoices: {
-            graticule: false,
-            currentcountryboundary: false
-        }
-    };
-    loadSettingsCookies(defaultSettings);
-    var initControls = makeControls(topBoxElt, mapProjections, minZoom, maxZoom, defaultSettings);
+	LayoutUtils.fillElement(container, outerElt, 'vertical');
+	LayoutUtils.setupPanelled(outerElt, topBoxElt, svgElt, 'vertical', 0, false);
 
-    LayoutUtils.fillElement(container, outerElt, 'vertical');
-    LayoutUtils.setupPanelled(outerElt, topBoxElt, svgElt, 'vertical', 0, false);
+	var svg = D3Utils.jqueryToD3(svgElt);
+	var box = { x: viewBox.x + margins.left, y: viewBox.y + margins.top, width: viewBox.width - margins.left - margins.right, height: viewBox.height - margins.top - margins.bottom };
 
-    var svg = D3Utils.jqueryToD3(svgElt);
-    var box = { x: viewBox.x + margins.left, y: viewBox.y + margins.top, width: viewBox.width - margins.left - margins.right, height: viewBox.height - margins.top - margins.bottom };
+	var localConstraintSet = new Queries.ConstraintSets.ConstraintSet();
 
-    var ownCnstrQuery = new Queries.Query(globalQuery.backendUrl());
-    var contextQuery = new Queries.Query(globalQuery.backendUrl(), 'setminus', globalQuery, ownCnstrQuery);
+	var selection = new Selections.SimpleSetSelection();
+	Selections.syncSetSelectionWithConstraint(selection, parameters.connection, parameters.globalConstraintSet, [localConstraintSet], function (selection) {
+		if (selection.isEmpty())
+			return null;
+		var selPointStrs = [];
+		selection.each(function (pointStr) {
+			selPointStrs.push(pointStr);
+		});
+		return new Queries.Constraint({
+			type: 'referencepoints',
+			points: selPointStrs
+		}, "Map: " + selPointStrs.length + (selPointStrs.length == 1 ? " marker" : " markers"));
+	});
+	setupSelectionClearButton(topBoxElt.find(".selbox .clear"), selection);
+	syncMarkerStylesWithSelection(svg, selection);
 
-    function setLoadingIndicator(enabled) {
-        svgElt.css('display', !enabled ? '' : 'none');
-        loadingIndicator.enabled(enabled);
-    }
-    setLoadingIndicator(true);
+	// This state that needs to leak out of the drawing code or needs to be shared both ways
+	var allPointStrs = {},
+	    curState = null,
+	    curProj = null,
+	    panFactor = 1.0;
 
-    var mapData = null,
-        refPointLinkLookup = null,
-        initialCounts = null,
-        contextCounts = null,
-        projection = null,
-        zoomLevel = null,
-        viewChoices = {},
-        pan = null;
-    var curState = null,
-        curProj = null,
-        panFactor = 1.0;
-    var selMode = null,
-        allPointStrs = {};
+	var projectionSel = new Selections.SimpleSingleValueSelection(),
+	    zoomLevelSel = new Selections.SimpleSingleValueSelection(),
+	    viewOptionalsSel = new Selections.SimpleSingleValueSelection(),
+	    panSel = new Selections.SimpleSingleValueSelection([0, 0]),
+	    selModeSel = new Selections.SimpleSingleValueSelection();
+	var emptyConstraintSet = new Queries.ConstraintSets.ConstraintSet();
+	var data = new DataSource.Merged({
+			mapData: new DataSource.Json(parameters.mapDataUrl),
+			links: new DataSource.Map(
+					new Queries.Queries.Query(
+						parameters.connection,
+						emptyConstraintSet,
+						{ type: 'referencepointlinks' }
+					),
+					function (result) { return makeRefPointLinkLookup(result); }
+				),
+			initialCounts: new Queries.Queries.Query(
+					parameters.connection,
+					emptyConstraintSet,
+					{ type: 'countbyreferencepoint' }
+				),
+			contextCounts: new Queries.Queries.Query(
+					parameters.connection,
+					new Queries.ConstraintSets.SetMinus(parameters.globalConstraintSet, localConstraintSet),
+					{ type: 'countbyreferencepoint' }
+				),
+			projection: new DataSource.OfSingleValueSelection(projectionSel),
+			zoomLevel: new DataSource.OfSingleValueSelection(zoomLevelSel),
+			viewOptionals: new DataSource.OfSingleValueSelection(viewOptionalsSel),
+			pan: new DataSource.OfSingleValueSelection(panSel),
+		});
 
-    var selection = new Selections.SimpleSetSelection();
-    Selections.syncSetSelectionWithConstraint(selection, globalQuery, ownCnstrQuery, function () {
-        return new Queries.Constraint();
-    }, function (constraint, selection, changeType, changeValues) {
-        var selPointStrs = [];
-        selection.each(function (pointStr) {
-            selPointStrs.push(pointStr);
-        });
-        constraint.name("Map: " + selPointStrs.length + (selPointStrs.length == 1 ? " marker" : " markers"));
-        constraint.set({
-            type: 'referencepoints',
-            points: selPointStrs
-        });
-    });
-    setupSelectionClearButton(topBoxElt.find(".selbox .clear"), selection);
-    syncMarkerStylesWithSelection(svg, selection);
+	DataSource.setupMergedDataLoadingIndicator(loadingIndicator, data, [svgElt]);
 
-    function update(quick) {
-        if (mapData == null || initialCounts == null || contextCounts == null || projection == null || zoomLevel == null || viewChoices == null || pan == null) {
-            svgElt.css('display', 'none');
-            setLoadingIndicator(true);
-        } else {
-            setLoadingIndicator(false);
-            svgElt.css('display', '');
-            if (curProj == null) {
-                curProj = projection.proj();
-                curProj.translate([viewBox.x + viewBox.width / 2, viewBox.y + viewBox.height / 2]);
-            }
-            var totalScaleFactorChange = projection.scaleFactorChange * (zoomLevel - 1);
-            var newScale = viewBox.width * (projection.initialScaleFactor + totalScaleFactorChange);
-            var oldScale = curProj.scale();
-            curProj.scale(newScale);
-            if (curState == null) {
-                svgElt.find(".map").remove();
-                curState = {};
-                curState.group = svg.append("g");
-                curState.path = drawWorld(svg, curState.group, mapData, curProj);
-                newPath = true;
-            } else if (!quick) {
-                curState.path.projection(curProj);
-            }
-            if (projection.panMode == 'translate') {
-                var f = newScale / oldScale;
-                pan = [pan[0] * f, pan[1] * f];
-                panFactor = 1.0;                
-                curState.group.attr("transform", "translate(" + pan[0] + "," + pan[1] + ")");
-            } else if (projection.panMode == 'rotate') {
-                panFactor = 0.7 / (0.85 * zoomLevel);
-                curState.group.attr("transform", "");
-                curProj.rotate([pan[0], -pan[1]]);
-            } else
-                console.log('warning: unknown projection pan mode "' + projection.panMode + '"');
-            if (!quick || projection.panMode == 'rotate') {
-                svg.selectAll("path").attr("d", curState.path);
-                $.each(viewChoices, function (setting, choice) {
-                    svg.select("." + setting).style('display', choice ? '' : 'none');
-                });
-                svgElt.find(".marker").remove();
-                var ret = drawMarkers(svg, curState.group, curProj, initialCounts, contextCounts, refPointLinkLookup);
-                curState.markersPath = ret.path;
-                curState.screenPoints = ret.screenPoints;
-            }
-            styleSelectedMarkers(svg, selection);
-        }
-    }
-    function resetProjection() {
-        pan = [0, 0];
-        curProj = null;
-    }
+	data.on('result', function (results, changes) {
+		var initialCounts = Utils.pairListToDict(results.initialCounts.counts);
+		var contextCounts = Utils.pairListToDict(results.contextCounts.counts);
+		for (var pointStr in initialCounts)
+			allPointStrs[pointStr] = true;
 
-    d3.json(mapDataUrl , function(error, incoming) {
-        mapData = incoming;
-        update();
-    });
+		svgElt.css('display', '');
 
-    topBoxElt.find(".selbox .mode button").bind('click', function () {
-        selMode = $(this).val();
-    });
-    topBoxElt.find(".viewbox .zoomlevel button").bind('click', function () {
-        var zoom = +$(this).val();
-        if (zoom != zoomLevel) {
-            zoomLevel = zoom;
-            update();
-        }
-    });
-    topBoxElt.find(".viewbox .projection button").bind('click', function () {
-        var name = $(this).val();
-        resetProjection();
-        projection = mapProjections[name];
-        saveSettingsCookie("mapprojection", name);
-        update();
-    });
-    topBoxElt.find(".viewbox .centreview").bind('click', function () {
-        resetProjection();
-        update();
-    });
-    topBoxElt.find(".viewbox .viewchoices input").bind('click', function () {
-        var setting = $(this).val();
-        var choice = $(this).prop('checked');
-        viewChoices[setting] = choice;
-        saveSettingsCookie("mapviewchoice" + setting, choice);
-        update();
-    });
+		var quick = curProj != null;
+		for (var dataSource in changes)
+			quick = quick && (dataSource == 'pan' || !changes[dataSource]);
 
-    var drag = d3.behavior.drag();
-    var mouseDownOnMarker = false;
-    pan = [0, 0];
-    $(svg).bind('clickmarkerdown', function (event, pointStr) {
-        if (d3.event.button == 0)
-            mouseDownOnMarker = true;
-    });
-    $(svg).bind('clickmarkerup', function (event, pointStr) {
-        if (mouseDownOnMarker && selMode == 'toggle') {
-            selection.toggle(pointStr);
+		if (curProj == null) {
+			curProj = results.projection.proj();
+			curProj.translate([viewBox.x + viewBox.width / 2, viewBox.y + viewBox.height / 2]);
+		}
 
-            // this is basically the same as what happens in
-            // selection.toggle, but as we can't hook into that
-            // code directly, we'll have to reproduce it here
-            //
-            // NOTE: the if/else is swapped from selection.toggle
-            // since the toggle has already happened!
-            var pointsStrHash = selection.hashValue(pointStr);
-            if (selection._selected.hasOwnProperty(pointsStrHash))
-                Utils.log("map filter, " + pointStr);
-            else
-                Utils.log("map filter, remove:" + pointStr);
-        }
-    });
-    D3Utils.makeDragEndWatcher(drag, function () {
-        mouseDownOnMarker = false;
-    });
-    D3Utils.makeDragPan(drag, function (movement) {
-        pan = movement;
-        update(true);
-    }, function () { return [pan[0], pan[1]]; }, function () { return panFactor; }, function () {
-        return (selMode == 'toggle' && !mouseDownOnMarker) || selMode == 'pan';
-    });
-    D3Utils.makeDragSelector(drag, svg, "dragselectextent", function (extent) {
-        if (curState.screenPoints != null) {
-            var offset = projection.panMode == 'translate' ? pan : [0, 0];
-            var toSel = [];
-            selection.modify(function (selMod) {
-                for (var pointStr in allPointStrs)
-                    if (curState.screenPoints.hasOwnProperty(pointStr)) {
-                        var x = curState.screenPoints[pointStr][0], y = curState.screenPoints[pointStr][1];
-                        if (x >= extent[0][0] - offset[0] && y >= extent[0][1] - offset[1] && x <= extent[1][0] - offset[0] && y <= extent[1][1] - offset[1])
-                            selMod.add(pointStr);
-                    }
-            });
-        }
-    }, function () {
-        return selMode == 'drag';
-    });
-    svg.call(drag);
+		var totalScaleFactorChange = results.projection.scaleFactorChange * (results.zoomLevel - 1);
+		var newScale = viewBox.width * (results.projection.initialScaleFactor + totalScaleFactorChange);
+		var oldScale = curProj.scale();
+		curProj.scale(newScale);
 
-    var prev_pan = [0, 0];
-    drag.on("dragend.pan", function () {
-        // since clicking a marker on the map will also register a drag event,
-        // we need to check if there was actually any drag.
-        // TODO: figure out how to prevent this event being triggered on a
-        // marker click (if it's even posible)
-        if (prev_pan.toString() !== pan.toString()) {
-            Utils.log("map pan, " + pan);
-            prev_pan = pan.slice();
-        }
-        console.log(drag);
-    });
+		if (curState == null) {
+			svgElt.find(".map").remove();
+			curState = {};
+			curState.group = svg.append("g");
+			curState.path = drawWorld(svg, curState.group, results.mapData, curProj);
+		} else if (!quick) {
+			curState.path.projection(curProj);
+		}
 
-    initialQuery.onChange(function () {
-        initialCounts = null;
-        update();
-    });
-    initialQuery.onResult({
-        counts: { type: 'countbyreferencepoint' },
-        links: { type: 'referencepointlinks' }
-    }, function (result) {
-        if (result.counts.hasOwnProperty('error') || result.links.hasOwnProperty('error')) {
-            loadingIndicator.error('counts', true);
-            setLoadingIndicator(true);
-        } else {
-            loadingIndicator.error('counts', false);
-            initialCounts = Utils.pairListToDict(result.counts.counts);
-            refPointLinkLookup = makeRefPointLinkLookup(result.links);
-            for (var pointStr in initialCounts)
-                allPointStrs[pointStr] = true;
-            update();
-        }
-    });
-    contextQuery.onChange(function () {
-        contextCounts = null;
-        for (var pointStr in contextCounts)
-            allPointStrs[pointStr] = true;
-        update();
-    });
-    contextQuery.onResult({
-        counts: { type: 'countbyreferencepoint' }
-    }, function (result) {
-        if (result.counts.hasOwnProperty('error')) {
-            loadingIndicator.error('counts', true);
-            setLoadingIndicator(true);
-        } else {
-            loadingIndicator.error('counts', false);
-            contextCounts = Utils.pairListToDict(result.counts.counts);
-            update();
-        }
-    });
+		if (results.projection.panMode == 'translate') {
+			var f = newScale / oldScale;
+			var usePan = [results.pan[0] * f, results.pan[1] * f];
+			panFactor = 1.0;				
+			curState.group.attr("transform", "translate(" + usePan[0] + "," + usePan[1] + ")");
+		} else if (results.projection.panMode == 'rotate') {
+			panFactor = 0.7 / (0.85 * results.zoomLevel);
+			curState.group.attr("transform", "");
+			curProj.rotate([results.pan[0], -results.pan[1]]);
+		} else
+			console.log('warning: unknown projection pan mode "' + results.projection.panMode + '"');
 
-    function onMouseWheel(event) {
-        var dir = event.wheelDelta != null ? event.wheelDelta : -event.detail;
-        if (dir != 0 ) {
-            var btnClass = dir < 0 ? ".zoomout" : ".zoomin";
-            topBoxElt.find(".viewbox " + btnClass).trigger('click');
-        }
-        return false;
-    }
-    if (svgElt[0].addEventListener)
-        svgElt[0].addEventListener('DOMMouseScroll', onMouseWheel, false);
-    svgElt[0].onmousewheel = onMouseWheel;
+		if (!quick || results.projection.panMode == 'rotate') {
+			svg.selectAll("path").attr("d", curState.path);
+			$.each(results.viewOptionals, function (setting, choice) {
+				svg.select("." + setting).style('display', choice ? '' : 'none');
+			});
+			svgElt.find(".marker").remove();
+			var ret = drawMarkers(svg, curState.group, curProj, initialCounts, contextCounts, results.links);
+			curState.markersPath = ret.path;
+			curState.screenPoints = ret.screenPoints;
+		}
 
-    initControls();
+		styleSelectedMarkers(svg, selection);
+	});
 
-    return {
-        selection: selection
-    };
+	function resetProjection() {
+		panSel.set([0, 0]);
+		curProj = null;
+	}
+
+	topBoxElt.find(".selbox .mode button").bind('click', function () {
+		selModeSel.set($(this).val());
+	});
+	topBoxElt.find(".viewbox .zoomlevel button").bind('click', function () {
+		zoomLevelSel.set(+$(this).val());
+	});
+	topBoxElt.find(".viewbox .projection button").bind('click', function () {
+		var name = $(this).val();
+		saveSettingsCookie("mapprojection", name);
+		resetProjection();
+		projectionSel.set(mapProjections[name]);
+	});
+	topBoxElt.find(".viewbox .centreview").bind('click', function () {
+		resetProjection();
+	});
+	topBoxElt.find(".viewbox .viewoptionals input").bind('click', function () {
+		var setting = $(this).val();
+		var choice = $(this).prop('checked');
+		var viewOptionals = {};
+		if (!viewOptionalsSel.isEmpty())
+			$.extend(true, viewOptionals, viewOptionalsSel.get());
+		viewOptionals[setting] = choice;
+		saveSettingsCookie("mapviewchoice" + setting, choice);
+		viewOptionalsSel.set(viewOptionals);
+	});
+
+	var drag = d3.behavior.drag();
+	var mouseDownOnMarker = false;
+	$(svg).bind('clickmarkerdown', function (event, pointStr) {
+		if (d3.event.button == 0)
+			mouseDownOnMarker = true;
+	});
+	$(svg).bind('clickmarkerup', function (event, pointStr) {
+		if (mouseDownOnMarker && selModeSel.get() == 'toggle') {
+			selection.toggle(pointStr);
+			// this is basically the same as what happens in
+			// selection.toggle, but as we can't hook into that
+			// code directly, we'll have to reproduce it here
+			//
+			// NOTE: the if/else is swapped from selection.toggle
+			// since the toggle has already happened!
+			var pointsStrHash = selection.valueHash(pointStr);
+			if (selection._selected.hasOwnProperty(pointsStrHash))
+				Utils.log("map filter, " + pointStr);
+			else
+				Utils.log("map filter, remove:" + pointStr);
+		}
+	});
+	D3Utils.makeDragEndWatcher(drag, function () {
+		mouseDownOnMarker = false;
+	});
+	D3Utils.makeDragPan(drag, function (movement) {
+		if (selModeSel.get() != 'drag')
+			panSel.set(movement);
+	}, function () { var p = panSel.get(); return [p[0], p[1]]; }, function () { return panFactor; }, function () {
+		return (selModeSel.get() == 'toggle' && !mouseDownOnMarker) || selModeSel.get() == 'pan';
+	});
+	D3Utils.makeDragSelector(drag, svg, "dragselectextent", function (extent) {
+		if (curState.screenPoints != null) {
+			var offset = projectionSel.get().panMode == 'translate' ? panSel.get() : [0, 0];
+			var toSel = [];
+			selection.modify(function (selMod) {
+				for (var pointStr in allPointStrs)
+					if (curState.screenPoints.hasOwnProperty(pointStr)) {
+						var x = curState.screenPoints[pointStr][0], y = curState.screenPoints[pointStr][1];
+						if (x >= extent[0][0] - offset[0] && y >= extent[0][1] - offset[1] && x <= extent[1][0] - offset[0] && y <= extent[1][1] - offset[1])
+							selMod.add(pointStr);
+					}
+			});
+		}
+	}, function () {
+		return selModeSel.get() == 'drag';
+	});
+	svg.call(drag);
+
+	function onMouseWheel(event) {
+		var dir = event.wheelDelta != null ? event.wheelDelta : -event.detail;
+		if (dir != 0 ) {
+			var btnClass = dir < 0 ? ".zoomout" : ".zoomin";
+			topBoxElt.find(".viewbox " + btnClass).trigger('click');
+		}
+		return false;
+	}
+	if (svgElt[0].addEventListener)
+		svgElt[0].addEventListener('DOMMouseScroll', onMouseWheel, false);
+	svgElt[0].onmousewheel = onMouseWheel;
+
+	initControls();
+
+	var prev_pan = [0, 0];
+	drag.on("dragend.pan", function () {
+		// since clicking a marker on the map will also register a drag event,
+		// we need to check if there was actually any drag.
+		// TODO: figure out how to prevent this event being triggered on a
+		// marker click (if it's even posible)
+		var pan = panSel.get();
+		if (prev_pan.toString() !== pan.toString()) {
+			Utils.log("map pan, " + pan);
+			prev_pan = pan.slice();
+		}
+		return true;
+	});
+
+	return {
+		selection: selection
+	};
 }
 
 return {

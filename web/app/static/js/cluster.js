@@ -1,11 +1,6 @@
 var Cluster = (function () {
 
 function setup(container, parameters) {
-    var initialQuery = parameters.initialQuery;
-    var globalQuery = parameters.globalQuery;
-    var minZoom = parameters.minMapZoom;
-    var maxZoom = parameters.maxMapZoom;
-
     var width = 1024,
     height = 768;
     // The view space for SVG; this doesn't have to correspond to screen units.
@@ -27,18 +22,13 @@ function setup(container, parameters) {
     var svg = D3Utils.jqueryToD3(svgElt);
     var box = { x: viewBox.x + margins.left, y: viewBox.y + margins.top, width: viewBox.width - margins.left - margins.right, height: viewBox.height - margins.top - margins.bottom };
 
-    function setLoadingIndicator(enabled) {
-        svgElt.css('display', !enabled ? '' : 'none');
-        loadingIndicator.enabled(enabled);
-    }
-    setLoadingIndicator(true);
-
-    var ownCnstrQuery = new Queries.Query(globalQuery.backendUrl());
+    var localConstraintSet = new Queries.ConstraintSets.ConstraintSet();
 
     var selection = new Selections.SimpleSetSelection();
-    Selections.syncSetSelectionWithConstraint(selection, globalQuery, ownCnstrQuery, function () {
-        return new Queries.Constraint();
-    }, function (constraint, selection, added, removed) {
+
+    Selections.syncSetSelectionWithConstraint(selection, parameters.connection, parameters.globalConstraintSet, [localConstraintSet], function (selection) {
+	if (selection.isEmpty())
+		return null;
         /**
         * Hack fix to not allow more than 300 selections at a time.
         */
@@ -52,11 +42,10 @@ function setup(container, parameters) {
             selection.each(function (id) {
                 selectedPoints.push(id);
             });
-            constraint.name("Cluster: " + selectedPoints.length + (selectedPoints.length == 1 ? " point" : " points"));
-            constraint.set( {
+            return new Queries.Constraint({
                 type: 'tsneCoordinates',
                 points: selectedPoints
-            });
+            }, "Cluster: " + selectedPoints.length + (selectedPoints.length == 1 ? " point" : " points"));
         }
     });
 
@@ -68,21 +57,16 @@ function setup(container, parameters) {
         brushended();
     });
 
-    initialQuery.onResult({
-        coordinates: { type: 'tsnecoordinates' }
-    }, function (result) {
-        if (result.coordinates.coordinates.length == 0) {
-            loadingIndicator.error('coordinates', true);
-            setLoadingIndicator(true);
-        } else {
-            loadingIndicator.error('coordinates', false);
-            var data = getDataFromResult(result.coordinates.coordinates);
-            if (renderData(data)) {
-                setLoadingIndicator(false);
-            } else {
-                loadingIndicator.error('error rendering', true);
-            }
-        }
+    var initialQuery = new Queries.Queries.Query(
+        parameters.connection,
+        new Queries.ConstraintSets.ConstraintSet(),
+        { type: 'tsnecoordinates' }
+    );
+
+    DataSource.setupLoadingIndicator(loadingIndicator, initialQuery, [svgElt]);
+
+    initialQuery.on('result', function (result) {
+        renderData(getDataFromResult(result.coordinates));
     });
 
     var minX = 99999, minY = 9999;
