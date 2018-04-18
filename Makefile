@@ -61,7 +61,7 @@ index: prepare-index-build
 	@if [ ! -f ${OUT}/fullData.json ]; then \
 		echo "${OUT}/fullData.json is missing!"; \
 		echo "Downloading a copy from S3..."; \
-		wget https://s3.amazonaws.com/lensing.80x24.ca/fullData.json -O ${OUT}/fullData.json; \
+		wget https://s3-us-west-2.amazonaws.com/lensingwikipedia/fullData.json -O ${OUT}/fullData.json; \
 	fi
 	sudo docker run -i -t -v $(OUT):/build lensing-index
 	sudo chown -R ${USER} ${OUT}
